@@ -1,0 +1,326 @@
+/* src/styles.css */
+
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color-scheme: dark;
+  color: #f9fafb;
+  background-color: #020617;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  height: 100vh;
+}
+
+.app-root {
+  display: flex;
+  height: 100%;
+  background: radial-gradient(circle at top, #1e293b 0, #020617 50%, #000 100%);
+  color: #f9fafb;
+}
+
+/* Sidebar */
+
+.app-sidebar {
+  width: 320px;
+  border-right: 1px solid rgba(148, 163, 184, 0.4);
+  padding: 16px;
+  box-sizing: border-box;
+  backdrop-filter: blur(16px);
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.sidebar-title {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.item-search {
+  width: 92%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: rgba(15, 23, 42, 0.9);
+  color: #e5e7eb;
+  margin-bottom: 12px;
+  outline: none;
+}
+
+.item-search:focus {
+  border-color: #22c55e;
+}
+
+.item-list {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.item-list-ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.item-list-row {
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.12s ease;
+}
+
+.item-list-row:hover {
+  background: rgba(31, 41, 55, 0.8);
+}
+
+.item-list-row--selected {
+  background: linear-gradient(90deg, #22c55e33, #22c55e11);
+  border: 1px solid #22c55e88;
+}
+
+.item-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.item-meta {
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.item-price {
+  font-weight: 500;
+}
+
+.kama-symbol {
+  opacity: 0.8;
+  margin-left: 2px;
+}
+
+.item-date {
+  font-size: 0.7rem;
+}
+
+/* Main area */
+
+.app-main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-topbar {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+  padding: 10px 16px;
+  box-sizing: border-box;
+  backdrop-filter: blur(16px);
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.app-main {
+  flex: 1;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+/* Top bar */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.topbar-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-label {
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.topbar-select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.8);
+  background: rgba(15, 23, 42, 0.95);
+  color: #e5e7eb;
+}
+
+.topbar-range-group {
+  display: flex;
+  gap: 4px;
+}
+
+.topbar-range-btn {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  background: transparent;
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+.topbar-range-btn--active {
+  background: #22c55e33;
+  border-color: #22c55e;
+}
+
+/* Chart area */
+
+.chart-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.chart-title {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.chart-subtitle {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.chart-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.chart-stat {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.chart-stat-label {
+  color: #9ca3af;
+}
+
+.chart-stat-value {
+  font-weight: 600;
+}
+
+.chart-stat-value--up {
+  color: #22c55e;
+}
+
+.chart-stat-value--down {
+  color: #ef4444;
+}
+
+.chart-graph {
+  flex: 1;
+  min-height: 260px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(15, 23, 42, 0.8);
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #9ca3af;
+}
+
+/* Helpers */
+
+.info-text {
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.error-text {
+  font-size: 0.85rem;
+  color: #fecaca;
+}
+
+/* Titre + bouton refresh */
+
+.chart-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chart-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-refresh-btn {
+  border-radius: 999px;
+  border: 1px solid #22c55eaa;
+  background: #022c22;
+  color: #bbf7d0;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.12s ease, transform 0.08s ease, box-shadow 0.12s ease;
+}
+
+.chart-refresh-btn:hover {
+  background: #16a34a;
+  box-shadow: 0 0 0 1px #22c55e44;
+}
+
+.chart-refresh-btn:active {
+  transform: scale(0.97);
+}
+
+/* Tooltip du graphique */
+
+.chart-tooltip {
+  background: rgba(15, 23, 42, 0.95);
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.8);
+  padding: 8px 10px;
+  font-size: 0.8rem;
+  color: #e5e7eb;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+}
+
+.chart-tooltip-date {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+
+.chart-tooltip-price {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
