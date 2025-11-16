@@ -1,7 +1,7 @@
 // src/api.ts
 import type { ItemSummary, TimeseriesPoint, DateRangePreset } from './types';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
 
 function buildHeaders(): HeadersInit {
