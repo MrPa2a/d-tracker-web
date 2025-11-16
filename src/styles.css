@@ -22,7 +22,30 @@ body {
   color: #f9fafb;
 }
 
+/* Overlay utilisé en mobile quand la sidebar est ouverte */
+.app-overlay {
+  display: none;
+}
+
 /* Sidebar */
+
+/* Sidebar desktop (par défaut) */
+.app-sidebar {
+  width: 320px;
+  border-right: 1px solid rgba(148, 163, 184, 0.4);
+  padding: 16px;
+  box-sizing: border-box;
+  backdrop-filter: blur(16px);
+  background: rgba(15, 23, 42, 0.9);
+  z-index: 10;
+}
+
+/* Main area */
+.app-main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
 
 .app-sidebar {
   width: 320px;
@@ -109,6 +132,88 @@ body {
 
 .item-date {
   font-size: 0.7rem;
+}
+
+/* TOPBAR BURGER (mobile only) */
+.topbar-burger {
+  display: none;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.8);
+  background: rgba(15, 23, 42, 0.95);
+  color: #e5e7eb;
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+/* RESPONSIVE: vue mobile */
+@media (max-width: 768px) {
+  .app-root {
+    flex-direction: column;
+  }
+
+  .app-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 80%;
+    max-width: 320px;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease-out;
+    z-index: 30;
+  }
+
+  .app-root--sidebar-open .app-sidebar {
+    transform: translateX(0);
+  }
+
+  .app-overlay {
+    display: none;
+  }
+
+  .app-root--sidebar-open .app-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 20;
+  }
+
+  .app-main-area {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .app-topbar {
+    padding: 8px 10px;
+  }
+
+  .app-main {
+    padding: 10px;
+  }
+
+  /* Afficher le bouton burger en mobile */
+  .topbar-burger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Réorganisation de la topbar en colonne si nécessaire */
+  .topbar {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Chart container qui prend mieux la hauteur */
+  .chart-container {
+    min-height: calc(100vh - 120px); /* approx topbar + marges */
+  }
+
+  .chart-graph {
+    min-height: 220px;
+  }
 }
 
 /* Main area */

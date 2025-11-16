@@ -8,6 +8,7 @@ interface TopBarProps {
   onSelectServer: (server: string | null) => void;
   dateRange: DateRangePreset;
   onChangeDateRange: (range: DateRangePreset) => void;
+  onToggleSidebar: () => void; // 👈 nouveau
 }
 
 const RANGE_LABELS: Record<DateRangePreset, string> = {
@@ -23,9 +24,19 @@ export const TopBar: React.FC<TopBarProps> = ({
   onSelectServer,
   dateRange,
   onChangeDateRange,
+  onToggleSidebar,
 }) => {
   return (
     <div className="topbar">
+      {/* Bouton burger mobile */}
+      <button
+        className="topbar-burger"
+        type="button"
+        onClick={onToggleSidebar}
+      >
+        ☰ Items
+      </button>
+
       <div className="topbar-section">
         <span className="topbar-label">Serveur</span>
         <select

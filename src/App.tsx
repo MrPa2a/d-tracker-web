@@ -22,9 +22,14 @@ const App: React.FC = () => {
   const [timeseries, setTimeseries] = useState<TimeseriesPoint[] | null>(null);
   const [tsLoading, setTsLoading] = useState(false);
   const [tsError, setTsError] = useState<string | null>(null);
-
-  // 👉 nouveau : compteur de refresh
   const [tsRefreshIndex, setTsRefreshIndex] = useState(0);
+
+  // 👉 Nouveau : état d’ouverture de la sidebar
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen((open) => !open);
+  };
 
   // 1. Chargement des items
   useEffect(() => {
@@ -77,7 +82,7 @@ const App: React.FC = () => {
       .sort((a, b) => a.item_name.localeCompare(b.item_name, 'fr'));
   }, [items, selectedServer, search]);
 
-  // 2. Chargement de la timeseries (avec refreshIndex)
+  // 2. Chargement timeseries
   useEffect(() => {
     if (!selectedItem || !selectedServer) {
       setTimeseries(null);
@@ -104,11 +109,18 @@ const App: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [selectedItem, selectedServer, dateRange, tsRefreshIndex]); // 👈 ajouté tsRefreshIndex
+  }, [selectedItem, selectedServer, dateRange, tsRefreshIndex]);
 
-  // handler pour le bouton refresh
   const handleRefreshTimeseries = () => {
     setTsRefreshIndex((i) => i + 1);
+  };
+
+  // 👉 handler de sélection d’item qui ferme la sidebar sur mobile
+  const handleSelectItem = (item: ItemSummary | null) => {
+    setSelectedItem(item);
+    if (item && typeof window !== 'undefined' && window.innerWidth < 768) {
+      setIsSidebarOpen(false);
+    }
   };
 
   return (
@@ -121,7 +133,7 @@ const App: React.FC = () => {
           onSearchChange={setSearch}
           search={search}
           selectedItem={selectedItem}
-          onSelectItem={setSelectedItem}
+          onSelectItem={handleSelectItem}
         />
       }
       topBar={
@@ -131,6 +143,7 @@ const App: React.FC = () => {
           onSelectServer={setSelectedServer}
           dateRange={dateRange}
           onChangeDateRange={setDateRange}
+          onToggleSidebar={toggleSidebar}
         />
       }
       main={
@@ -141,9 +154,11 @@ const App: React.FC = () => {
           loading={tsLoading}
           error={tsError}
           dateRange={dateRange}
-          onRefresh={handleRefreshTimeseries}   // 👈 nouveau
+          onRefresh={handleRefreshTimeseries}
         />
       }
+      isSidebarOpen={isSidebarOpen}
+      onToggleSidebar={toggleSidebar}
     />
   );
 };
