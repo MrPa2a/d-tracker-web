@@ -272,7 +272,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       <section className="dashboard-row">
         <div className="dashboard-col">
-          <h3>Ma liste de surveillance</h3>
+          <h3>⭐ Ma liste de surveillance</h3>
           {favItems.length === 0 && <p className="info-text">Aucun item en favoris. Cliquez sur ☆ pour en ajouter.</p>}
           <ul className="movers-list">
             {favItems.map((it) => {
@@ -302,7 +302,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         <div className="dashboard-col">
-          <h3>Plus fortes hausses</h3>
+          <h3>📈 Plus fortes hausses</h3>
           {moversLoading && <p className="info-text">Chargement des movers…</p>}
           {moversError && <p className="error-text">{moversError}</p>}
           <ul className="movers-list">
@@ -330,7 +330,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         <div className="dashboard-col">
-          <h3>Plus fortes baisses</h3>
+          <h3>📉 Plus fortes baisses</h3>
           {moversLoading && <p className="info-text">Chargement des movers…</p>}
           <ul className="movers-list">
             {!moversLoading && moversDown && moversDown.length === 0 && <li className="info-text">Aucun résultat.</li>}
@@ -360,7 +360,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Volatility Section */}
       <section className="dashboard-row">
         <div className="dashboard-col">
-          <h3>Items les plus volatils 📈</h3>
+          <h3>⚡ Items les plus volatils</h3>
           {volatilityLoading && <p className="info-text">Chargement…</p>}
           <ul className="movers-list">
             {!volatilityLoading && volatile && volatile.length === 0 && <li className="info-text">Aucun résultat.</li>}
@@ -387,7 +387,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         <div className="dashboard-col">
-          <h3>Items les plus stables 🛡️</h3>
+          <h3>🛡️ Items les plus stables</h3>
           {volatilityLoading && <p className="info-text">Chargement…</p>}
           <ul className="movers-list">
             {!volatilityLoading && stable && stable.length === 0 && <li className="info-text">Aucun résultat.</li>}
