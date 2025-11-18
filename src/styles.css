@@ -228,6 +228,37 @@ body {
   }
 
   .topbar-search input {
+    font-size: 14px;
+  }
+
+  /* Chart stats: passer en grid responsive sur mobile */
+  .chart-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 8px;
+  }
+
+  .chart-stat {
+    font-size: 0.75rem;
+    text-align: left;
+  }
+
+  .chart-signal {
+    font-size: 0.7rem;
+    padding: 2px 4px;
+  }
+
+  /* Chart header: empiler les éléments sur mobile */
+  .chart-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .chart-title {
+    font-size: 1.25rem;
+  }
+
+  .chart-subtitle {
     width: 95%;
   }
 
@@ -282,7 +313,7 @@ body {
   .mover-stats {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: flex-end !important;
     gap: 2px !important;
     justify-content: center;
   }
@@ -451,6 +482,28 @@ body {
   color: #ef4444;
 }
 
+.chart-signal {
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.chart-signal--buy {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.chart-signal--sell {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.chart-signal--neutral {
+  background: rgba(250, 204, 21, 0.2);
+  color: #facc15;
+}
+
 .chart-graph {
   flex: 1;
   min-height: 260px;
@@ -595,7 +648,39 @@ body {
 /* Dashboard */
 .dashboard { padding: 6px 4px; }
 .dashboard h1 { margin: 0 0 12px; }
+
+.market-index {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: rgba(15,23,42,0.9);
+  border-radius: 8px;
+  border: 1px solid rgba(148,163,184,0.2);
+}
+
+.market-index-label {
+  font-size: 1rem;
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+.market-index-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.market-index-value--up {
+  color: #22c55e;
+}
+
+.market-index-value--down {
+  color: #ef4444;
+}
+
 .dashboard-row { display:flex; gap:16px; }
+.dashboard-row:not(:last-child) { margin-bottom: 16px; }
 .dashboard-col { flex: 1; background: rgba(15,23,42,0.7); border-radius:8px; padding:12px; border:1px solid rgba(148,163,184,0.08); }
 .watchlist { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px; }
 .watchlist-row { display:grid; grid-template-columns: 1fr 120px 100px 70px 30px; align-items:center; gap:8px; }

@@ -1,6 +1,7 @@
 // src/components/PriceChart.tsx
-import React, { useMemo } from 'react';
-import type { DateRangePreset, ItemSummary, TimeseriesPoint } from '../types';
+import React, { useMemo, useEffect, useState } from 'react';
+import type { DateRangePreset, ItemSummary, TimeseriesPoint, ItemStats } from '../types';
+import { fetchItemStats } from '../api';
 import {
   ResponsiveContainer,
   LineChart,
@@ -71,6 +72,38 @@ export const PriceChart: React.FC<PriceChartProps> = ({
   onToggleFavorite,
 }) => {
   const hasData = !!timeseries && Array.isArray(timeseries) && timeseries.length > 0;
+
+  // State for item stats (volatility, median, signal)
+  const [itemStats, setItemStats] = useState<ItemStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  // Load item stats
+  useEffect(() => {
+    if (!selectedItem || !server) {
+      setItemStats(null);
+      return;
+    }
+
+    let cancelled = false;
+    setStatsLoading(true);
+
+    fetchItemStats(selectedItem.item_name, server, dateRange)
+      .then((data) => {
+        if (cancelled) return;
+        setItemStats(data);
+        setStatsLoading(false);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error('Error fetching item stats:', err);
+        setItemStats(null);
+        setStatsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedItem, server, dateRange]);
 
   const stats = useMemo(() => {
     if (!hasData || !timeseries) return null;
@@ -169,6 +202,39 @@ export const PriceChart: React.FC<PriceChartProps> = ({
                 {stats.pctChange.toFixed(1)}%
               </span>
             </div>
+
+            {/* New advanced stats */}
+            {itemStats && !statsLoading && itemStats.volatility != null && itemStats.median_price != null && (
+              <>
+                <div className="chart-stat">
+                  <span className="chart-stat-label">Médian</span>
+                  <span className="chart-stat-value">
+                    {Math.round(itemStats.median_price).toLocaleString('fr-FR')} 💰
+                  </span>
+                </div>
+                <div className="chart-stat">
+                  <span className="chart-stat-label">Volatilité</span>
+                  <span className="chart-stat-value">
+                    {itemStats.volatility.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="chart-stat">
+                  <span className="chart-stat-label">Signal</span>
+                  <span 
+                    className={
+                      'chart-stat-value chart-signal ' +
+                      (itemStats.signal === 'buy'
+                        ? 'chart-signal--buy'
+                        : itemStats.signal === 'sell'
+                        ? 'chart-signal--sell'
+                        : 'chart-signal--neutral')
+                    }
+                  >
+                    {itemStats.signal === 'buy' ? '🟢 ACHAT' : itemStats.signal === 'sell' ? '🔴 VENTE' : '🟡 NEUTRE'}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

@@ -1,7 +1,7 @@
 // src/pages/Dashboard.tsx
 import React, { useEffect, useMemo, useState } from 'react';
-import type { ItemSummary, TimeseriesPoint, Mover, DateRangePreset } from '../types';
-import { fetchTimeseries, fetchMovers } from '../api';
+import type { ItemSummary, TimeseriesPoint, Mover, DateRangePreset, MarketIndex, VolatilityRanking } from '../types';
+import { fetchTimeseries, fetchMovers, fetchMarketIndex, fetchVolatilityRankings } from '../api';
 import {
   ResponsiveContainer,
   LineChart,
@@ -153,9 +153,97 @@ export const Dashboard: React.FC<DashboardProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [server, dateRange]);
 
+  // Market index (HDV)
+  const [marketIndex, setMarketIndex] = useState<MarketIndex | null>(null);
+  const [indexLoading, setIndexLoading] = useState(false);
+
+  // Volatility rankings
+  const [volatile, setVolatile] = useState<VolatilityRanking[] | null>(null);
+  const [stable, setStable] = useState<VolatilityRanking[] | null>(null);
+  const [volatilityLoading, setVolatilityLoading] = useState(false);
+
+  // Timeseries for volatility items
+  const [volatilityTs, setVolatilityTs] = useState<Record<string, TimeseriesPoint[] | null>>({});
+
+  const loadMarketStats = async () => {
+    if (!server) return;
+
+    // Load market index
+    setIndexLoading(true);
+    try {
+      const indexData = await fetchMarketIndex(server, dateRange);
+      console.log('Market index data:', indexData);
+      setMarketIndex(indexData);
+    } catch (err) {
+      console.error('Error loading market index:', err);
+      setMarketIndex(null);
+    } finally {
+      setIndexLoading(false);
+    }
+
+    // Load volatility rankings
+    setVolatilityLoading(true);
+    try {
+      const [volatileData, stableData] = await Promise.all([
+        fetchVolatilityRankings(server, dateRange, 10, 'desc'),
+        fetchVolatilityRankings(server, dateRange, 10, 'asc'),
+      ]);
+      setVolatile(volatileData);
+      setStable(stableData);
+
+      // Load timeseries for volatility items
+      const allItems = [...volatileData, ...stableData];
+      const tsMap: Record<string, TimeseriesPoint[] | null> = {};
+      for (const item of allItems) {
+        try {
+          const data = await fetchTimeseries(item.item_name, item.server, dateRange);
+          tsMap[`${item.server}::${item.item_name}`] = data;
+        } catch {
+          tsMap[`${item.server}::${item.item_name}`] = null;
+        }
+      }
+      setVolatilityTs(tsMap);
+    } catch (err) {
+      console.error('Error loading volatility rankings:', err);
+      setVolatile(null);
+      setStable(null);
+    } finally {
+      setVolatilityLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (server) {
+      loadMarketStats();
+    } else {
+      setMarketIndex(null);
+      setVolatile(null);
+      setStable(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [server, dateRange]);
+
   return (
     <div className="dashboard">
       <h1>Tableau de bord</h1>
+
+      {/* Market Index Section */}
+      {indexLoading && <p className="info-text">Chargement de l'indice HDV…</p>}
+      {marketIndex && !indexLoading && marketIndex.index_change != null && (
+        <div className="market-index">
+          <div className="market-index-label">Indice HDV ({marketIndex.total_items ?? 0} items)</div>
+          <div className={
+            'market-index-value ' +
+            (marketIndex.index_change > 0 ? 'market-index-value--up' : marketIndex.index_change < 0 ? 'market-index-value--down' : '')
+          }>
+            {marketIndex.index_change >= 0 ? '+' : ''}{marketIndex.index_change.toFixed(2)}%
+            {marketIndex.index_change > 0 ? ' ↗' : marketIndex.index_change < 0 ? ' ↘' : ''}
+          </div>
+        </div>
+      )}
+      {!indexLoading && !marketIndex && server && (
+        <p className="info-text">Aucune donnée d'indice disponible pour cette période.</p>
+      )}
 
       <section className="dashboard-row">
         <div className="dashboard-col">
@@ -236,6 +324,63 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <div className="mover-stats">
                     <div className="mover-price">{Math.round(m.last_price).toLocaleString('fr-FR')} 💰</div>
                     <div className="mover-pct down">{m.pct_change.toFixed(1)}%</div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </section>
+
+      {/* Volatility Section */}
+      <section className="dashboard-row">
+        <div className="dashboard-col">
+          <h3>Items les plus volatils 📈</h3>
+          {volatilityLoading && <p className="info-text">Chargement…</p>}
+          <ul className="movers-list">
+            {!volatilityLoading && volatile && volatile.length === 0 && <li className="info-text">Aucun résultat.</li>}
+            {volatile && volatile.map((v) => {
+              const key = `${v.server}::${v.item_name}`;
+              const ts = volatilityTs[key] ?? null;
+              return (
+                <li key={key} className="mover-row">
+                  <button className="mover-name" onClick={() => {
+                    const found = items.find(it => it.item_name === v.item_name && it.server === v.server);
+                    if (found) onNavigateToItem(found);
+                  }}>{v.item_name}</button>
+                  <div className="mover-spark">
+                    <SmallSparkline data={ts} />
+                  </div>
+                  <div className="mover-stats">
+                    <div className="mover-price">{Math.round(v.last_price).toLocaleString('fr-FR')} 💰</div>
+                    <div className="mover-pct" style={{color: '#facc15'}}>{v.volatility != null ? v.volatility.toFixed(1) : 'N/A'}%</div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        <div className="dashboard-col">
+          <h3>Items les plus stables 🛡️</h3>
+          {volatilityLoading && <p className="info-text">Chargement…</p>}
+          <ul className="movers-list">
+            {!volatilityLoading && stable && stable.length === 0 && <li className="info-text">Aucun résultat.</li>}
+            {stable && stable.map((s) => {
+              const key = `${s.server}::${s.item_name}`;
+              const ts = volatilityTs[key] ?? null;
+              return (
+                <li key={key} className="mover-row">
+                  <button className="mover-name" onClick={() => {
+                    const found = items.find(it => it.item_name === s.item_name && it.server === s.server);
+                    if (found) onNavigateToItem(found);
+                  }}>{s.item_name}</button>
+                  <div className="mover-spark">
+                    <SmallSparkline data={ts} />
+                  </div>
+                  <div className="mover-stats">
+                    <div className="mover-price">{Math.round(s.last_price).toLocaleString('fr-FR')} 💰</div>
+                    <div className="mover-pct" style={{color: '#60a5fa'}}>{s.volatility != null ? s.volatility.toFixed(1) : 'N/A'}%</div>
                   </div>
                 </li>
               );

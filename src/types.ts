@@ -20,3 +20,28 @@ export interface Mover {
   last_price: number;
   pct_change: number; // pourcentage sur la période demandée
 }
+
+export interface ItemStats {
+  item_name: string;
+  server: string;
+  volatility: number;      // écart-type des variations %
+  median_price: number;    // prix médian sur la période
+  signal: 'buy' | 'neutral' | 'sell'; // signal trading
+  ma7: number;             // moyenne mobile 7 jours
+  current_price: number;   // prix actuel
+}
+
+export interface MarketIndex {
+  server: string;
+  index_change: number;    // variation % moyenne pondérée
+  total_items: number;     // nombre d'items trackés
+}
+
+export interface VolatilityRanking {
+  item_name: string;
+  server: string;
+  volatility: number;      // volatilité %
+  last_price: number;
+  pct_change: number;
+  obs_count: number;       // nombre d'observations
+}

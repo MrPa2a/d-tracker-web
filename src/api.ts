@@ -1,6 +1,5 @@
 // src/api.ts
-import type { ItemSummary, TimeseriesPoint, DateRangePreset } from './types';
-import type { Mover } from './types';
+import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
@@ -98,6 +97,87 @@ export async function fetchMovers(
 
   if (!res.ok) {
     throw new Error(`Erreur API /api/movers : ${res.status} ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+/**
+ * Fetch item statistics (volatility, median, signal)
+ */
+export async function fetchItemStats(
+  itemName: string,
+  server: string,
+  range: DateRangePreset
+): Promise<ItemStats | null> {
+  const from = computeFromDate(range);
+  const to = toDateOnlyIso(new Date());
+
+  const params = new URLSearchParams({ item: itemName, server, from, to });
+
+  const res = await fetch(`${API_BASE}/api/item-stats?${params.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/item-stats : ${res.status} ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+/**
+ * Fetch market index (HDV index)
+ */
+export async function fetchMarketIndex(
+  server: string,
+  range: DateRangePreset
+): Promise<MarketIndex | null> {
+  const from = computeFromDate(range);
+  const to = toDateOnlyIso(new Date());
+
+  const params = new URLSearchParams({ server, from, to });
+
+  const res = await fetch(`${API_BASE}/api/market-index?${params.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/market-index : ${res.status} ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+/**
+ * Fetch volatility rankings (most/least volatile items)
+ */
+export async function fetchVolatilityRankings(
+  server: string,
+  range: DateRangePreset,
+  limit = 10,
+  order: 'asc' | 'desc' = 'desc'
+): Promise<VolatilityRanking[]> {
+  const from = computeFromDate(range);
+  const to = toDateOnlyIso(new Date());
+
+  const params = new URLSearchParams({ 
+    server, 
+    from, 
+    to, 
+    limit: String(limit),
+    order 
+  });
+
+  const res = await fetch(`${API_BASE}/api/volatility-rankings?${params.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/volatility-rankings : ${res.status} ${res.statusText}`);
   }
 
   return res.json();
