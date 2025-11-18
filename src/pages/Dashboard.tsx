@@ -80,17 +80,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const map: Record<string, TimeseriesPoint[] | null> = {};
-      for (const it of favItems.slice(0, 10)) {
+      const itemsToLoad = favItems.slice(0, 10);
+      
+      // Reset state first
+      setFavTs({});
+      
+      // Load all timeseries in parallel and update state progressively
+      const promises = itemsToLoad.map(async (it) => {
+        const key = `${it.server}::${it.item_name}`;
         try {
           const data = await fetchTimeseries(it.item_name, it.server, dateRange);
-          if (cancelled) return;
-          map[`${it.server}::${it.item_name}`] = data;
+          // Update state immediately when this item loads
+          if (!cancelled) {
+            setFavTs((prev) => ({ ...prev, [key]: data }));
+          }
+          return { key, data };
         } catch {
-          map[`${it.server}::${it.item_name}`] = null;
+          if (!cancelled) {
+            setFavTs((prev) => ({ ...prev, [key]: null }));
+          }
+          return { key, data: null };
         }
-      }
-      if (!cancelled) setFavTs(map);
+      });
+
+      await Promise.allSettled(promises);
     };
     if (favItems.length > 0 && server) load();
     return () => {
@@ -119,18 +132,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
       setMoversUp(up);
       setMoversDown(down);
 
-      // Load timeseries for movers
+      // Load timeseries for movers in parallel with progressive updates
       const allMovers = [...up, ...down];
-      const tsMap: Record<string, TimeseriesPoint[] | null> = {};
-      for (const m of allMovers) {
+      setMoversTs({}); // Reset first
+      
+      const promises = allMovers.map(async (m) => {
+        const key = `${m.server}::${m.item_name}`;
         try {
           const data = await fetchTimeseries(m.item_name, m.server, dateRange);
-          tsMap[`${m.server}::${m.item_name}`] = data;
+          // Update state immediately when this item loads
+          setMoversTs((prev) => ({ ...prev, [key]: data }));
+          return { key, data };
         } catch {
-          tsMap[`${m.server}::${m.item_name}`] = null;
+          setMoversTs((prev) => ({ ...prev, [key]: null }));
+          return { key, data: null };
         }
-      }
-      setMoversTs(tsMap);
+      });
+
+      await Promise.allSettled(promises);
     } catch (err: unknown) {
       console.error(err);
       const errMessage = err instanceof Error ? err.message : 'Erreur inconnue';
@@ -191,18 +210,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
       setVolatile(volatileData);
       setStable(stableData);
 
-      // Load timeseries for volatility items
+      // Load timeseries for volatility items in parallel with progressive updates
       const allItems = [...volatileData, ...stableData];
-      const tsMap: Record<string, TimeseriesPoint[] | null> = {};
-      for (const item of allItems) {
+      setVolatilityTs({}); // Reset first
+      
+      const promises = allItems.map(async (item) => {
+        const key = `${item.server}::${item.item_name}`;
         try {
           const data = await fetchTimeseries(item.item_name, item.server, dateRange);
-          tsMap[`${item.server}::${item.item_name}`] = data;
+          // Update state immediately when this item loads
+          setVolatilityTs((prev) => ({ ...prev, [key]: data }));
+          return { key, data };
         } catch {
-          tsMap[`${item.server}::${item.item_name}`] = null;
+          setVolatilityTs((prev) => ({ ...prev, [key]: null }));
+          return { key, data: null };
         }
-      }
-      setVolatilityTs(tsMap);
+      });
+
+      await Promise.allSettled(promises);
     } catch (err) {
       console.error('Error loading volatility rankings:', err);
       setVolatile(null);
