@@ -92,17 +92,22 @@ export const PriceChart: React.FC<PriceChartProps> = ({
       }
     };
 
+    // Mise à jour immédiate
     updateChartHeight();
-    window.addEventListener('resize', updateChartHeight);
     
-    // Aussi mettre à jour après un court délai pour s'assurer que le DOM est chargé
-    const timer = setTimeout(updateChartHeight, 100);
+    // Mise à jour après un court délai pour s'assurer que le DOM est complètement rendu
+    const timer1 = setTimeout(updateChartHeight, 50);
+    const timer2 = setTimeout(updateChartHeight, 200);
+    
+    // Écoute du resize
+    window.addEventListener('resize', updateChartHeight);
 
     return () => {
       window.removeEventListener('resize', updateChartHeight);
-      clearTimeout(timer);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
     };
-  }, [selectedItem]);
+  }, [selectedItem, hasData]); // Déclencher aussi quand hasData change
 
   // Load item stats
   useEffect(() => {
@@ -288,7 +293,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
 
       {!loading && !error && hasData && timeseries && (
         <div className="chart-graph" ref={chartContainerRef}>
-          <ResponsiveContainer width="100%" height={chartHeight}>
+          <ResponsiveContainer width="100%" height={chartHeight} maxHeight={600}>
             <LineChart data={timeseries}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
