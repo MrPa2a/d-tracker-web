@@ -275,7 +275,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <h3>⭐ Ma liste de surveillance</h3>
           {favItems.length === 0 && <p className="info-text">Aucun item en favoris. Cliquez sur ☆ pour en ajouter.</p>}
           <ul className="movers-list">
-            {favItems.map((it) => {
+            {favItems.slice(0, 5).map((it) => {
               const key = `${it.server}::${it.item_name}`;
               const ts = favTs[key] ?? null;
               // compute pct change from first/last if available
@@ -307,7 +307,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {moversError && <p className="error-text">{moversError}</p>}
           <ul className="movers-list">
             {!moversLoading && moversUp && moversUp.length === 0 && <li className="info-text">Aucun résultat.</li>}
-            {moversUp && moversUp.map((m) => {
+            {moversUp && moversUp.slice(0, 5).map((m) => {
               const key = `${m.server}::${m.item_name}`;
               const ts = moversTs[key] ?? null;
               return (
@@ -334,7 +334,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {moversLoading && <p className="info-text">Chargement des movers…</p>}
           <ul className="movers-list">
             {!moversLoading && moversDown && moversDown.length === 0 && <li className="info-text">Aucun résultat.</li>}
-            {moversDown && moversDown.map((m) => {
+            {moversDown && moversDown.slice(0, 5).map((m) => {
               const key = `${m.server}::${m.item_name}`;
               const ts = moversTs[key] ?? null;
               return (
@@ -364,7 +364,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {volatilityLoading && <p className="info-text">Chargement…</p>}
           <ul className="movers-list">
             {!volatilityLoading && volatile && volatile.length === 0 && <li className="info-text">Aucun résultat.</li>}
-            {volatile && volatile.map((v) => {
+            {volatile && volatile.slice(0, 5).map((v) => {
               const key = `${v.server}::${v.item_name}`;
               const ts = volatilityTs[key] ?? null;
               return (
@@ -391,7 +391,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {volatilityLoading && <p className="info-text">Chargement…</p>}
           <ul className="movers-list">
             {!volatilityLoading && stable && stable.length === 0 && <li className="info-text">Aucun résultat.</li>}
-            {stable && stable.map((s) => {
+            {stable && stable.slice(0, 5).map((s) => {
               const key = `${s.server}::${s.item_name}`;
               const ts = volatilityTs[key] ?? null;
               return (
