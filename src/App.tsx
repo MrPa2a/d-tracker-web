@@ -54,8 +54,11 @@ const App: React.FC = () => {
   const [tsError, setTsError] = useState<string | null>(null);
   const [tsRefreshIndex, setTsRefreshIndex] = useState(0);
 
-  // 👉 Nouveau : état d’ouverture de la sidebar
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // 👉 Nouveau : état d'ouverture de la sidebar
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    // Ouverte par défaut uniquement sur desktop
+    return typeof window !== 'undefined' && window.innerWidth >= 768;
+  });
 
   const toggleSidebar = () => {
     setIsSidebarOpen((open) => !open);
@@ -155,7 +158,7 @@ const App: React.FC = () => {
 
   const handleNavigateToItem = (item: ItemSummary) => {
     setSelectedItem(item);
-    // Don't open sidebar on mobile when navigating from dashboard
+    // Don't open sidebar on mobile
     if (typeof window !== 'undefined' && window.innerWidth >= 768) {
       setIsSidebarOpen(true);
     }
@@ -215,7 +218,6 @@ const App: React.FC = () => {
                 items={items}
                 favorites={favorites}
                 onNavigateToItem={handleNavigateToItem}
-                onToggleFavorite={handleToggleFavorite}
                 server={selectedServer}
                 dateRange={dateRange}
               />

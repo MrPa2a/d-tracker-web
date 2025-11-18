@@ -14,7 +14,6 @@ interface DashboardProps {
   items: ItemSummary[];
   favorites: Set<string>;
   onNavigateToItem: (item: ItemSummary) => void;
-  onToggleFavorite: (key: string) => void;
   server: string | null;
   dateRange: DateRangePreset;
 }
@@ -68,7 +67,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   items,
   favorites,
   onNavigateToItem,
-  onToggleFavorite,
   server,
   dateRange,
 }) => {
@@ -163,7 +161,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="dashboard-col">
           <h3>Ma liste de surveillance</h3>
           {favItems.length === 0 && <p className="info-text">Aucun item en favoris. Cliquez sur ☆ pour en ajouter.</p>}
-          <ul className="watchlist">
+          <ul className="movers-list">
             {favItems.map((it) => {
               const key = `${it.server}::${it.item_name}`;
               const ts = favTs[key] ?? null;
@@ -175,14 +173,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 pct = ((last - first) / first) * 100;
               }
               return (
-                <li key={key} className="watchlist-row">
-                  <button className="watchlist-name" onClick={() => onNavigateToItem(it)}>{it.item_name}</button>
-                  <div className="watchlist-spark">
+                <li key={key} className="mover-row">
+                  <button className="mover-name" onClick={() => onNavigateToItem(it)}>{it.item_name}</button>
+                  <div className="mover-spark">
                     <SmallSparkline data={ts} />
                   </div>
-                  <div className="watchlist-price">{Math.round(it.last_price).toLocaleString('fr-FR')} 💰</div>
-                  <div className={"watchlist-pct " + (pct > 0 ? 'up' : pct < 0 ? 'down' : '')}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</div>
-                  <button className="watchlist-fav" onClick={() => onToggleFavorite(key)} title="Retirer des favoris">★</button>
+                  <div className="mover-stats">
+                    <div className="mover-price">{Math.round(it.last_price).toLocaleString('fr-FR')} 💰</div>
+                    <div className={"mover-pct " + (pct > 0 ? 'up' : pct < 0 ? 'down' : '')}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</div>
+                  </div>
                 </li>
               );
             })}
