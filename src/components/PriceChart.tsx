@@ -160,6 +160,30 @@ export const PriceChart: React.FC<PriceChartProps> = ({
                 {favorites.has(`${server}::${selectedItem.item_name}`) ? '★' : '☆'}
               </button>
             )}
+            {itemStats && !statsLoading && itemStats.signal && (
+              <>
+                <span className="chart-title-separator">—</span>
+                <span 
+                  className={
+                    'chart-signal ' +
+                    (itemStats.signal === 'buy'
+                      ? 'chart-signal--buy'
+                      : itemStats.signal === 'sell'
+                      ? 'chart-signal--sell'
+                      : 'chart-signal--neutral')
+                  }
+                  title={
+                    itemStats.signal === 'buy' 
+                      ? 'Le prix est actuellement bas par rapport à la moyenne récente. Bon moment pour acheter !' 
+                      : itemStats.signal === 'sell'
+                      ? 'Le prix est actuellement élevé par rapport à la moyenne récente. Bon moment pour vendre !'
+                      : 'Le prix est stable autour de sa moyenne récente.'
+                  }
+                >
+                  {itemStats.signal === 'buy' ? '🟢 ACHAT' : itemStats.signal === 'sell' ? '🔴 VENTE' : '🟡 NEUTRE'}
+                </span>
+              </>
+            )}
           </div>
           <p className="chart-subtitle">
             Serveur : {server} — Période : {dateRange}
@@ -167,74 +191,61 @@ export const PriceChart: React.FC<PriceChartProps> = ({
         </div>
 
         {stats && (
-          <div className="chart-stats">
-            <div className="chart-stat">
-              <span className="chart-stat-label">Dernier prix</span>
-              <span className="chart-stat-value">
-                {Math.round(stats.last).toLocaleString('fr-FR')} 💰
-              </span>
-            </div>
-            <div className="chart-stat">
-              <span className="chart-stat-label">Min</span>
-              <span className="chart-stat-value">
-                {Math.round(stats.min).toLocaleString('fr-FR')}
-              </span>
-            </div>
-            <div className="chart-stat">
-              <span className="chart-stat-label">Max</span>
-              <span className="chart-stat-value">
-                {Math.round(stats.max).toLocaleString('fr-FR')}
-              </span>
-            </div>
-            <div className="chart-stat">
-              <span className="chart-stat-label">Évolution</span>
-              <span
-                className={
-                  'chart-stat-value ' +
-                  (stats.pctChange > 0
-                    ? 'chart-stat-value--up'
-                    : stats.pctChange < 0
-                    ? 'chart-stat-value--down'
-                    : '')
-                }
-              >
-                {stats.pctChange >= 0 ? '+' : ''}
-                {stats.pctChange.toFixed(1)}%
-              </span>
-            </div>
-
-            {/* New advanced stats */}
-            {itemStats && !statsLoading && itemStats.volatility != null && itemStats.median_price != null && (
-              <>
+          <div className="chart-stats-wrapper">
+            <div className="chart-stats">
+              <div className="chart-stat">
+                <span className="chart-stat-label">Dernier prix</span>
+                <span className="chart-stat-value">
+                  {Math.round(stats.last).toLocaleString('fr-FR')}
+                </span>
+              </div>
+              <div className="chart-stat">
+                <span className="chart-stat-label">Min</span>
+                <span className="chart-stat-value">
+                  {Math.round(stats.min).toLocaleString('fr-FR')}
+                </span>
+              </div>
+              <div className="chart-stat">
+                <span className="chart-stat-label">Max</span>
+                <span className="chart-stat-value">
+                  {Math.round(stats.max).toLocaleString('fr-FR')}
+                </span>
+              </div>
+              {itemStats && !statsLoading && itemStats.median_price != null && (
                 <div className="chart-stat">
                   <span className="chart-stat-label">Médian</span>
                   <span className="chart-stat-value">
-                    {Math.round(itemStats.median_price).toLocaleString('fr-FR')} 💰
+                    {Math.round(itemStats.median_price).toLocaleString('fr-FR')}
                   </span>
                 </div>
+              )}
+            </div>
+            <div className="chart-stats">
+              <div className="chart-stat">
+                <span className="chart-stat-label">Évolution</span>
+                <span
+                  className={
+                    'chart-stat-value ' +
+                    (stats.pctChange > 0
+                      ? 'chart-stat-value--up'
+                      : stats.pctChange < 0
+                      ? 'chart-stat-value--down'
+                      : '')
+                  }
+                >
+                  {stats.pctChange >= 0 ? '+' : ''}
+                  {stats.pctChange.toFixed(1)}%
+                </span>
+              </div>
+              {itemStats && !statsLoading && itemStats.volatility != null && (
                 <div className="chart-stat">
                   <span className="chart-stat-label">Volatilité</span>
-                  <span className="chart-stat-value">
+                  <span className="chart-stat-value" style={{color: '#facc15'}}>
                     {itemStats.volatility.toFixed(1)}%
                   </span>
                 </div>
-                <div className="chart-stat">
-                  <span className="chart-stat-label">Signal</span>
-                  <span 
-                    className={
-                      'chart-stat-value chart-signal ' +
-                      (itemStats.signal === 'buy'
-                        ? 'chart-signal--buy'
-                        : itemStats.signal === 'sell'
-                        ? 'chart-signal--sell'
-                        : 'chart-signal--neutral')
-                    }
-                  >
-                    {itemStats.signal === 'buy' ? '🟢 ACHAT' : itemStats.signal === 'sell' ? '🔴 VENTE' : '🟡 NEUTRE'}
-                  </span>
-                </div>
-              </>
-            )}
+              )}
+            </div>
           </div>
         )}
       </div>
