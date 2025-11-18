@@ -13,3 +13,10 @@ export interface TimeseriesPoint {
 }
 
 export type DateRangePreset = '7d' | '30d' | '90d' | '365d';
+
+export interface Mover {
+  item_name: string;
+  server: string;
+  last_price: number;
+  pct_change: number; // pourcentage sur la période demandée
+}

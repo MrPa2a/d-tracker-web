@@ -10,6 +10,8 @@ interface ItemListProps {
   onSearchChange: (value: string) => void;
   selectedItem: ItemSummary | null;
   onSelectItem: (item: ItemSummary | null) => void;
+  favorites?: Set<string>;
+  onToggleFavorite?: (key: string) => void;
 }
 
 export const ItemList: React.FC<ItemListProps> = ({
@@ -20,6 +22,8 @@ export const ItemList: React.FC<ItemListProps> = ({
   onSearchChange,
   selectedItem,
   onSelectItem,
+  favorites = new Set<string>(),
+  onToggleFavorite,
 }) => {
   return (
     <div className="item-list">
@@ -45,6 +49,9 @@ export const ItemList: React.FC<ItemListProps> = ({
             selectedItem?.item_name === item.item_name &&
             selectedItem?.server === item.server;
 
+          const key = `${item.server}::${item.item_name}`;
+          const isFav = favorites.has(key);
+
           return (
             <li
               key={`${item.server}::${item.item_name}`}
@@ -53,7 +60,21 @@ export const ItemList: React.FC<ItemListProps> = ({
               }
               onClick={() => onSelectItem(item)}
             >
-              <div className="item-name">{item.item_name}</div>
+              <div className="item-name">
+                {item.item_name}
+                <button
+                  className={'item-fav-btn' + (isFav ? ' item-fav-btn--active' : '')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onToggleFavorite) {
+                      onToggleFavorite(key);
+                    }
+                  }}
+                  title={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                >
+                  {isFav ? '★' : '☆'}
+                </button>
+              </div>
               <div className="item-meta">
                 <span className="item-price">
                   {Math.round(item.last_price).toLocaleString('fr-FR')}{' '}

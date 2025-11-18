@@ -18,7 +18,10 @@ interface PriceChartProps {
   loading: boolean;
   error: string | null;
   dateRange: DateRangePreset;
-  onRefresh: () => void; // 👈 nouveau
+  onRefresh: () => void;
+  onBackToDashboard?: () => void;
+  favorites?: Set<string>;
+  onToggleFavorite?: (key: string) => void;
 }
 
 // Tooltip custom, cohérent avec le thème
@@ -63,6 +66,9 @@ export const PriceChart: React.FC<PriceChartProps> = ({
   error,
   dateRange,
   onRefresh,
+  onBackToDashboard,
+  favorites = new Set<string>(),
+  onToggleFavorite,
 }) => {
   const hasData = !!timeseries && Array.isArray(timeseries) && timeseries.length > 0;
 
@@ -91,10 +97,17 @@ export const PriceChart: React.FC<PriceChartProps> = ({
     <div className="chart-container">
       <div className="chart-header">
         <div className="chart-header-left">
-          <div className="chart-title-row">
-            <h2 className="chart-title">{selectedItem.item_name}</h2>
-
-            {/* 🔁 Bouton Refresh */}
+          <div className="chart-nav-row">
+            {onBackToDashboard && (
+              <button
+                className="chart-back-link"
+                type="button"
+                onClick={onBackToDashboard}
+                title="Retour au tableau de bord"
+              >
+                ← Retour au tableau de bord
+              </button>
+            )}
             <button
               className="chart-refresh-btn"
               type="button"
@@ -102,6 +115,18 @@ export const PriceChart: React.FC<PriceChartProps> = ({
             >
               ↻ Actualiser
             </button>
+          </div>
+          <div className="chart-title-row">
+            <h2 className="chart-title">{selectedItem.item_name}</h2>
+            {onToggleFavorite && (
+              <button
+                className={'chart-fav-btn' + (favorites.has(`${server}::${selectedItem.item_name}`) ? ' chart-fav-btn--active' : '')}
+                onClick={() => onToggleFavorite(`${server}::${selectedItem.item_name}`)}
+                title={favorites.has(`${server}::${selectedItem.item_name}`) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+              >
+                {favorites.has(`${server}::${selectedItem.item_name}`) ? '★' : '☆'}
+              </button>
+            )}
           </div>
           <p className="chart-subtitle">
             Serveur : {server} — Période : {dateRange}

@@ -6,6 +6,7 @@ import { Layout } from './components/Layout';
 import { ItemList } from './components/ItemList';
 import { PriceChart } from './components/PriceChart';
 import { TopBar } from './components/TopBar';
+import Dashboard from './pages/Dashboard';
 
 const DEFAULT_RANGE: DateRangePreset = '30d';
 
@@ -17,6 +18,35 @@ const App: React.FC = () => {
   const [selectedServer, setSelectedServer] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [selectedItem, setSelectedItem] = useState<ItemSummary | null>(null);
+
+  // Favorites stored as set of "server::item_name"
+  const [favorites, setFavorites] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem('favorites');
+      if (!raw) return new Set<string>();
+      const arr = JSON.parse(raw) as string[];
+      return new Set(arr);
+    } catch (e) {
+      console.warn('Failed to load favorites', e);
+      return new Set<string>();
+    }
+  });
+
+  const persistFavorites = (next: Set<string>) => {
+    setFavorites(next);
+    try {
+      localStorage.setItem('favorites', JSON.stringify(Array.from(next)));
+    } catch (e) {
+      console.warn('Failed to persist favorites', e);
+    }
+  };
+
+  const handleToggleFavorite = (key: string) => {
+    const next = new Set(favorites);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    persistFavorites(next);
+  };
 
   const [dateRange, setDateRange] = useState<DateRangePreset>(DEFAULT_RANGE);
   const [timeseries, setTimeseries] = useState<TimeseriesPoint[] | null>(null);
@@ -115,12 +145,24 @@ const App: React.FC = () => {
     setTsRefreshIndex((i) => i + 1);
   };
 
-  // 👉 handler de sélection d’item qui ferme la sidebar sur mobile
+  // handler de sélection d’item qui ferme la sidebar sur mobile
   const handleSelectItem = (item: ItemSummary | null) => {
     setSelectedItem(item);
     if (item && typeof window !== 'undefined' && window.innerWidth < 768) {
       setIsSidebarOpen(false);
     }
+  };
+
+  const handleNavigateToItem = (item: ItemSummary) => {
+    setSelectedItem(item);
+    // Don't open sidebar on mobile when navigating from dashboard
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+      setIsSidebarOpen(true);
+    }
+  };
+
+  const handleBackToDashboard = () => {
+    setSelectedItem(null);
   };
 
   return (
@@ -134,6 +176,8 @@ const App: React.FC = () => {
           search={search}
           selectedItem={selectedItem}
           onSelectItem={handleSelectItem}
+          favorites={favorites}
+          onToggleFavorite={handleToggleFavorite}
         />
       }
       topBar={
@@ -144,18 +188,40 @@ const App: React.FC = () => {
           dateRange={dateRange}
           onChangeDateRange={setDateRange}
           onToggleSidebar={toggleSidebar}
+          items={items}
+          onNavigateToItem={handleNavigateToItem}
         />
       }
       main={
-        <PriceChart
-          selectedItem={selectedItem}
-          server={selectedServer}
-          timeseries={timeseries}
-          loading={tsLoading}
-          error={tsError}
-          dateRange={dateRange}
-          onRefresh={handleRefreshTimeseries}
-        />
+        selectedItem ? (
+          <PriceChart
+            selectedItem={selectedItem}
+            server={selectedServer}
+            timeseries={timeseries}
+            loading={tsLoading}
+            error={tsError}
+            dateRange={dateRange}
+            onRefresh={handleRefreshTimeseries}
+            onBackToDashboard={handleBackToDashboard}
+            favorites={favorites}
+            onToggleFavorite={handleToggleFavorite}
+          />
+        ) : (
+          // Dashboard landing when no item selected
+          <>
+            {/* lazy load Dashboard component */}
+            <React.Suspense fallback={<div className="info-text">Chargement...</div>}>
+              <Dashboard
+                items={items}
+                favorites={favorites}
+                onNavigateToItem={handleNavigateToItem}
+                onToggleFavorite={handleToggleFavorite}
+                server={selectedServer}
+                dateRange={dateRange}
+              />
+            </React.Suspense>
+          </>
+        )
       }
       isSidebarOpen={isSidebarOpen}
       onToggleSidebar={toggleSidebar}
