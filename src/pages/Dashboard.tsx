@@ -70,9 +70,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
   server,
   dateRange,
 }) => {
+  // Get favorite items from the currently selected server
   const favItems = useMemo(() => {
-    return items.filter((it) => favorites.has(`${it.server}::${it.item_name}`));
-  }, [items, favorites]);
+    if (!server) return [];
+    return items.filter((it) => 
+      it.server === server && favorites.has(it.item_name)
+    );
+  }, [items, favorites, server]);
 
   // timeseries cache for favorites
   const [favTs, setFavTs] = useState<Record<string, TimeseriesPoint[] | null>>({});
@@ -80,6 +84,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      if (!server) return;
+      
       const itemsToLoad = favItems.slice(0, 10);
       
       // Reset state first
@@ -87,15 +93,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
       
       // Load all timeseries in parallel and update state progressively
       const promises = itemsToLoad.map(async (it) => {
-        const key = `${it.server}::${it.item_name}`;
+        const key = `${it.item_name}`; // Use only item name as key since server is global
         try {
-          const data = await fetchTimeseries(it.item_name, it.server, dateRange);
+          const data = await fetchTimeseries(it.item_name, server, dateRange);
           // Update state immediately when this item loads
           if (!cancelled) {
             setFavTs((prev) => ({ ...prev, [key]: data }));
           }
           return { key, data };
-        } catch {
+        } catch (err) {
+          console.error(`Error loading timeseries for ${it.item_name} on ${server}:`, err);
           if (!cancelled) {
             setFavTs((prev) => ({ ...prev, [key]: null }));
           }
@@ -105,7 +112,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       await Promise.allSettled(promises);
     };
-    if (favItems.length > 0 && server) load();
+    if (favItems.length > 0 && server) {
+      load();
+    } else {
+      setFavTs({});
+    }
     return () => {
       cancelled = true;
     };
@@ -273,27 +284,52 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <section className="dashboard-row">
         <div className="dashboard-col">
           <h3>⭐ Ma liste de surveillance</h3>
-          {favItems.length === 0 && <p className="info-text">Aucun item en favoris. Cliquez sur ☆ pour en ajouter.</p>}
+          {favorites.size === 0 && <p className="info-text">Aucun item en favoris. Cliquez sur ☆ pour en ajouter.</p>}
+          {favorites.size > 0 && favItems.length === 0 && server && (
+            <p className="info-text">Aucun de vos favoris n'est disponible sur <strong>{server}</strong>.</p>
+          )}
+          {!server && favorites.size > 0 && <p className="info-text">Sélectionnez un serveur pour voir vos favoris.</p>}
           <ul className="movers-list">
             {favItems.slice(0, 5).map((it) => {
-              const key = `${it.server}::${it.item_name}`;
-              const ts = favTs[key] ?? null;
+              const key = it.item_name;
+              const ts = favTs[key];
+              const isLoading = ts === undefined;
+              const hasPriceData = it.last_price != null && it.last_price > 0;
+              const hasEvolution = ts && ts.length > 1;
+              
               // compute pct change from first/last if available
               let pct = 0;
-              if (ts && ts.length > 1) {
+              if (hasEvolution) {
                 const first = ts[0]!.avg_price;
                 const last = ts[ts.length - 1]!.avg_price;
                 pct = ((last - first) / first) * 100;
               }
+              
               return (
                 <li key={key} className="mover-row">
                   <button className="mover-name" onClick={() => onNavigateToItem(it)}>{it.item_name}</button>
                   <div className="mover-spark">
-                    <SmallSparkline data={ts} />
+                    {isLoading ? (
+                      <div className="sparkline-loading">⏳</div>
+                    ) : (
+                      <SmallSparkline data={ts} />
+                    )}
                   </div>
                   <div className="mover-stats">
-                    <div className="mover-price">{Math.round(it.last_price).toLocaleString('fr-FR')} 💰</div>
-                    <div className={"mover-pct " + (pct > 0 ? 'up' : pct < 0 ? 'down' : '')}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</div>
+                    {isLoading ? (
+                      <div className="mover-loading">Chargement...</div>
+                    ) : hasPriceData ? (
+                      <>
+                        <div className="mover-price">{Math.round(it.last_price).toLocaleString('fr-FR')} 💰</div>
+                        {hasEvolution ? (
+                          <div className={"mover-pct " + (pct > 0 ? 'up' : pct < 0 ? 'down' : '')}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</div>
+                        ) : (
+                          <div className="mover-pct" style={{color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.85em'}}>N/A</div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="mover-no-data" title="Aucune donnée disponible sur cette période">N/A</div>
+                    )}
                   </div>
                 </li>
               );

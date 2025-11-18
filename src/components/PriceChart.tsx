@@ -180,11 +180,11 @@ export const PriceChart: React.FC<PriceChartProps> = ({
             <h2 className="chart-title">{selectedItem.item_name}</h2>
             {onToggleFavorite && (
               <button
-                className={'chart-fav-btn' + (favorites.has(`${server}::${selectedItem.item_name}`) ? ' chart-fav-btn--active' : '')}
-                onClick={() => onToggleFavorite(`${server}::${selectedItem.item_name}`)}
-                title={favorites.has(`${server}::${selectedItem.item_name}`) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                className={'chart-fav-btn' + (favorites.has(selectedItem.item_name) ? ' chart-fav-btn--active' : '')}
+                onClick={() => onToggleFavorite(selectedItem.item_name)}
+                title={favorites.has(selectedItem.item_name) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
               >
-                {favorites.has(`${server}::${selectedItem.item_name}`) ? '★' : '☆'}
+                {favorites.has(selectedItem.item_name) ? '★' : '☆'}
               </button>
             )}
             {itemStats && !statsLoading && itemStats.signal && (

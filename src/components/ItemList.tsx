@@ -49,8 +49,7 @@ export const ItemList: React.FC<ItemListProps> = ({
             selectedItem?.item_name === item.item_name &&
             selectedItem?.server === item.server;
 
-          const key = `${item.server}::${item.item_name}`;
-          const isFav = favorites.has(key);
+          const isFav = favorites.has(item.item_name);
 
           return (
             <li
@@ -67,7 +66,7 @@ export const ItemList: React.FC<ItemListProps> = ({
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onToggleFavorite) {
-                      onToggleFavorite(key);
+                      onToggleFavorite(item.item_name);
                     }
                   }}
                   title={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}

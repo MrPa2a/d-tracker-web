@@ -19,13 +19,18 @@ const App: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedItem, setSelectedItem] = useState<ItemSummary | null>(null);
 
-  // Favorites stored as set of "server::item_name"
+  // Favorites stored as set of item names (server-independent)
   const [favorites, setFavorites] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem('favorites');
       if (!raw) return new Set<string>();
       const arr = JSON.parse(raw) as string[];
-      return new Set(arr);
+      // Migration: if old format with "server::item_name", extract item_name only
+      const migrated = arr.map(fav => {
+        const parts = fav.split('::');
+        return parts.length > 1 ? parts[1] : fav;
+      });
+      return new Set(migrated);
     } catch (e) {
       console.warn('Failed to load favorites', e);
       return new Set<string>();

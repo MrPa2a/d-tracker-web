@@ -1166,4 +1166,33 @@ body {
 .movers-btn { margin-top:6px; }
 
 .sparkline { width:120px; height:40px; overflow: visible; position: relative; }
-.sparkline-empty { color:#9ca3af; }
+.sparkline-empty { 
+  color:#9ca3af; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  font-size: 18px;
+}
+
+.sparkline-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  font-size: 16px;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.mover-loading,
+.mover-no-data {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+  text-align: right;
+}
