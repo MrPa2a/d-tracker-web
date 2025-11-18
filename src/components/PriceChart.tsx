@@ -1,5 +1,5 @@
 // src/components/PriceChart.tsx
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useState, useRef } from 'react';
 import type { DateRangePreset, ItemSummary, TimeseriesPoint, ItemStats } from '../types';
 import { fetchItemStats } from '../api';
 import {
@@ -76,6 +76,33 @@ export const PriceChart: React.FC<PriceChartProps> = ({
   // State for item stats (volatility, median, signal)
   const [itemStats, setItemStats] = useState<ItemStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+
+  // Ref et state pour la hauteur dynamique du graphique
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [chartHeight, setChartHeight] = useState(350);
+
+  // Mesurer la hauteur du container et adapter
+  useEffect(() => {
+    const updateChartHeight = () => {
+      if (chartContainerRef.current) {
+        const height = chartContainerRef.current.offsetHeight;
+        // Soustraire le padding (16px * 2 = 32px)
+        const calculatedHeight = Math.max(height - 32, 250);
+        setChartHeight(calculatedHeight);
+      }
+    };
+
+    updateChartHeight();
+    window.addEventListener('resize', updateChartHeight);
+    
+    // Aussi mettre à jour après un court délai pour s'assurer que le DOM est chargé
+    const timer = setTimeout(updateChartHeight, 100);
+
+    return () => {
+      window.removeEventListener('resize', updateChartHeight);
+      clearTimeout(timer);
+    };
+  }, [selectedItem]);
 
   // Load item stats
   useEffect(() => {
@@ -260,8 +287,8 @@ export const PriceChart: React.FC<PriceChartProps> = ({
       )}
 
       {!loading && !error && hasData && timeseries && (
-        <div className="chart-graph">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="chart-graph" ref={chartContainerRef}>
+          <ResponsiveContainer width="100%" height={chartHeight}>
             <LineChart data={timeseries}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
