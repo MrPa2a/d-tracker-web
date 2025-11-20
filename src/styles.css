@@ -898,6 +898,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  z-index: -1;
 }
 
 .price-filter-inputs {
@@ -1089,7 +1090,7 @@ body {
   margin: 4px 0 0; 
   padding: 8px 0; 
   max-height: 300px; 
-  overflow: auto;
+  overflow: hidden;
   backdrop-filter: blur(16px);
   box-shadow: var(--shadow-xl), 0 0 20px rgba(59, 130, 246, 0.1);
 }
@@ -1187,6 +1188,7 @@ body {
   box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   position: relative;
   overflow: hidden;
+  z-index: -1;
 }
 
 .market-index::before {
@@ -1231,6 +1233,7 @@ body {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: visible;
+  z-index: 0; 
 }
 
 .dashboard-col::before {
