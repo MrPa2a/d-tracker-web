@@ -1,12 +1,13 @@
 // src/App.tsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { fetchItems, fetchTimeseries } from './api';
-import type { DateRangePreset, ItemSummary, TimeseriesPoint } from './types';
+import { Routes, Route, useNavigate, useMatch } from 'react-router-dom';
+import { fetchItems } from './api';
+import type { DateRangePreset, ItemSummary } from './types';
 import { Layout } from './components/Layout';
 import { ItemList } from './components/ItemList';
-import { PriceChart } from './components/PriceChart';
 import { TopBar } from './components/TopBar';
 import Dashboard from './pages/Dashboard';
+import ItemDetailsPage from './pages/ItemDetailsPage';
 
 const DEFAULT_RANGE: DateRangePreset = '30d';
 
@@ -15,10 +16,11 @@ const App: React.FC = () => {
   const [itemsLoading, setItemsLoading] = useState(true);
   const [itemsError, setItemsError] = useState<string | null>(null);
 
-  const [selectedServer, setSelectedServer] = useState<string | null>(null);
+  // Dashboard server state
+  const [dashboardServer, setDashboardServer] = useState<string | null>(null);
+  
   const [search, setSearch] = useState('');
-  const [selectedItem, setSelectedItem] = useState<ItemSummary | null>(null);
-
+  
   // Favorites stored as set of item names (server-independent)
   const [favorites, setFavorites] = useState<Set<string>>(() => {
     try {
@@ -54,12 +56,6 @@ const App: React.FC = () => {
   };
 
   const [dateRange, setDateRange] = useState<DateRangePreset>(DEFAULT_RANGE);
-  const [timeseries, setTimeseries] = useState<TimeseriesPoint[] | null>(null);
-  const [tsLoading, setTsLoading] = useState(false);
-  const [tsError, setTsError] = useState<string | null>(null);
-  const [tsRefreshIndex, setTsRefreshIndex] = useState(0);
-
-  // Price filter state (lifted from Dashboard)
   const [minPrice, setMinPrice] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<string>('');
 
@@ -72,6 +68,12 @@ const App: React.FC = () => {
   const toggleSidebar = () => {
     setIsSidebarOpen((open) => !open);
   };
+
+  const navigate = useNavigate();
+  const itemMatch = useMatch('/item/:server/:itemName');
+
+  // Determine current server based on route or dashboard state
+  const currentServer = itemMatch ? itemMatch.params.server : dashboardServer;
 
   // 1. Chargement des items
   useEffect(() => {
@@ -86,8 +88,8 @@ const App: React.FC = () => {
         setItems(data);
         setItemsLoading(false);
 
-        if (data.length > 0 && !selectedServer) {
-          setSelectedServer(data[0].server);
+        if (data.length > 0 && !dashboardServer) {
+          setDashboardServer(data[0].server);
         }
       })
       .catch((err) => {
@@ -109,73 +111,58 @@ const App: React.FC = () => {
   );
 
   useEffect(() => {
-    if (selectedServer && !servers.includes(selectedServer)) {
-      setSelectedServer(servers[0] ?? null);
-      setSelectedItem(null);
+    if (dashboardServer && servers.length > 0 && !servers.includes(dashboardServer)) {
+      setDashboardServer(servers[0] ?? null);
     }
-  }, [selectedServer, servers]);
+  }, [dashboardServer, servers]);
 
   const filteredItems = useMemo(() => {
     return items
-      .filter((i) => !selectedServer || i.server === selectedServer)
+      .filter((i) => !currentServer || i.server === currentServer)
       .filter((i) =>
         i.item_name.toLowerCase().includes(search.trim().toLowerCase())
       )
       .sort((a, b) => a.item_name.localeCompare(b.item_name, 'fr'));
-  }, [items, selectedServer, search]);
+  }, [items, currentServer, search]);
 
-  // 2. Chargement timeseries
-  useEffect(() => {
-    if (!selectedItem || !selectedServer) {
-      setTimeseries(null);
-      return;
+  // Handle server selection from TopBar
+  const handleSelectServer = (newServer: string | null) => {
+    if (!newServer) return;
+    
+    if (itemMatch) {
+      // If on item page, navigate to same item on new server
+      const { itemName } = itemMatch.params;
+      if (itemName) {
+        navigate(`/item/${newServer}/${itemName}`);
+      }
+    } else {
+      // If on dashboard, just update state
+      setDashboardServer(newServer);
     }
-
-    let cancelled = false;
-    setTsLoading(true);
-    setTsError(null);
-
-    fetchTimeseries(selectedItem.item_name, selectedServer, dateRange)
-      .then((data) => {
-        if (cancelled) return;
-        setTimeseries(data);
-        setTsLoading(false);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        console.error(err);
-        setTsError(err.message || 'Erreur inconnue');
-        setTsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedItem, selectedServer, dateRange, tsRefreshIndex]);
-
-  const handleRefreshTimeseries = () => {
-    setTsRefreshIndex((i) => i + 1);
   };
 
   // handler de sélection d’item qui ferme la sidebar sur mobile
   const handleSelectItem = (item: ItemSummary | null) => {
-    setSelectedItem(item);
-    if (item && typeof window !== 'undefined' && window.innerWidth < 768) {
-      setIsSidebarOpen(false);
+    if (item) {
+      navigate(`/item/${item.server}/${item.item_name}`);
+      if (typeof window !== 'undefined' && window.innerWidth < 768) {
+        setIsSidebarOpen(false);
+      }
+    } else {
+      navigate('/');
     }
   };
 
   const handleNavigateToItem = (item: ItemSummary) => {
-    setSelectedItem(item);
+    navigate(`/item/${item.server}/${item.item_name}`);
     // Don't open sidebar on mobile
     if (typeof window !== 'undefined' && window.innerWidth >= 768) {
       setIsSidebarOpen(true);
     }
   };
 
-  const handleBackToDashboard = () => {
-    setSelectedItem(null);
-  };
+  // Determine selected item for sidebar highlighting
+  const selectedItem = itemMatch && currentServer ? items.find(i => i.server === currentServer && i.item_name === itemMatch.params.itemName) || null : null;
 
   return (
     <Layout
@@ -195,8 +182,8 @@ const App: React.FC = () => {
       topBar={
         <TopBar
           servers={servers}
-          selectedServer={selectedServer}
-          onSelectServer={setSelectedServer}
+          selectedServer={currentServer || null}
+          onSelectServer={handleSelectServer}
           dateRange={dateRange}
           onChangeDateRange={setDateRange}
           onToggleSidebar={toggleSidebar}
@@ -209,36 +196,35 @@ const App: React.FC = () => {
         />
       }
       main={
-        selectedItem ? (
-          <PriceChart
-            selectedItem={selectedItem}
-            server={selectedServer}
-            timeseries={timeseries}
-            loading={tsLoading}
-            error={tsError}
-            dateRange={dateRange}
-            onRefresh={handleRefreshTimeseries}
-            onBackToDashboard={handleBackToDashboard}
-            favorites={favorites}
-            onToggleFavorite={handleToggleFavorite}
+        <Routes>
+          <Route 
+            path="/" 
+            element={
+              <React.Suspense fallback={<div className="info-text">Chargement...</div>}>
+                <Dashboard
+                  items={items}
+                  favorites={favorites}
+                  onNavigateToItem={handleNavigateToItem}
+                  server={dashboardServer}
+                  dateRange={dateRange}
+                  minPrice={minPrice}
+                  maxPrice={maxPrice}
+                />
+              </React.Suspense>
+            } 
           />
-        ) : (
-          // Dashboard landing when no item selected
-          <>
-            {/* lazy load Dashboard component */}
-            <React.Suspense fallback={<div className="info-text">Chargement...</div>}>
-              <Dashboard
+          <Route 
+            path="/item/:server/:itemName" 
+            element={
+              <ItemDetailsPage 
                 items={items}
-                favorites={favorites}
-                onNavigateToItem={handleNavigateToItem}
-                server={selectedServer}
                 dateRange={dateRange}
-                minPrice={minPrice}
-                maxPrice={maxPrice}
+                favorites={favorites}
+                onToggleFavorite={handleToggleFavorite}
               />
-            </React.Suspense>
-          </>
-        )
+            } 
+          />
+        </Routes>
       }
       isSidebarOpen={isSidebarOpen}
       onToggleSidebar={toggleSidebar}

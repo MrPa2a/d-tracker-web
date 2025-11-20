@@ -58,7 +58,7 @@ const SmallSparklineTooltip: React.FC<{ active?: boolean; payload?: any[]; coord
   return createPortal(
     <div style={style} className="bg-bg-secondary/90 backdrop-blur-md border border-border-normal p-2 rounded shadow-lg text-xs whitespace-nowrap">
       <div className="font-bold text-text-primary mb-0.5 flex items-center justify-center">
-        {Math.round(price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '10px', height: '10px', verticalAlign: 'middle', marginLeft: '2px'}} />
+        {Math.round(price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '10px', height: '10px', verticalAlign: 'middle', marginLeft: '5px'}} />
       </div>
       <div className="text-text-muted text-center">{formattedDate}</div>
     </div>,

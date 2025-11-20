@@ -53,7 +53,7 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
   return (
     <div className="bg-bg-secondary/90 backdrop-blur-md border border-border-normal p-3 rounded-lg shadow-xl">
       <div className="text-sm font-bold text-text-primary mb-1 flex items-center">
-        Prix: {Math.round(price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" className='opacity-80 ml-0.5 w-3 h-3 align-middle' style={{marginLeft: '-2px'}} />
+        Prix: {Math.round(price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" className='opacity-80 ml-0.5 w-3 h-3 align-middle' style={{marginLeft: '5px'}} />
       </div>
       <div className="text-xs text-text-muted">{formattedDate}</div>
     </div>
