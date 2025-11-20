@@ -27,24 +27,26 @@ export const ItemList: React.FC<ItemListProps> = ({
   onToggleFavorite,
 }) => {
   return (
-    <div className="item-list">
-      <h2 className="sidebar-title">Items</h2>
+    <div className="flex flex-col h-full">
+      <h2 className="mb-4 text-xl font-bold bg-gradient-to-br from-accent-primary to-accent-secondary bg-clip-text text-transparent tracking-tight">
+        Items
+      </h2>
       <input
         type="text"
-        className="item-search"
+        className="w-full px-4 py-3 rounded-xl border border-border-normal bg-bg-secondary/50 text-text-primary mb-4 outline-none transition-all duration-300 text-sm shadow-inner focus:border-accent-primary focus:bg-bg-secondary/80 focus:ring-2 focus:ring-accent-primary/10 focus:shadow-lg transform focus:-translate-y-px placeholder:text-text-muted"
         placeholder="Rechercher un item…"
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
       />
 
-      {loading && <p className="info-text">Chargement des items…</p>}
-      {error && <p className="error-text">Erreur : {error}</p>}
+      {loading && <p className="text-text-muted text-sm text-center py-4">Chargement des items…</p>}
+      {error && <p className="text-accent-danger text-sm text-center py-4">Erreur : {error}</p>}
 
       {!loading && !error && items.length === 0 && (
-        <p className="info-text">Aucun item trouvé.</p>
+        <p className="text-text-muted text-sm text-center py-4">Aucun item trouvé.</p>
       )}
 
-      <ul className="item-list-ul">
+      <ul className="list-none p-0 m-0 overflow-y-auto overflow-x-hidden flex-1">
         {items.map((item) => {
           const isSelected =
             selectedItem?.item_name === item.item_name &&
@@ -55,15 +57,22 @@ export const ItemList: React.FC<ItemListProps> = ({
           return (
             <li
               key={`${item.server}::${item.item_name}`}
-              className={
-                'item-list-row' + (isSelected ? ' item-list-row--selected' : '')
-              }
+              className={`
+                p-3 mb-1.5 cursor-pointer rounded-lg transition-all duration-300 border relative overflow-hidden group
+                ${isSelected 
+                  ? 'bg-gradient-to-br from-accent-success/15 to-accent-success/5 border-accent-success/40 shadow-sm' 
+                  : 'border-transparent hover:bg-bg-secondary/60 hover:border-accent-primary/30 hover:shadow-sm'
+                }
+              `}
               onClick={() => onSelectItem(item)}
             >
-              <div className="item-name">
+              {/* Hover effect background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-accent-primary/5 to-accent-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+              <div className="text-sm font-semibold text-text-primary relative z-10 flex justify-between items-center">
                 {item.item_name}
                 <button
-                  className={'item-fav-btn' + (isFav ? ' item-fav-btn--active' : '')}
+                  className={`ml-2 text-lg leading-none bg-transparent border-none cursor-pointer transition-colors ${isFav ? 'text-accent-warning' : 'text-text-muted hover:text-accent-warning'}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onToggleFavorite) {
@@ -75,12 +84,12 @@ export const ItemList: React.FC<ItemListProps> = ({
                   {isFav ? '★' : '☆'}
                 </button>
               </div>
-              <div className="item-meta">
-                <span className="item-price">
+              <div className="mt-1 flex flex-col text-xs text-text-muted relative z-10">
+                <span className="font-medium flex items-center">
                   {Math.round(item.last_price).toLocaleString('fr-FR')}{' '}
-                  <img src={kamaIcon} alt="kamas" className="kama-icon"/>
+                  <img src={kamaIcon} alt="kamas" className="opacity-80 ml-0.5 w-2.5 h-2.5 align-middle"/>
                 </span>
-                <span className="item-date">
+                <span className="text-[0.7rem]">
                   {new Date(item.last_observation_at).toLocaleString('fr-FR')}
                 </span>
               </div>

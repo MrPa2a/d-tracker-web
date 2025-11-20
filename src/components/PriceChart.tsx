@@ -51,11 +51,11 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
   }
 
   return (
-    <div className="chart-tooltip">
-      <div className="chart-tooltip-price">
-        Prix: {Math.round(price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" className='kama-tooltip' style={{width: '12px', height: '12px', verticalAlign: 'middle', marginLeft: '-2px'}} />
+    <div className="bg-bg-secondary/90 backdrop-blur-md border border-border-normal p-3 rounded-lg shadow-xl">
+      <div className="text-sm font-bold text-text-primary mb-1 flex items-center">
+        Prix: {Math.round(price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" className='opacity-80 ml-0.5 w-3 h-3 align-middle' style={{marginLeft: '-2px'}} />
       </div>
-      <div className="chart-tooltip-date">{formattedDate}</div>
+      <div className="text-xs text-text-muted">{formattedDate}</div>
     </div>
   );
 };
@@ -153,20 +153,20 @@ export const PriceChart: React.FC<PriceChartProps> = ({
 
   if (!selectedItem || !server) {
     return (
-      <div className="chart-empty">
+      <div className="flex items-center justify-center h-full text-text-muted text-lg">
         <p>Sélectionne un item dans la liste pour afficher son historique.</p>
       </div>
     );
   }
 
   return (
-    <div className="chart-container">
-      <div className="chart-header">
-        <div className="chart-header-left">
-          <div className="chart-nav-row">
+    <div className="flex flex-col h-full bg-bg-secondary/30 backdrop-blur-sm rounded-2xl border border-border-normal p-4 md:p-6 shadow-lg">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3 mb-1">
             {onBackToDashboard && (
               <button
-                className="chart-back-link"
+                className="text-xs text-accent-primary hover:text-accent-primary/80 hover:underline bg-transparent border-none cursor-pointer p-0"
                 type="button"
                 onClick={onBackToDashboard}
                 title="Retour au tableau de bord"
@@ -175,18 +175,18 @@ export const PriceChart: React.FC<PriceChartProps> = ({
               </button>
             )}
             <button
-              className="chart-refresh-btn"
+              className="text-xs text-text-muted hover:text-text-primary bg-transparent border border-border-normal rounded px-2 py-0.5 cursor-pointer transition-colors"
               type="button"
               onClick={onRefresh}
             >
               ↻ Actualiser
             </button>
           </div>
-          <div className="chart-title-row">
-            <h2 className="chart-title">{selectedItem.item_name}</h2>
+          <div className="flex items-center flex-wrap gap-3">
+            <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-text-primary to-text-secondary bg-clip-text text-transparent m-0">{selectedItem.item_name}</h2>
             {onToggleFavorite && (
               <button
-                className={'chart-fav-btn' + (favorites.has(selectedItem.item_name) ? ' chart-fav-btn--active' : '')}
+                className={`text-2xl leading-none bg-transparent border-none cursor-pointer transition-colors ${favorites.has(selectedItem.item_name) ? 'text-accent-warning' : 'text-text-muted hover:text-accent-warning'}`}
                 onClick={() => onToggleFavorite(selectedItem.item_name)}
                 title={favorites.has(selectedItem.item_name) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
               >
@@ -195,16 +195,16 @@ export const PriceChart: React.FC<PriceChartProps> = ({
             )}
             {itemStats && !statsLoading && itemStats.signal && (
               <>
-                <span className="chart-title-separator">—</span>
+                <span className="text-border-strong">—</span>
                 <span 
-                  className={
-                    'chart-signal ' +
-                    (itemStats.signal === 'buy'
-                      ? 'chart-signal--buy'
+                  className={`
+                    px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider
+                    ${itemStats.signal === 'buy'
+                      ? 'bg-accent-success/20 text-accent-success border border-accent-success/30'
                       : itemStats.signal === 'sell'
-                      ? 'chart-signal--sell'
-                      : 'chart-signal--neutral')
-                  }
+                      ? 'bg-accent-danger/20 text-accent-danger border border-accent-danger/30'
+                      : 'bg-accent-warning/20 text-accent-warning border border-accent-warning/30'}
+                  `}
                   title={
                     itemStats.signal === 'buy' 
                       ? 'Le prix est actuellement bas par rapport à la moyenne récente. Bon moment pour acheter !' 
@@ -218,62 +218,62 @@ export const PriceChart: React.FC<PriceChartProps> = ({
               </>
             )}
           </div>
-          <p className="chart-subtitle">
+          <p className="text-sm text-text-muted m-0">
             Serveur : {server} — Période : {dateRange}
           </p>
         </div>
 
         {stats && (
-          <div className="chart-stats-wrapper">
-            <div className="chart-stats">
-              <div className="chart-stat">
-                <span className="chart-stat-label">Dernier prix</span>
-                <span className="chart-stat-value">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex gap-4 bg-bg-primary/40 p-3 rounded-xl border border-border-subtle">
+              <div className="flex flex-col">
+                <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Dernier prix</span>
+                <span className="text-sm md:text-base font-bold text-text-primary font-mono">
                   {Math.round(stats.last).toLocaleString('fr-FR')}
                 </span>
               </div>
-              <div className="chart-stat">
-                <span className="chart-stat-label">Min</span>
-                <span className="chart-stat-value">
+              <div className="flex flex-col">
+                <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Min</span>
+                <span className="text-sm md:text-base font-bold text-text-primary font-mono">
                   {Math.round(stats.min).toLocaleString('fr-FR')}
                 </span>
               </div>
-              <div className="chart-stat">
-                <span className="chart-stat-label">Max</span>
-                <span className="chart-stat-value">
+              <div className="flex flex-col">
+                <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Max</span>
+                <span className="text-sm md:text-base font-bold text-text-primary font-mono">
                   {Math.round(stats.max).toLocaleString('fr-FR')}
                 </span>
               </div>
               {itemStats && !statsLoading && itemStats.median_price != null && (
-                <div className="chart-stat">
-                  <span className="chart-stat-label">Médian</span>
-                  <span className="chart-stat-value">
+                <div className="flex flex-col">
+                  <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Médian</span>
+                  <span className="text-sm md:text-base font-bold text-text-primary font-mono">
                     {Math.round(itemStats.median_price).toLocaleString('fr-FR')}
                   </span>
                 </div>
               )}
             </div>
-            <div className="chart-stats">
-              <div className="chart-stat">
-                <span className="chart-stat-label">Évolution</span>
+            <div className="flex gap-4 bg-bg-primary/40 p-3 rounded-xl border border-border-subtle">
+              <div className="flex flex-col">
+                <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Évolution</span>
                 <span
-                  className={
-                    'chart-stat-value ' +
-                    (stats.pctChange > 0
-                      ? 'chart-stat-value--up'
+                  className={`
+                    text-sm md:text-base font-bold font-mono
+                    ${stats.pctChange > 0
+                      ? 'text-accent-success'
                       : stats.pctChange < 0
-                      ? 'chart-stat-value--down'
-                      : '')
-                  }
+                      ? 'text-accent-danger'
+                      : ''}
+                  `}
                 >
                   {stats.pctChange >= 0 ? '+' : ''}
                   {stats.pctChange.toFixed(1)}%
                 </span>
               </div>
               {itemStats && !statsLoading && itemStats.volatility != null && (
-                <div className="chart-stat">
-                  <span className="chart-stat-label">Volatilité</span>
-                  <span className="chart-stat-value" style={{color: '#facc15'}}>
+                <div className="flex flex-col">
+                  <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Volatilité</span>
+                  <span className="text-sm md:text-base font-bold font-mono text-accent-warning">
                     {itemStats.volatility.toFixed(1)}%
                   </span>
                 </div>
@@ -283,31 +283,33 @@ export const PriceChart: React.FC<PriceChartProps> = ({
         )}
       </div>
 
-      {loading && <p className="info-text">Chargement de la courbe…</p>}
-      {error && <p className="error-text">Erreur : {error}</p>}
+      {loading && <p className="text-text-muted text-sm text-center py-4">Chargement de la courbe…</p>}
+      {error && <p className="text-accent-danger text-sm text-center py-4">Erreur : {error}</p>}
 
       {!loading && !error && !hasData && (
-        <p className="info-text">
+        <p className="text-text-muted text-sm text-center py-4">
           Aucune donnée disponible pour cet item sur la période sélectionnée.
         </p>
       )}
 
       {!loading && !error && hasData && timeseries && (
-        <div className="chart-graph" ref={chartContainerRef}>
+        <div className="flex-1 min-h-[300px] w-full" ref={chartContainerRef}>
           <ResponsiveContainer width="100%" height={chartHeight} maxHeight={600}>
             <LineChart data={timeseries}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />
+              <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
               <Tooltip
                 content={<CustomTooltip />}
-                cursor={{ strokeDasharray: '3 3' }}
+                cursor={{ strokeDasharray: '3 3', stroke: 'rgba(148, 163, 184, 0.4)' }}
               />
               <Line
                 type="monotone"
                 dataKey="avg_price"
                 dot={false}
                 strokeWidth={2}
+                stroke="#3b82f6"
+                activeDot={{ r: 6, strokeWidth: 0, fill: '#3b82f6' }}
               />
             </LineChart>
           </ResponsiveContainer>

@@ -1,5 +1,6 @@
 // src/pages/Dashboard.tsx
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { ItemSummary, TimeseriesPoint, Mover, DateRangePreset, MarketIndex, VolatilityRanking } from '../types';
 import { fetchTimeseries, fetchMovers, fetchMarketIndex, fetchVolatilityRankings } from '../api';
 import kamaIcon from '../assets/kama.png';
@@ -17,12 +18,14 @@ interface DashboardProps {
   onNavigateToItem: (item: ItemSummary) => void;
   server: string | null;
   dateRange: DateRangePreset;
+  minPrice: string;
+  maxPrice: string;
 }
 
 // Tooltip custom for sparklines
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const SmallSparklineTooltip: React.FC<{ active?: boolean; payload?: any[] }> = ({ active, payload }) => {
-  if (!active || !payload || payload.length === 0) return null;
+const SmallSparklineTooltip: React.FC<{ active?: boolean; payload?: any[]; coordinate?: { x: number; y: number }; containerNode?: HTMLDivElement | null }> = ({ active, payload, coordinate, containerNode }) => {
+  if (!active || !payload || payload.length === 0 || !coordinate || !containerNode) return null;
 
   const point = payload[0];
   const price = point.value as number;
@@ -39,24 +42,43 @@ const SmallSparklineTooltip: React.FC<{ active?: boolean; payload?: any[] }> = (
     // keep raw date
   }
 
-  return (
-    <div className="chart-tooltip">
-      <div className="chart-tooltip-price">
-        {Math.round(price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '12px', height: '12px', verticalAlign: 'middle', marginLeft: '-2px'}} />
+  const rect = containerNode.getBoundingClientRect();
+  const x = rect.left + coordinate.x;
+  const y = rect.top + coordinate.y;
+
+  const style: React.CSSProperties = {
+    position: 'fixed',
+    left: x,
+    top: y - 10,
+    transform: 'translate(-50%, -100%)',
+    zIndex: 9999,
+    pointerEvents: 'none',
+  };
+
+  return createPortal(
+    <div style={style} className="bg-bg-secondary/90 backdrop-blur-md border border-border-normal p-2 rounded shadow-lg text-xs whitespace-nowrap">
+      <div className="font-bold text-text-primary mb-0.5 flex items-center justify-center">
+        {Math.round(price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '10px', height: '10px', verticalAlign: 'middle', marginLeft: '2px'}} />
       </div>
-      <div className="chart-tooltip-date">{formattedDate}</div>
-    </div>
+      <div className="text-text-muted text-center">{formattedDate}</div>
+    </div>,
+    document.body
   );
 };
 
 const SmallSparkline: React.FC<{ data: TimeseriesPoint[] | null }> = ({ data }) => {
-  if (!data || data.length === 0) return <div className="sparkline-empty">—</div>;
+  const [containerNode, setContainerNode] = useState<HTMLDivElement | null>(null);
+  if (!data || data.length === 0) return <div className="text-center text-text-muted text-xs leading-10">—</div>;
   return (
-    <div className="sparkline">
+    <div className="w-full h-full" ref={setContainerNode}>
       <ResponsiveContainer width="100%" height={40}>
         <LineChart data={data}>
           <XAxis dataKey="date" hide />
-          <Tooltip content={<SmallSparklineTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+          <Tooltip
+            content={<SmallSparklineTooltip containerNode={containerNode} />}
+            cursor={{ strokeDasharray: '3 3' }}
+            isAnimationActive={false}
+          />
           <Line type="monotone" dataKey="avg_price" stroke="#60a5fa" dot={false} strokeWidth={2} />
         </LineChart>
       </ResponsiveContainer>
@@ -70,11 +92,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onNavigateToItem,
   server,
   dateRange,
+  minPrice,
+  maxPrice,
 }) => {
-  // Price filter state
-  const [minPrice, setMinPrice] = useState<string>('');
-  const [maxPrice, setMaxPrice] = useState<string>('');
-
   // Parse price filters
   const parsedMinPrice = minPrice ? parseFloat(minPrice) : null;
   const parsedMaxPrice = maxPrice ? parseFloat(maxPrice) : null;
@@ -305,75 +325,36 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, [server, dateRange, parsedMinPrice, parsedMaxPrice]);
 
   return (
-    <div className="dashboard">
-      <div className="dashboard-header">
-        <h1>Tableau de bord</h1>
-        <div className="price-filter">
-          <div className="price-filter-inputs">
-            <div className="price-filter-group">
-              <label htmlFor="min-price">Prix min</label>
-              <input
-                id="min-price"
-                type="number"
-                placeholder="Min"
-                value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
-                className="price-filter-input"
-              />
-            </div>
-            <span className="price-filter-separator">—</span>
-            <div className="price-filter-group">
-              <label htmlFor="max-price">Prix max</label>
-              <input
-                id="max-price"
-                type="number"
-                placeholder="Max"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-                className="price-filter-input"
-              />
-            </div>
-          </div>
-          {(minPrice || maxPrice) && (
-            <button
-              className="price-filter-clear"
-              onClick={() => {
-                setMinPrice('');
-                setMaxPrice('');
-              }}
-              title="Réinitialiser le filtre"
-            >
-              ✕
-            </button>
-          )}
-        </div>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
+        <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-text-primary to-text-secondary bg-clip-text text-transparent m-0">Tableau de bord</h1>
       </div>
 
       {/* Market Index Section */}
-      {indexLoading && <p className="info-text">Chargement de l'indice HDV…</p>}
+      {indexLoading && <p className="text-text-muted text-sm text-center py-4">Chargement de l'indice HDV…</p>}
       {marketIndex && !indexLoading && marketIndex.index_change != null && (
-        <div className="market-index">
-          <div className="market-index-label">Indice HDV ({marketIndex.total_items ?? 0} items)</div>
-          <div className={
-            'market-index-value ' +
-            (marketIndex.index_change > 0 ? 'market-index-value--up' : marketIndex.index_change < 0 ? 'market-index-value--down' : '')
-          }>
+        <div className="bg-linear-to-r from-bg-secondary to-bg-primary p-4 rounded-xl border border-border-normal flex flex-col items-center justify-center shadow-lg relative overflow-hidden">
+          <div className="text-sm text-text-muted uppercase tracking-wider font-semibold mb-1 relative z-10">Indice HDV ({marketIndex.total_items ?? 0} items)</div>
+          <div className={`
+            text-3xl font-bold font-mono relative z-10
+            ${marketIndex.index_change > 0 ? 'text-accent-success' : marketIndex.index_change < 0 ? 'text-accent-danger' : ''}
+          `}>
             {marketIndex.index_change >= 0 ? '+' : ''}{marketIndex.index_change.toFixed(2)}%
             {marketIndex.index_change > 0 ? ' ↗' : marketIndex.index_change < 0 ? ' ↘' : ''}
           </div>
         </div>
       )}
       {!indexLoading && !marketIndex && server && (
-        <p className="info-text">Aucune donnée d'indice disponible pour cette période.</p>
+        <p className="text-text-muted text-sm text-center py-4">Aucune donnée d'indice disponible pour cette période.</p>
       )}
 
-      <section className="dashboard-row">
-        <div className="dashboard-col">
-          <div className="watchlist-header">
-            <h3>⭐ Ma liste de surveillance</h3>
-            <div className="watchlist-sort">
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="bg-bg-secondary/30 backdrop-blur-sm rounded-xl border border-border-normal p-4 flex flex-col shadow-md">
+          <div className="flex justify-between items-center mb-4 border-b border-border-subtle pb-2">
+            <h3 className="text-lg font-bold text-text-primary m-0 border-none pb-0">⭐ Ma liste de surveillance</h3>
+            <div className="flex gap-1">
               <button
-                className={"sort-btn" + (watchlistSort?.startsWith('price') ? ' active' : '')}
+                className={`px-2 py-1 text-xs font-medium rounded transition-all duration-300 flex items-center gap-1 border ${watchlistSort?.startsWith('price') ? 'bg-accent-primary/10 border-accent-primary text-accent-primary shadow-[0_0_10px_rgba(59,130,246,0.4)] hover:bg-accent-primary/20 hover:shadow-[0_0_12px_rgba(59,130,246,0.6)]' : 'bg-transparent border-border-normal text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:shadow-[0_0_8px_rgba(59,130,246,0.2)] hover:bg-accent-primary/5'}`}
                 onClick={() => {
                   if (watchlistSort === 'price-asc') setWatchlistSort('price-desc');
                   else if (watchlistSort === 'price-desc') setWatchlistSort(null);
@@ -384,7 +365,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <img src={kamaIcon} alt="kamas" style={{width: '12px', height: '12px', verticalAlign: 'middle'}} /> {watchlistSort === 'price-asc' ? '↑' : watchlistSort === 'price-desc' ? '↓' : '⇅'}
               </button>
               <button
-                className={"sort-btn" + (watchlistSort?.startsWith('pct') ? ' active' : '')}
+                className={`px-2 py-1 text-xs font-medium rounded transition-all duration-300 flex items-center gap-1 border ${watchlistSort?.startsWith('pct') ? 'bg-accent-primary/10 border-accent-primary text-accent-primary shadow-[0_0_10px_rgba(59,130,246,0.4)] hover:bg-accent-primary/20 hover:shadow-[0_0_12px_rgba(59,130,246,0.6)]' : 'bg-transparent border-border-normal text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:shadow-[0_0_8px_rgba(59,130,246,0.2)] hover:bg-accent-primary/5'}`}
                 onClick={() => {
                   if (watchlistSort === 'pct-asc') setWatchlistSort('pct-desc');
                   else if (watchlistSort === 'pct-desc') setWatchlistSort(null);
@@ -396,12 +377,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </button>
             </div>
           </div>
-          {favorites.size === 0 && <p className="info-text">Aucun item en favoris. Cliquez sur ☆ pour en ajouter.</p>}
+          {favorites.size === 0 && <p className="text-text-muted text-sm text-center py-4">Aucun item en favoris. Cliquez sur ☆ pour en ajouter.</p>}
           {favorites.size > 0 && favItems.length === 0 && server && (
-            <p className="info-text">Aucun de vos favoris n'est disponible sur <strong>{server}</strong>.</p>
+            <p className="text-text-muted text-sm text-center py-4">Aucun de vos favoris n'est disponible sur <strong>{server}</strong>.</p>
           )}
-          {!server && favorites.size > 0 && <p className="info-text">Sélectionnez un serveur pour voir vos favoris.</p>}
-          <ul className="movers-list movers-list--scrollable">
+          {!server && favorites.size > 0 && <p className="text-text-muted text-sm text-center py-4">Sélectionnez un serveur pour voir vos favoris.</p>}
+          <ul className="list-none p-0 m-0 flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1">
             {sortedFavItems.map((it) => {
               const key = it.item_name;
               const ts = favTs[key];
@@ -418,29 +399,29 @@ export const Dashboard: React.FC<DashboardProps> = ({
               }
               
               return (
-                <li key={key} className="mover-row">
-                  <button className="mover-name" onClick={() => onNavigateToItem(it)}>{it.item_name}</button>
-                  <div className="mover-spark">
+                <li key={key} className="grid grid-cols-[minmax(0,1fr)_6rem_auto] gap-4 items-center p-2 rounded-lg bg-bg-primary/40 border border-transparent hover:border-border-strong hover:bg-bg-primary/60 transition-all duration-200">
+                  <button className="text-sm font-medium text-text-primary hover:text-accent-primary bg-transparent border-none cursor-pointer text-left p-0 truncate" onClick={() => onNavigateToItem(it)}>{it.item_name}</button>
+                  <div className="h-10 hidden sm:block w-full">
                     {isLoading ? (
-                      <div className="sparkline-loading">⏳</div>
+                      <div className="text-center text-xs leading-10 opacity-50">⏳</div>
                     ) : (
                       <SmallSparkline data={ts} />
                     )}
                   </div>
-                  <div className="mover-stats">
+                  <div className="flex flex-col items-end min-w-20">
                     {isLoading ? (
-                      <div className="mover-loading">Chargement...</div>
+                      <div className="text-xs text-text-muted italic">Chargement...</div>
                     ) : hasPriceData ? (
                       <>
-                        <div className="mover-price">{Math.round(it.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
+                        <div className="text-base font-mono text-text-primary flex items-center">{Math.round(it.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
                         {hasEvolution ? (
-                          <div className={"mover-pct " + (pct > 0 ? 'up' : pct < 0 ? 'down' : '')}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</div>
+                          <div className={`text-sm font-bold ${pct > 0 ? 'text-accent-success' : pct < 0 ? 'text-accent-danger' : ''}`}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</div>
                         ) : (
-                          <div className="mover-pct" style={{color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.85em'}}>N/A</div>
+                          <div className="text-[0.7rem] text-text-muted italic font-normal">N/A</div>
                         )}
                       </>
                     ) : (
-                      <div className="mover-no-data" title="Aucune donnée disponible sur cette période">N/A</div>
+                      <div className="text-[0.7rem] text-text-muted italic" title="Aucune donnée disponible sur cette période">N/A</div>
                     )}
                   </div>
                 </li>
@@ -449,27 +430,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </ul>
         </div>
 
-        <div className="dashboard-col">
-          <h3>📈 Plus fortes hausses</h3>
-          {moversLoading && <p className="info-text">Chargement des movers…</p>}
-          {moversError && <p className="error-text">{moversError}</p>}
-          <ul className="movers-list">
-            {!moversLoading && moversUp && moversUp.length === 0 && <li className="info-text">Aucun résultat.</li>}
+        <div className="bg-bg-secondary/30 backdrop-blur-sm rounded-xl border border-border-normal p-4 flex flex-col shadow-md">
+          <h3 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2 border-b border-border-subtle pb-2">📈 Plus fortes hausses</h3>
+          {moversLoading && <p className="text-text-muted text-sm text-center py-4">Chargement des movers…</p>}
+          {moversError && <p className="text-accent-danger text-sm text-center py-4">{moversError}</p>}
+          <ul className="list-none p-0 m-0 flex flex-col gap-2">
+            {!moversLoading && moversUp && moversUp.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
             {moversUp && moversUp.slice(0, 5).map((m) => {
               const key = `${m.server}::${m.item_name}`;
               const ts = moversTs[key] ?? null;
               return (
-                <li key={key} className="mover-row">
-                  <button className="mover-name" onClick={() => {
+                <li key={key} className="grid grid-cols-[minmax(0,1fr)_6rem_auto] gap-4 items-center p-2 rounded-lg bg-bg-primary/40 border border-transparent hover:border-border-strong hover:bg-bg-primary/60 transition-all duration-200">
+                  <button className="text-sm font-medium text-text-primary hover:text-accent-primary bg-transparent border-none cursor-pointer text-left p-0 truncate" onClick={() => {
                     const found = items.find(it => it.item_name === m.item_name && it.server === m.server);
                     if (found) onNavigateToItem(found);
                   }}>{m.item_name}</button>
-                  <div className="mover-spark">
+                  <div className="h-10 hidden sm:block w-full">
                     <SmallSparkline data={ts} />
                   </div>
-                  <div className="mover-stats">
-                    <div className="mover-price">{Math.round(m.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
-                    <div className="mover-pct up">+{m.pct_change.toFixed(1)}%</div>
+                  <div className="flex flex-col items-end min-w-20">
+                    <div className="text-base font-mono text-text-primary flex items-center">{Math.round(m.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
+                    <div className="text-sm font-bold text-accent-success">+{m.pct_change.toFixed(1)}%</div>
                   </div>
                 </li>
               );
@@ -477,26 +458,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </ul>
         </div>
 
-        <div className="dashboard-col">
-          <h3>📉 Plus fortes baisses</h3>
-          {moversLoading && <p className="info-text">Chargement des movers…</p>}
-          <ul className="movers-list">
-            {!moversLoading && moversDown && moversDown.length === 0 && <li className="info-text">Aucun résultat.</li>}
+        <div className="bg-bg-secondary/30 backdrop-blur-sm rounded-xl border border-border-normal p-4 flex flex-col shadow-md">
+          <h3 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2 border-b border-border-subtle pb-2">📉 Plus fortes baisses</h3>
+          {moversLoading && <p className="text-text-muted text-sm text-center py-4">Chargement des movers…</p>}
+          <ul className="list-none p-0 m-0 flex flex-col gap-2">
+            {!moversLoading && moversDown && moversDown.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
             {moversDown && moversDown.slice(0, 5).map((m) => {
               const key = `${m.server}::${m.item_name}`;
               const ts = moversTs[key] ?? null;
               return (
-                <li key={key} className="mover-row">
-                  <button className="mover-name" onClick={() => {
+                <li key={key} className="grid grid-cols-[minmax(0,1fr)_6rem_auto] gap-4 items-center p-2 rounded-lg bg-bg-primary/40 border border-transparent hover:border-border-strong hover:bg-bg-primary/60 transition-all duration-200">
+                  <button className="text-sm font-medium text-text-primary hover:text-accent-primary bg-transparent border-none cursor-pointer text-left p-0 truncate" onClick={() => {
                     const found = items.find(it => it.item_name === m.item_name && it.server === m.server);
                     if (found) onNavigateToItem(found);
                   }}>{m.item_name}</button>
-                  <div className="mover-spark">
+                  <div className="h-10 hidden sm:block w-full">
                     <SmallSparkline data={ts} />
                   </div>
-                  <div className="mover-stats">
-                    <div className="mover-price">{Math.round(m.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
-                    <div className="mover-pct down">{m.pct_change.toFixed(1)}%</div>
+                  <div className="flex flex-col items-end min-w-20">
+                    <div className="text-base font-mono text-text-primary flex items-center">{Math.round(m.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
+                    <div className="text-sm font-bold text-accent-danger">{m.pct_change.toFixed(1)}%</div>
                   </div>
                 </li>
               );
@@ -506,27 +487,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </section>
 
       {/* Volatility Section */}
-      <section className="dashboard-row">
-        <div className="dashboard-col">
-          <h3>⚡ Items les plus volatils</h3>
-          {volatilityLoading && <p className="info-text">Chargement…</p>}
-          <ul className="movers-list">
-            {!volatilityLoading && volatile && volatile.length === 0 && <li className="info-text">Aucun résultat.</li>}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="bg-bg-secondary/30 backdrop-blur-sm rounded-xl border border-border-normal p-4 flex flex-col shadow-md">
+          <h3 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2 border-b border-border-subtle pb-2">⚡ Items les plus volatils</h3>
+          {volatilityLoading && <p className="text-text-muted text-sm text-center py-4">Chargement…</p>}
+          <ul className="list-none p-0 m-0 flex flex-col gap-2">
+            {!volatilityLoading && volatile && volatile.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
             {volatile && volatile.slice(0, 5).map((v) => {
               const key = `${v.server}::${v.item_name}`;
               const ts = volatilityTs[key] ?? null;
               return (
-                <li key={key} className="mover-row">
-                  <button className="mover-name" onClick={() => {
+                <li key={key} className="grid grid-cols-[minmax(0,1fr)_6rem_auto] gap-4 items-center p-2 rounded-lg bg-bg-primary/40 border border-transparent hover:border-border-strong hover:bg-bg-primary/60 transition-all duration-200">
+                  <button className="text-sm font-medium text-text-primary hover:text-accent-primary bg-transparent border-none cursor-pointer text-left p-0 truncate" onClick={() => {
                     const found = items.find(it => it.item_name === v.item_name && it.server === v.server);
                     if (found) onNavigateToItem(found);
                   }}>{v.item_name}</button>
-                  <div className="mover-spark">
+                  <div className="h-10 hidden sm:block w-full">
                     <SmallSparkline data={ts} />
                   </div>
-                  <div className="mover-stats">
-                    <div className="mover-price">{Math.round(v.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
-                    <div className="mover-pct" style={{color: '#facc15'}}>{v.volatility != null ? v.volatility.toFixed(1) : 'N/A'}%</div>
+                  <div className="flex flex-col items-end min-w-20">
+                    <div className="text-base font-mono text-text-primary flex items-center">{Math.round(v.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
+                    <div className="text-sm font-bold text-accent-warning">{v.volatility != null ? `${v.volatility.toFixed(1)}%` : <span className="text-[0.7rem] text-text-muted italic font-normal">N/A</span>}</div>
                   </div>
                 </li>
               );
@@ -534,26 +515,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </ul>
         </div>
 
-        <div className="dashboard-col">
-          <h3>🛡️ Items les plus stables</h3>
-          {volatilityLoading && <p className="info-text">Chargement…</p>}
-          <ul className="movers-list">
-            {!volatilityLoading && stable && stable.length === 0 && <li className="info-text">Aucun résultat.</li>}
+        <div className="bg-bg-secondary/30 backdrop-blur-sm rounded-xl border border-border-normal p-4 flex flex-col shadow-md">
+          <h3 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2 border-b border-border-subtle pb-2">🛡️ Items les plus stables</h3>
+          {volatilityLoading && <p className="text-text-muted text-sm text-center py-4">Chargement…</p>}
+          <ul className="list-none p-0 m-0 flex flex-col gap-2">
+            {!volatilityLoading && stable && stable.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
             {stable && stable.slice(0, 5).map((s) => {
               const key = `${s.server}::${s.item_name}`;
               const ts = volatilityTs[key] ?? null;
               return (
-                <li key={key} className="mover-row">
-                  <button className="mover-name" onClick={() => {
+                <li key={key} className="grid grid-cols-[minmax(0,1fr)_6rem_auto] gap-4 items-center p-2 rounded-lg bg-bg-primary/40 border border-transparent hover:border-border-strong hover:bg-bg-primary/60 transition-all duration-200">
+                  <button className="text-sm font-medium text-text-primary hover:text-accent-primary bg-transparent border-none cursor-pointer text-left p-0 truncate" onClick={() => {
                     const found = items.find(it => it.item_name === s.item_name && it.server === s.server);
                     if (found) onNavigateToItem(found);
                   }}>{s.item_name}</button>
-                  <div className="mover-spark">
+                  <div className="h-10 hidden sm:block w-full">
                     <SmallSparkline data={ts} />
                   </div>
-                  <div className="mover-stats">
-                    <div className="mover-price">{Math.round(s.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
-                    <div className="mover-pct" style={{color: '#60a5fa'}}>{s.volatility != null ? s.volatility.toFixed(1) : 'N/A'}%</div>
+                  <div className="flex flex-col items-end min-w-20">
+                    <div className="text-base font-mono text-text-primary flex items-center">{Math.round(s.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
+                    <div className="text-sm font-bold text-accent-primary">{s.volatility != null ? `${s.volatility.toFixed(1)}%` : <span className="text-[0.7rem] text-text-muted italic font-normal">N/A</span>}</div>
                   </div>
                 </li>
               );

@@ -59,6 +59,10 @@ const App: React.FC = () => {
   const [tsError, setTsError] = useState<string | null>(null);
   const [tsRefreshIndex, setTsRefreshIndex] = useState(0);
 
+  // Price filter state (lifted from Dashboard)
+  const [minPrice, setMinPrice] = useState<string>('');
+  const [maxPrice, setMaxPrice] = useState<string>('');
+
   // 👉 Nouveau : état d'ouverture de la sidebar
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     // Ouverte par défaut uniquement sur desktop
@@ -198,6 +202,10 @@ const App: React.FC = () => {
           onToggleSidebar={toggleSidebar}
           items={items}
           onNavigateToItem={handleNavigateToItem}
+          minPrice={minPrice}
+          maxPrice={maxPrice}
+          onMinPriceChange={setMinPrice}
+          onMaxPriceChange={setMaxPrice}
         />
       }
       main={
@@ -225,6 +233,8 @@ const App: React.FC = () => {
                 onNavigateToItem={handleNavigateToItem}
                 server={selectedServer}
                 dateRange={dateRange}
+                minPrice={minPrice}
+                maxPrice={maxPrice}
               />
             </React.Suspense>
           </>
