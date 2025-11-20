@@ -382,7 +382,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <p className="text-text-muted text-sm text-center py-4">Aucun de vos favoris n'est disponible sur <strong>{server}</strong>.</p>
           )}
           {!server && favorites.size > 0 && <p className="text-text-muted text-sm text-center py-4">Sélectionnez un serveur pour voir vos favoris.</p>}
-          <ul className="list-none p-0 m-0 flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1">
+          <ul className="list-none p-0 m-0 flex flex-col gap-2 max-h-[350px] overflow-y-auto pr-1">
             {sortedFavItems.map((it) => {
               const key = it.item_name;
               const ts = favTs[key];
