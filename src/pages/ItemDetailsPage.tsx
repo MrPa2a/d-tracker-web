@@ -34,21 +34,29 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
     if (!server || !itemName) return;
 
     let cancelled = false;
-    setLoading(true);
-    setError(null);
 
-    fetchTimeseries(itemName, server, dateRange)
-      .then((data) => {
-        if (cancelled) return;
-        setTimeseries(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        console.error(err);
-        setError(err.message || 'Erreur inconnue');
-        setLoading(false);
-      });
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchTimeseries(itemName, server, dateRange);
+        if (!cancelled) {
+          setTimeseries(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error(err);
+          const message = err instanceof Error ? err.message : 'Erreur inconnue';
+          setError(message);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    load();
 
     return () => {
       cancelled = true;
