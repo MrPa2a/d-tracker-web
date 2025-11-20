@@ -1,6 +1,7 @@
 // src/components/ItemList.tsx
 import React from 'react';
 import type { ItemSummary } from '../types';
+import kamaIcon from '../assets/kama.png';
 
 interface ItemListProps {
   items: ItemSummary[];
@@ -77,7 +78,7 @@ export const ItemList: React.FC<ItemListProps> = ({
               <div className="item-meta">
                 <span className="item-price">
                   {Math.round(item.last_price).toLocaleString('fr-FR')}{' '}
-                  <span className="kama-symbol">💰</span>
+                  <img src={kamaIcon} alt="kamas" className="kama-icon"/>
                 </span>
                 <span className="item-date">
                   {new Date(item.last_observation_at).toLocaleString('fr-FR')}

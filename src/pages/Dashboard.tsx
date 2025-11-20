@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { ItemSummary, TimeseriesPoint, Mover, DateRangePreset, MarketIndex, VolatilityRanking } from '../types';
 import { fetchTimeseries, fetchMovers, fetchMarketIndex, fetchVolatilityRankings } from '../api';
+import kamaIcon from '../assets/kama.png';
 import {
   ResponsiveContainer,
   LineChart,
@@ -41,7 +42,7 @@ const SmallSparklineTooltip: React.FC<{ active?: boolean; payload?: any[] }> = (
   return (
     <div className="chart-tooltip">
       <div className="chart-tooltip-price">
-        {Math.round(price).toLocaleString('fr-FR')} <span>💰</span>
+        {Math.round(price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '12px', height: '12px', verticalAlign: 'middle', marginLeft: '-2px'}} />
       </div>
       <div className="chart-tooltip-date">{formattedDate}</div>
     </div>
@@ -70,16 +71,60 @@ export const Dashboard: React.FC<DashboardProps> = ({
   server,
   dateRange,
 }) => {
-  // Get favorite items from the currently selected server
+  // Price filter state
+  const [minPrice, setMinPrice] = useState<string>('');
+  const [maxPrice, setMaxPrice] = useState<string>('');
+
+  // Parse price filters
+  const parsedMinPrice = minPrice ? parseFloat(minPrice) : null;
+  const parsedMaxPrice = maxPrice ? parseFloat(maxPrice) : null;
+
+  // Get favorite items from the currently selected server and apply price filter
   const favItems = useMemo(() => {
     if (!server) return [];
-    return items.filter((it) => 
-      it.server === server && favorites.has(it.item_name)
-    );
-  }, [items, favorites, server]);
+    return items.filter((it) => {
+      if (it.server !== server || !favorites.has(it.item_name)) return false;
+      if (parsedMinPrice !== null && it.last_price < parsedMinPrice) return false;
+      if (parsedMaxPrice !== null && it.last_price > parsedMaxPrice) return false;
+      return true;
+    });
+  }, [items, favorites, server, parsedMinPrice, parsedMaxPrice]);
+
+  // Filter function for items based on price
+  const filterByPrice = <T extends { last_price: number }>(item: T): boolean => {
+    if (parsedMinPrice !== null && item.last_price < parsedMinPrice) return false;
+    if (parsedMaxPrice !== null && item.last_price > parsedMaxPrice) return false;
+    return true;
+  };
 
   // timeseries cache for favorites
   const [favTs, setFavTs] = useState<Record<string, TimeseriesPoint[] | null>>({});
+
+  // Watchlist sort state
+  type WatchlistSortType = 'price-asc' | 'price-desc' | 'pct-asc' | 'pct-desc' | null;
+  const [watchlistSort, setWatchlistSort] = useState<WatchlistSortType>(null);
+
+  // Sort favorite items based on watchlistSort
+  const sortedFavItems = useMemo(() => {
+    if (!watchlistSort) return favItems;
+    
+    return [...favItems].sort((a, b) => {
+      if (watchlistSort === 'price-asc') return a.last_price - b.last_price;
+      if (watchlistSort === 'price-desc') return b.last_price - a.last_price;
+      
+      // For percentage sort, we need to compute pct change
+      const tsA = favTs[a.item_name];
+      const tsB = favTs[b.item_name];
+      
+      const pctA = tsA && tsA.length > 1 ? ((tsA[tsA.length - 1]!.avg_price - tsA[0]!.avg_price) / tsA[0]!.avg_price) * 100 : 0;
+      const pctB = tsB && tsB.length > 1 ? ((tsB[tsB.length - 1]!.avg_price - tsB[0]!.avg_price) / tsB[0]!.avg_price) * 100 : 0;
+      
+      if (watchlistSort === 'pct-asc') return pctA - pctB;
+      if (watchlistSort === 'pct-desc') return pctB - pctA;
+      
+      return 0;
+    });
+  }, [favItems, watchlistSort, favTs]);
 
   useEffect(() => {
     let cancelled = false;
@@ -137,9 +182,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
     setMoversError(null);
     try {
       const list = await fetchMovers(server, dateRange, 10);
-      // split into up/down
-      const up = list.filter((m) => m.pct_change > 0).sort((a, b) => b.pct_change - a.pct_change).slice(0, 10);
-      const down = list.filter((m) => m.pct_change < 0).sort((a, b) => a.pct_change - b.pct_change).slice(0, 10);
+      // split into up/down and apply price filter
+      const up = list.filter((m) => m.pct_change > 0 && filterByPrice(m)).sort((a, b) => b.pct_change - a.pct_change).slice(0, 10);
+      const down = list.filter((m) => m.pct_change < 0 && filterByPrice(m)).sort((a, b) => a.pct_change - b.pct_change).slice(0, 10);
       setMoversUp(up);
       setMoversDown(down);
 
@@ -181,7 +226,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       setMoversError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [server, dateRange]);
+  }, [server, dateRange, parsedMinPrice, parsedMaxPrice]);
 
   // Market index (HDV)
   const [marketIndex, setMarketIndex] = useState<MarketIndex | null>(null);
@@ -218,8 +263,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         fetchVolatilityRankings(server, dateRange, 10, 'desc'),
         fetchVolatilityRankings(server, dateRange, 10, 'asc'),
       ]);
-      setVolatile(volatileData);
-      setStable(stableData);
+      setVolatile(volatileData.filter(filterByPrice));
+      setStable(stableData.filter(filterByPrice));
 
       // Load timeseries for volatility items in parallel with progressive updates
       const allItems = [...volatileData, ...stableData];
@@ -257,11 +302,52 @@ export const Dashboard: React.FC<DashboardProps> = ({
       setStable(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [server, dateRange]);
+  }, [server, dateRange, parsedMinPrice, parsedMaxPrice]);
 
   return (
     <div className="dashboard">
-      <h1>Tableau de bord</h1>
+      <div className="dashboard-header">
+        <h1>Tableau de bord</h1>
+        <div className="price-filter">
+          <div className="price-filter-inputs">
+            <div className="price-filter-group">
+              <label htmlFor="min-price">Prix min</label>
+              <input
+                id="min-price"
+                type="number"
+                placeholder="Min"
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                className="price-filter-input"
+              />
+            </div>
+            <span className="price-filter-separator">—</span>
+            <div className="price-filter-group">
+              <label htmlFor="max-price">Prix max</label>
+              <input
+                id="max-price"
+                type="number"
+                placeholder="Max"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                className="price-filter-input"
+              />
+            </div>
+          </div>
+          {(minPrice || maxPrice) && (
+            <button
+              className="price-filter-clear"
+              onClick={() => {
+                setMinPrice('');
+                setMaxPrice('');
+              }}
+              title="Réinitialiser le filtre"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Market Index Section */}
       {indexLoading && <p className="info-text">Chargement de l'indice HDV…</p>}
@@ -283,14 +369,40 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       <section className="dashboard-row">
         <div className="dashboard-col">
-          <h3>⭐ Ma liste de surveillance</h3>
+          <div className="watchlist-header">
+            <h3>⭐ Ma liste de surveillance</h3>
+            <div className="watchlist-sort">
+              <button
+                className={"sort-btn" + (watchlistSort?.startsWith('price') ? ' active' : '')}
+                onClick={() => {
+                  if (watchlistSort === 'price-asc') setWatchlistSort('price-desc');
+                  else if (watchlistSort === 'price-desc') setWatchlistSort(null);
+                  else setWatchlistSort('price-asc');
+                }}
+                title="Trier par prix"
+              >
+                <img src={kamaIcon} alt="kamas" style={{width: '12px', height: '12px', verticalAlign: 'middle'}} /> {watchlistSort === 'price-asc' ? '↑' : watchlistSort === 'price-desc' ? '↓' : '⇅'}
+              </button>
+              <button
+                className={"sort-btn" + (watchlistSort?.startsWith('pct') ? ' active' : '')}
+                onClick={() => {
+                  if (watchlistSort === 'pct-asc') setWatchlistSort('pct-desc');
+                  else if (watchlistSort === 'pct-desc') setWatchlistSort(null);
+                  else setWatchlistSort('pct-asc');
+                }}
+                title="Trier par évolution"
+              >
+                % {watchlistSort === 'pct-asc' ? '↑' : watchlistSort === 'pct-desc' ? '↓' : '⇅'}
+              </button>
+            </div>
+          </div>
           {favorites.size === 0 && <p className="info-text">Aucun item en favoris. Cliquez sur ☆ pour en ajouter.</p>}
           {favorites.size > 0 && favItems.length === 0 && server && (
             <p className="info-text">Aucun de vos favoris n'est disponible sur <strong>{server}</strong>.</p>
           )}
           {!server && favorites.size > 0 && <p className="info-text">Sélectionnez un serveur pour voir vos favoris.</p>}
-          <ul className="movers-list">
-            {favItems.slice(0, 5).map((it) => {
+          <ul className="movers-list movers-list--scrollable">
+            {sortedFavItems.map((it) => {
               const key = it.item_name;
               const ts = favTs[key];
               const isLoading = ts === undefined;
@@ -320,7 +432,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <div className="mover-loading">Chargement...</div>
                     ) : hasPriceData ? (
                       <>
-                        <div className="mover-price">{Math.round(it.last_price).toLocaleString('fr-FR')} 💰</div>
+                        <div className="mover-price">{Math.round(it.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
                         {hasEvolution ? (
                           <div className={"mover-pct " + (pct > 0 ? 'up' : pct < 0 ? 'down' : '')}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</div>
                         ) : (
@@ -356,7 +468,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <SmallSparkline data={ts} />
                   </div>
                   <div className="mover-stats">
-                    <div className="mover-price">{Math.round(m.last_price).toLocaleString('fr-FR')} 💰</div>
+                    <div className="mover-price">{Math.round(m.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
                     <div className="mover-pct up">+{m.pct_change.toFixed(1)}%</div>
                   </div>
                 </li>
@@ -383,7 +495,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <SmallSparkline data={ts} />
                   </div>
                   <div className="mover-stats">
-                    <div className="mover-price">{Math.round(m.last_price).toLocaleString('fr-FR')} 💰</div>
+                    <div className="mover-price">{Math.round(m.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
                     <div className="mover-pct down">{m.pct_change.toFixed(1)}%</div>
                   </div>
                 </li>
@@ -413,7 +525,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <SmallSparkline data={ts} />
                   </div>
                   <div className="mover-stats">
-                    <div className="mover-price">{Math.round(v.last_price).toLocaleString('fr-FR')} 💰</div>
+                    <div className="mover-price">{Math.round(v.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
                     <div className="mover-pct" style={{color: '#facc15'}}>{v.volatility != null ? v.volatility.toFixed(1) : 'N/A'}%</div>
                   </div>
                 </li>
@@ -440,7 +552,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <SmallSparkline data={ts} />
                   </div>
                   <div className="mover-stats">
-                    <div className="mover-price">{Math.round(s.last_price).toLocaleString('fr-FR')} 💰</div>
+                    <div className="mover-price">{Math.round(s.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
                     <div className="mover-pct" style={{color: '#60a5fa'}}>{s.volatility != null ? s.volatility.toFixed(1) : 'N/A'}%</div>
                   </div>
                 </li>

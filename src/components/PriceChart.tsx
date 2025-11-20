@@ -2,6 +2,7 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
 import type { DateRangePreset, ItemSummary, TimeseriesPoint, ItemStats } from '../types';
 import { fetchItemStats } from '../api';
+import kamaIcon from '../assets/kama.png';
 import {
   ResponsiveContainer,
   LineChart,
@@ -52,7 +53,7 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
   return (
     <div className="chart-tooltip">
       <div className="chart-tooltip-price">
-        Prix: {Math.round(price).toLocaleString('fr-FR')} <span>💰</span>
+        Prix: {Math.round(price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" className='kama-tooltip' style={{width: '12px', height: '12px', verticalAlign: 'middle', marginLeft: '-2px'}} />
       </div>
       <div className="chart-tooltip-date">{formattedDate}</div>
     </div>
