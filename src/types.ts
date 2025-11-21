@@ -8,7 +8,7 @@ export interface ItemSummary {
 }
 
 export interface TimeseriesPoint {
-  date: string;      // "2025-11-16"
+  date: string;      // ISO string (ex: "2025-11-16T14:30:00.000Z")
   avg_price: number; // prix moyen unitaire
 }
 

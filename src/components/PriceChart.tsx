@@ -36,18 +36,25 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
   const point = payload[0]; // avg_price
   const price = point.value as number;
 
-  // label = "YYYY-MM-DD"
-  let formattedDate = label;
+  // label est un timestamp (number) ou une date string
+  let formattedDate = '';
   try {
-    const d = new Date(label + 'T00:00:00Z');
-    formattedDate = d.toLocaleDateString('fr-FR', {
-      weekday: 'short',
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+    const d = new Date(label);
+    if (!isNaN(d.getTime())) {
+      formattedDate = d.toLocaleString('fr-FR', {
+        weekday: 'short',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } else {
+        // Fallback pour les anciens formats si nécessaire
+        formattedDate = String(label);
+    }
   } catch {
-    // au pire on garde le label brut
+    formattedDate = String(label);
   }
 
   return (
@@ -150,6 +157,16 @@ export const PriceChart: React.FC<PriceChartProps> = ({
 
     return { min, max, first, last, pctChange };
   }, [hasData, timeseries]);
+
+  const chartData = useMemo(() => {
+    if (!timeseries || !Array.isArray(timeseries)) return [];
+    return timeseries
+      .filter((p): p is TimeseriesPoint => p !== null)
+      .map(p => ({
+        ...p,
+        timestamp: new Date(p.date).getTime()
+      }));
+  }, [timeseries]);
 
   if (!selectedItem || !server) {
     return (
@@ -295,9 +312,24 @@ export const PriceChart: React.FC<PriceChartProps> = ({
       {!loading && !error && hasData && timeseries && (
         <div className="flex-1 min-h-[300px] w-full" ref={chartContainerRef}>
           <ResponsiveContainer width="100%" height={chartHeight} maxHeight={600}>
-            <LineChart data={timeseries}>
+            <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />
-              <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+              <XAxis 
+                dataKey="timestamp" 
+                type="number"
+                domain={['dataMin', 'dataMax']}
+                stroke="#94a3b8" 
+                fontSize={12} 
+                tickLine={false} 
+                axisLine={false} 
+                tickFormatter={(value) => {
+                  try {
+                    return new Date(value).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+                  } catch {
+                    return '';
+                  }
+                }}
+              />
               <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
               <Tooltip
                 content={<CustomTooltip />}

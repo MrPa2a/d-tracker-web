@@ -33,11 +33,24 @@ const SmallSparklineTooltip: React.FC<{ active?: boolean; payload?: any[]; coord
 
   let formattedDate = date;
   try {
-    const d = new Date(date + 'T00:00:00Z');
-    formattedDate = d.toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-    });
+    // Support ISO string or YYYY-MM-DD
+    const d = new Date(date);
+    if (isNaN(d.getTime())) {
+       const d2 = new Date(date + 'T00:00:00Z');
+       if (!isNaN(d2.getTime())) {
+         formattedDate = d2.toLocaleDateString('fr-FR', {
+            day: '2-digit',
+            month: 'short',
+         });
+       }
+    } else {
+      formattedDate = d.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
   } catch {
     // keep raw date
   }
