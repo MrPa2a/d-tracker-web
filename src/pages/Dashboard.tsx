@@ -501,8 +501,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {sortedFavItems.map((it) => {
               const key = it.item_name;
               const ts = favTs[key];
-              const isLoading = ts === undefined;
-              const hasPriceData = it.last_price != null && it.last_price > 0;
               const hasEvolution = ts && ts.length > 1;
               
               // compute pct change from first/last if available

@@ -202,7 +202,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
             </button>
           </div>
           <div className="flex items-center flex-wrap gap-3">
-            <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-text-primary to-text-secondary bg-clip-text text-transparent m-0">{selectedItem.item_name}</h2>
+            <h2 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-text-primary to-text-secondary bg-clip-text text-transparent m-0">{selectedItem.item_name}</h2>
             {onToggleFavorite && (
               <button
                 className={`text-2xl leading-none bg-transparent border-none cursor-pointer transition-colors ${favorites.has(selectedItem.item_name) ? 'text-accent-warning' : 'text-text-muted hover:text-accent-warning'}`}

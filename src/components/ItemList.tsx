@@ -28,7 +28,7 @@ export const ItemList: React.FC<ItemListProps> = ({
 }) => {
   return (
     <div className="flex flex-col h-full">
-      <h2 className="mb-4 text-xl font-bold bg-gradient-to-br from-accent-primary to-accent-secondary bg-clip-text text-transparent tracking-tight">
+      <h2 className="mb-4 text-xl font-bold bg-linear-to-br from-accent-primary to-accent-secondary bg-clip-text text-transparent tracking-tight">
         Items
       </h2>
       <input
@@ -60,14 +60,14 @@ export const ItemList: React.FC<ItemListProps> = ({
               className={`
                 p-3 mb-1.5 cursor-pointer rounded-lg transition-all duration-300 border relative overflow-hidden group
                 ${isSelected 
-                  ? 'bg-gradient-to-br from-accent-success/15 to-accent-success/5 border-accent-success/40 shadow-sm' 
+                  ? 'bg-linear-to-br from-accent-success/15 to-accent-success/5 border-accent-success/40 shadow-sm' 
                   : 'border-transparent hover:bg-bg-secondary/60 hover:border-accent-primary/30 hover:shadow-sm'
                 }
               `}
               onClick={() => onSelectItem(item)}
             >
               {/* Hover effect background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-accent-primary/5 to-accent-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+              <div className="absolute inset-0 bg-linear-to-br from-accent-primary/5 to-accent-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
               <div className="text-sm font-semibold text-text-primary relative z-10 flex justify-between items-center">
                 {item.item_name}
