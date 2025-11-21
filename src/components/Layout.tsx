@@ -17,7 +17,7 @@ export const Layout: React.FC<LayoutProps> = ({
   onToggleSidebar,
 }) => {
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-transparent text-text-primary">
+    <div className="flex flex-col md:flex-row h-screen overflow-hidden bg-transparent text-text-primary">
       {/* Overlay pour mobile quand la sidebar est ouverte */}
       <div 
         className={`fixed inset-0 bg-black/60 z-[55] md:hidden ${isSidebarOpen ? 'block' : 'hidden'}`} 
@@ -41,7 +41,7 @@ export const Layout: React.FC<LayoutProps> = ({
 
       <div className="flex-1 flex flex-col min-h-0">
         <header className="p-2 md:p-4">{topBar}</header>
-        <main className="p-2 md:p-4 flex-1">{main}</main>
+        <main className="p-2 md:p-4 flex-1 overflow-y-auto">{main}</main>
       </div>
     </div>
   );

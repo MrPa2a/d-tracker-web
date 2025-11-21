@@ -471,9 +471,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <button
                 className={`px-2 py-1 text-xs font-medium rounded transition-all duration-300 flex items-center gap-1 border ${watchlistSort?.startsWith('price') ? 'bg-accent-primary/10 border-accent-primary text-accent-primary shadow-[0_0_10px_rgba(59,130,246,0.4)] hover:bg-accent-primary/20 hover:shadow-[0_0_12px_rgba(59,130,246,0.6)]' : 'bg-transparent border-border-normal text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:shadow-[0_0_8px_rgba(59,130,246,0.2)] hover:bg-accent-primary/5'}`}
                 onClick={() => {
-                  if (watchlistSort === 'price-asc') setWatchlistSort('price-desc');
-                  else if (watchlistSort === 'price-desc') setWatchlistSort(null);
-                  else setWatchlistSort('price-asc');
+                  if (watchlistSort === 'price-desc') setWatchlistSort('price-asc');
+                  else if (watchlistSort === 'price-asc') setWatchlistSort(null);
+                  else setWatchlistSort('price-desc');
                 }}
                 title="Trier par prix"
               >
@@ -482,9 +482,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <button
                 className={`px-2 py-1 text-xs font-medium rounded transition-all duration-300 flex items-center gap-1 border ${watchlistSort?.startsWith('pct') ? 'bg-accent-primary/10 border-accent-primary text-accent-primary shadow-[0_0_10px_rgba(59,130,246,0.4)] hover:bg-accent-primary/20 hover:shadow-[0_0_12px_rgba(59,130,246,0.6)]' : 'bg-transparent border-border-normal text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:shadow-[0_0_8px_rgba(59,130,246,0.2)] hover:bg-accent-primary/5'}`}
                 onClick={() => {
-                  if (watchlistSort === 'pct-asc') setWatchlistSort('pct-desc');
-                  else if (watchlistSort === 'pct-desc') setWatchlistSort(null);
-                  else setWatchlistSort('pct-asc');
+                  if (watchlistSort === 'pct-desc') setWatchlistSort('pct-asc');
+                  else if (watchlistSort === 'pct-asc') setWatchlistSort(null);
+                  else setWatchlistSort('pct-desc');
                 }}
                 title="Trier par évolution"
               >
@@ -538,16 +538,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <button
                 className={`px-2 py-1 text-xs font-medium rounded transition-all duration-300 flex items-center gap-1 border ${moversUpSort === 'price-asc' || moversUpSort === 'price-desc' ? 'bg-accent-primary/10 border-accent-primary text-accent-primary shadow-[0_0_10px_rgba(59,130,246,0.4)] hover:bg-accent-primary/20 hover:shadow-[0_0_12px_rgba(59,130,246,0.6)]' : 'bg-transparent border-border-normal text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:shadow-[0_0_8px_rgba(59,130,246,0.2)] hover:bg-accent-primary/5'}`}
                 onClick={() => {
-                  if (moversUpSort === 'price-asc') setMoversUpSort('price-desc');
-                  else if (moversUpSort === 'price-desc') setMoversUpSort(null);
-                  else setMoversUpSort('price-asc');
+                  if (moversUpSort === 'price-desc') setMoversUpSort('price-asc');
+                  else if (moversUpSort === 'price-asc') setMoversUpSort(null);
+                  else setMoversUpSort('price-desc');
                 }}
                 title="Trier par prix"
               >
                 <img src={kamaIcon} alt="kamas" style={{width: '12px', height: '12px', verticalAlign: 'middle'}} /> {moversUpSort === 'price-asc' ? '↑' : moversUpSort === 'price-desc' ? '↓' : '⇅'}
               </button>
           </div>
-          {moversLoading && <p className="text-text-muted text-sm text-center py-4">Chargement des movers…</p>}
+          {moversLoading && <p className="text-text-muted text-sm text-center py-4">Chargement…</p>}
           {moversError && <p className="text-accent-danger text-sm text-center py-4">{moversError}</p>}
           <ul className="list-none p-0 m-0 flex flex-col gap-2">
             {!moversLoading && moversUp && moversUp.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
@@ -578,16 +578,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <button
                 className={`px-2 py-1 text-xs font-medium rounded transition-all duration-300 flex items-center gap-1 border ${moversDownSort === 'price-asc' || moversDownSort === 'price-desc' ? 'bg-accent-primary/10 border-accent-primary text-accent-primary shadow-[0_0_10px_rgba(59,130,246,0.4)] hover:bg-accent-primary/20 hover:shadow-[0_0_12px_rgba(59,130,246,0.6)]' : 'bg-transparent border-border-normal text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:shadow-[0_0_8px_rgba(59,130,246,0.2)] hover:bg-accent-primary/5'}`}
                 onClick={() => {
-                  if (moversDownSort === 'price-asc') setMoversDownSort('price-desc');
-                  else if (moversDownSort === 'price-desc') setMoversDownSort(null);
-                  else setMoversDownSort('price-asc');
+                  if (moversDownSort === 'price-desc') setMoversDownSort('price-asc');
+                  else if (moversDownSort === 'price-asc') setMoversDownSort(null);
+                  else setMoversDownSort('price-desc');
                 }}
                 title="Trier par prix"
               >
                 <img src={kamaIcon} alt="kamas" style={{width: '12px', height: '12px', verticalAlign: 'middle'}} /> {moversDownSort === 'price-asc' ? '↑' : moversDownSort === 'price-desc' ? '↓' : '⇅'}
               </button>
           </div>
-          {moversLoading && <p className="text-text-muted text-sm text-center py-4">Chargement des movers…</p>}
+          {moversLoading && <p className="text-text-muted text-sm text-center py-4">Chargement…</p>}
           <ul className="list-none p-0 m-0 flex flex-col gap-2">
             {!moversLoading && moversDown && moversDown.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
             {sortedMoversDown && sortedMoversDown.slice(0, 5).map((m) => {
@@ -620,9 +620,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <button
                 className={`px-2 py-1 text-xs font-medium rounded transition-all duration-300 flex items-center gap-1 border ${volatileSort === 'price-asc' || volatileSort === 'price-desc' ? 'bg-accent-primary/10 border-accent-primary text-accent-primary shadow-[0_0_10px_rgba(59,130,246,0.4)] hover:bg-accent-primary/20 hover:shadow-[0_0_12px_rgba(59,130,246,0.6)]' : 'bg-transparent border-border-normal text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:shadow-[0_0_8px_rgba(59,130,246,0.2)] hover:bg-accent-primary/5'}`}
                 onClick={() => {
-                  if (volatileSort === 'price-asc') setVolatileSort('price-desc');
-                  else if (volatileSort === 'price-desc') setVolatileSort(null);
-                  else setVolatileSort('price-asc');
+                  if (volatileSort === 'price-desc') setVolatileSort('price-asc');
+                  else if (volatileSort === 'price-asc') setVolatileSort(null);
+                  else setVolatileSort('price-desc');
                 }}
                 title="Trier par prix"
               >
@@ -659,9 +659,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <button
                 className={`px-2 py-1 text-xs font-medium rounded transition-all duration-300 flex items-center gap-1 border ${stableSort === 'price-asc' || stableSort === 'price-desc' ? 'bg-accent-primary/10 border-accent-primary text-accent-primary shadow-[0_0_10px_rgba(59,130,246,0.4)] hover:bg-accent-primary/20 hover:shadow-[0_0_12px_rgba(59,130,246,0.6)]' : 'bg-transparent border-border-normal text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:shadow-[0_0_8px_rgba(59,130,246,0.2)] hover:bg-accent-primary/5'}`}
                 onClick={() => {
-                  if (stableSort === 'price-asc') setStableSort('price-desc');
-                  else if (stableSort === 'price-desc') setStableSort(null);
-                  else setStableSort('price-asc');
+                  if (stableSort === 'price-desc') setStableSort('price-asc');
+                  else if (stableSort === 'price-asc') setStableSort(null);
+                  else setStableSort('price-desc');
                 }}
                 title="Trier par prix"
               >
