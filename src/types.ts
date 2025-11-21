@@ -45,3 +45,23 @@ export interface VolatilityRanking {
   pct_change: number;
   obs_count: number;       // nombre d'observations
 }
+
+export interface InvestmentOpportunity {
+  item_name: string;
+  server: string;
+  current_price: number;
+  ma7: number;
+  volatility: number;
+  target_price: number;
+  discount_pct: number;
+}
+
+export interface SellOpportunity {
+  item_name: string;
+  server: string;
+  current_price: number;
+  ma7: number;
+  volatility: number;
+  target_price: number;
+  premium_pct: number;
+}

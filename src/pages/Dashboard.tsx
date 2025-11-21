@@ -2,8 +2,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import type { ItemSummary, TimeseriesPoint, Mover, DateRangePreset, MarketIndex, VolatilityRanking } from '../types';
-import { fetchTimeseries, fetchMovers, fetchMarketIndex, fetchVolatilityRankings } from '../api';
+import type { ItemSummary, TimeseriesPoint, Mover, DateRangePreset, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity } from '../types';
+import { fetchTimeseries, fetchMovers, fetchMarketIndex, fetchVolatilityRankings, fetchOpportunities, fetchSellOpportunities } from '../api';
 import kamaIcon from '../assets/kama.png';
 import {
   ResponsiveContainer,
@@ -273,6 +273,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [stable, setStable] = useState<VolatilityRanking[] | null>(null);
   const [volatilityLoading, setVolatilityLoading] = useState(false);
 
+  // Opportunities
+  const [opportunities, setOpportunities] = useState<InvestmentOpportunity[] | null>(null);
+  const [opportunitiesLoading, setOpportunitiesLoading] = useState(false);
+
+  // Sell Opportunities
+  const [sellOpportunities, setSellOpportunities] = useState<SellOpportunity[] | null>(null);
+  const [sellOpportunitiesLoading, setSellOpportunitiesLoading] = useState(false);
+
   // Sort states for other sections
   type PriceSortType = 'price-asc' | 'price-desc' | null;
   const [moversUpSort, setMoversUpSort] = useState<PriceSortType>(null);
@@ -391,6 +399,38 @@ export const Dashboard: React.FC<DashboardProps> = ({
       setIndexLoading(false);
     }
 
+    // Load opportunities
+    setOpportunitiesLoading(true);
+    try {
+      const opps = await fetchOpportunities(server, dateRange, 10);
+      setOpportunities(opps.filter(it => {
+        if (parsedMinPrice !== null && it.current_price < parsedMinPrice) return false;
+        if (parsedMaxPrice !== null && it.current_price > parsedMaxPrice) return false;
+        return true;
+      }));
+    } catch (err) {
+      console.error('Error loading opportunities:', err);
+      setOpportunities(null);
+    } finally {
+      setOpportunitiesLoading(false);
+    }
+
+    // Load sell opportunities
+    setSellOpportunitiesLoading(true);
+    try {
+      const sells = await fetchSellOpportunities(server, dateRange, 10);
+      setSellOpportunities(sells.filter(it => {
+        if (parsedMinPrice !== null && it.current_price < parsedMinPrice) return false;
+        if (parsedMaxPrice !== null && it.current_price > parsedMaxPrice) return false;
+        return true;
+      }));
+    } catch (err) {
+      console.error('Error loading sell opportunities:', err);
+      setSellOpportunities(null);
+    } finally {
+      setSellOpportunitiesLoading(false);
+    }
+
     // Load volatility rankings
     setVolatilityLoading(true);
     try {
@@ -466,7 +506,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-bg-secondary/30 backdrop-blur-sm rounded-xl border border-border-normal p-4 flex flex-col shadow-md">
           <div className="flex justify-between items-center mb-4 border-b border-border-subtle pb-2">
-            <h3 className="text-lg font-bold text-text-primary m-0 border-none pb-0">⭐ Ma liste de surveillance</h3>
+            <h3 className="text-lg font-bold text-text-primary m-0 border-none pb-0 flex items-center gap-2">⭐ Ma liste de surveillance</h3>
             <div className="flex gap-1">
               <button
                 className={`px-2 py-1 text-xs font-medium rounded transition-all duration-300 flex items-center gap-1 border ${watchlistSort?.startsWith('price') ? 'bg-accent-primary/10 border-accent-primary text-accent-primary shadow-[0_0_10px_rgba(59,130,246,0.4)] hover:bg-accent-primary/20 hover:shadow-[0_0_12px_rgba(59,130,246,0.6)]' : 'bg-transparent border-border-normal text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:shadow-[0_0_8px_rgba(59,130,246,0.2)] hover:bg-accent-primary/5'}`}
@@ -611,10 +651,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </section>
 
       {/* Volatility Section */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Most Volatile */}
         <div className="bg-bg-secondary/30 backdrop-blur-sm rounded-xl border border-border-normal p-4 flex flex-col shadow-md">
           <div className="flex justify-between items-center mb-4 border-b border-border-subtle pb-2">
-            <h3 className="text-lg font-bold text-text-primary m-0 border-none pb-0 flex items-center gap-2">⚡ Items les plus volatils</h3>
+            <h3 className="text-lg font-bold text-text-primary m-0 border-none pb-0 flex items-center gap-2">⚡ Plus Volatiles</h3>
             <button
                 className={`px-2 py-1 text-xs font-medium rounded transition-all duration-300 flex items-center gap-1 border ${volatileSort === 'price-asc' || volatileSort === 'price-desc' ? 'bg-accent-primary/10 border-accent-primary text-accent-primary shadow-[0_0_10px_rgba(59,130,246,0.4)] hover:bg-accent-primary/20 hover:shadow-[0_0_12px_rgba(59,130,246,0.6)]' : 'bg-transparent border-border-normal text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:shadow-[0_0_8px_rgba(59,130,246,0.2)] hover:bg-accent-primary/5'}`}
                 onClick={() => {
@@ -629,7 +670,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
           {volatilityLoading && <p className="text-text-muted text-sm text-center py-4">Chargement…</p>}
           <ul className="list-none p-0 m-0 flex flex-col gap-2">
-            {!volatilityLoading && volatile && volatile.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
+            {!volatilityLoading && sortedVolatile && sortedVolatile.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
             {sortedVolatile && sortedVolatile.slice(0, 5).map((v) => {
               const key = `${v.server}::${v.item_name}`;
               const ts = volatilityTs[key] ?? null;
@@ -644,16 +685,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   }}
                   isFavorite={favorites.has(v.item_name)}
                   onToggleFavorite={onToggleFavorite}
-                  metric={<div className="text-sm font-bold text-accent-warning">{v.volatility != null ? `${v.volatility.toFixed(1)}%` : <span className="text-[0.7rem] text-text-muted italic font-normal">N/A</span>}</div>}
+                  metric={<div className="text-sm font-bold text-accent-warning">{(v.volatility).toFixed(1)}%</div>}
                 />
               );
             })}
           </ul>
         </div>
 
+        {/* Most Stable */}
         <div className="bg-bg-secondary/30 backdrop-blur-sm rounded-xl border border-border-normal p-4 flex flex-col shadow-md">
           <div className="flex justify-between items-center mb-4 border-b border-border-subtle pb-2">
-            <h3 className="text-lg font-bold text-text-primary m-0 border-none pb-0 flex items-center gap-2">🛡️ Items les plus stables</h3>
+            <h3 className="text-lg font-bold text-text-primary m-0 border-none pb-0 flex items-center gap-2">🛡️ Plus Stables</h3>
             <button
                 className={`px-2 py-1 text-xs font-medium rounded transition-all duration-300 flex items-center gap-1 border ${stableSort === 'price-asc' || stableSort === 'price-desc' ? 'bg-accent-primary/10 border-accent-primary text-accent-primary shadow-[0_0_10px_rgba(59,130,246,0.4)] hover:bg-accent-primary/20 hover:shadow-[0_0_12px_rgba(59,130,246,0.6)]' : 'bg-transparent border-border-normal text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:shadow-[0_0_8px_rgba(59,130,246,0.2)] hover:bg-accent-primary/5'}`}
                 onClick={() => {
@@ -668,26 +710,121 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
           {volatilityLoading && <p className="text-text-muted text-sm text-center py-4">Chargement…</p>}
           <ul className="list-none p-0 m-0 flex flex-col gap-2">
-            {!volatilityLoading && stable && stable.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
-            {sortedStable && sortedStable.slice(0, 5).map((s) => {
-              const key = `${s.server}::${s.item_name}`;
+            {!volatilityLoading && sortedStable && sortedStable.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
+            {sortedStable && sortedStable.slice(0, 5).map((v) => {
+              const key = `${v.server}::${v.item_name}`;
               const ts = volatilityTs[key] ?? null;
               return (
                 <DashboardRow
                   key={key}
-                  item={s}
+                  item={v}
                   ts={ts}
                   onNavigate={() => {
-                    const found = items.find(it => it.item_name === s.item_name && it.server === s.server);
+                    const found = items.find(it => it.item_name === v.item_name && it.server === v.server);
                     if (found) onNavigateToItem(found);
                   }}
-                  isFavorite={favorites.has(s.item_name)}
+                  isFavorite={favorites.has(v.item_name)}
                   onToggleFavorite={onToggleFavorite}
-                  metric={<div className="text-sm font-bold text-accent-primary">{s.volatility != null ? `${s.volatility.toFixed(1)}%` : <span className="text-[0.7rem] text-text-muted italic font-normal">N/A</span>}</div>}
+                  metric={<div className="text-sm font-bold text-accent-success">{(v.volatility).toFixed(1)}%</div>}
                 />
               );
             })}
           </ul>
+        </div>
+      </section>
+
+      {/* Opportunities Section */}
+      <section className="grid grid-cols-1 gap-6">
+        <div className="bg-bg-secondary/30 backdrop-blur-sm rounded-xl border border-border-normal p-4 flex flex-col shadow-md">
+          <div className="flex justify-between items-center mb-4 border-b border-border-subtle pb-2">
+            <h3 className="text-lg font-bold text-text-primary m-0 border-none pb-0 flex items-center gap-2">💰 Opportunités d'Achat (Sous-évalués)</h3>
+          </div>
+          {opportunitiesLoading && <p className="text-text-muted text-sm text-center py-4">Recherche d'opportunités…</p>}
+          {!opportunitiesLoading && opportunities && opportunities.length === 0 && <p className="text-text-muted text-sm text-center py-4">Aucune opportunité détectée pour le moment.</p>}
+          
+          {opportunities && opportunities.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {opportunities.map((opp) => (
+                <div 
+                  key={`${opp.server}::${opp.item_name}`}
+                  className="p-3 rounded-lg bg-bg-primary/40 border border-transparent hover:border-accent-success/50 hover:bg-bg-primary/60 transition-all duration-200 cursor-pointer group"
+                  onClick={() => {
+                    const found = items.find(it => it.item_name === opp.item_name && it.server === opp.server);
+                    if (found) onNavigateToItem(found);
+                  }}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="font-medium text-text-primary truncate pr-2 group-hover:text-accent-primary transition-colors">{opp.item_name}</div>
+                    <div className="text-xs font-bold text-accent-success bg-accent-success/10 px-2 py-0.5 rounded border border-accent-success/20">
+                      -{opp.discount_pct.toFixed(1)}%
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-end text-sm">
+                    <div className="flex flex-col">
+                      <span className="text-xs text-text-muted">Prix actuel</span>
+                      <span className="font-mono font-bold text-text-primary flex items-center">
+                        {Math.round(opp.current_price).toLocaleString('fr-FR')} 
+                        <img src={kamaIcon} alt="kamas" style={{width: '10px', height: '10px', verticalAlign: 'middle', marginLeft: '3px'}} />
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs text-text-muted">Prix estimé</span>
+                      <span className="font-mono text-text-muted flex items-center">
+                        {Math.round(opp.target_price).toLocaleString('fr-FR')}
+                        <img src={kamaIcon} alt="kamas" style={{width: '10px', height: '10px', verticalAlign: 'middle', marginLeft: '3px'}} />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-bg-secondary/30 backdrop-blur-sm rounded-xl border border-border-normal p-4 flex flex-col shadow-md">
+          <div className="flex justify-between items-center mb-4 border-b border-border-subtle pb-2">
+            <h3 className="text-lg font-bold text-text-primary m-0 border-none pb-0 flex items-center gap-2">💎 Opportunités de Vente (Sur-évalués)</h3>
+          </div>
+          {sellOpportunitiesLoading && <p className="text-text-muted text-sm text-center py-4">Recherche d'opportunités de vente…</p>}
+          {!sellOpportunitiesLoading && sellOpportunities && sellOpportunities.length === 0 && <p className="text-text-muted text-sm text-center py-4">Aucune opportunité de vente détectée pour le moment.</p>}
+          
+          {sellOpportunities && sellOpportunities.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sellOpportunities.map((opp) => (
+                <div 
+                  key={`${opp.server}::${opp.item_name}`}
+                  className="p-3 rounded-lg bg-bg-primary/40 border border-transparent hover:border-accent-danger/50 hover:bg-bg-primary/60 transition-all duration-200 cursor-pointer group"
+                  onClick={() => {
+                    const found = items.find(it => it.item_name === opp.item_name && it.server === opp.server);
+                    if (found) onNavigateToItem(found);
+                  }}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="font-medium text-text-primary truncate pr-2 group-hover:text-accent-primary transition-colors">{opp.item_name}</div>
+                    <div className="text-xs font-bold text-accent-danger bg-accent-danger/10 px-2 py-0.5 rounded border border-accent-danger/20">
+                      +{opp.premium_pct.toFixed(1)}%
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-end text-sm">
+                    <div className="flex flex-col">
+                      <span className="text-xs text-text-muted">Prix actuel</span>
+                      <span className="font-mono font-bold text-text-primary flex items-center">
+                        {Math.round(opp.current_price).toLocaleString('fr-FR')} 
+                        <img src={kamaIcon} alt="kamas" style={{width: '10px', height: '10px', verticalAlign: 'middle', marginLeft: '3px'}} />
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs text-text-muted">Prix estimé</span>
+                      <span className="font-mono text-text-muted flex items-center">
+                        {Math.round(opp.target_price).toLocaleString('fr-FR')}
+                        <img src={kamaIcon} alt="kamas" style={{width: '10px', height: '10px', verticalAlign: 'middle', marginLeft: '3px'}} />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>

@@ -1,5 +1,5 @@
 // src/api.ts
-import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking } from './types';
+import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
@@ -178,6 +178,56 @@ export async function fetchVolatilityRankings(
 
   if (!res.ok) {
     throw new Error(`Erreur API /api/volatility-rankings : ${res.status} ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+/**
+ * Fetch investment opportunities (buy signals)
+ */
+export async function fetchOpportunities(
+  server: string,
+  range: DateRangePreset,
+  limit = 20
+): Promise<InvestmentOpportunity[]> {
+  const from = computeFromDate(range);
+  const to = toDateOnlyIso(new Date());
+
+  const params = new URLSearchParams({ server, from, to, limit: String(limit) });
+
+  const res = await fetch(`${API_BASE}/api/opportunities?${params.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/opportunities : ${res.status} ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+/**
+ * Fetch sell opportunities (sell signals)
+ */
+export async function fetchSellOpportunities(
+  server: string,
+  range: DateRangePreset,
+  limit = 20
+): Promise<SellOpportunity[]> {
+  const from = computeFromDate(range);
+  const to = toDateOnlyIso(new Date());
+
+  const params = new URLSearchParams({ server, from, to, limit: String(limit) });
+
+  const res = await fetch(`${API_BASE}/api/sell-opportunities?${params.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/sell-opportunities : ${res.status} ${res.statusText}`);
   }
 
   return res.json();
