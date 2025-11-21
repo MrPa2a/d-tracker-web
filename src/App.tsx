@@ -205,6 +205,7 @@ const App: React.FC = () => {
                   items={items}
                   favorites={favorites}
                   onNavigateToItem={handleNavigateToItem}
+                  onToggleFavorite={handleToggleFavorite}
                   server={dashboardServer}
                   dateRange={dateRange}
                   minPrice={minPrice}

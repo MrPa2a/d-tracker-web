@@ -1,6 +1,7 @@
 // src/pages/Dashboard.tsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import type { ItemSummary, TimeseriesPoint, Mover, DateRangePreset, MarketIndex, VolatilityRanking } from '../types';
 import { fetchTimeseries, fetchMovers, fetchMarketIndex, fetchVolatilityRankings } from '../api';
 import kamaIcon from '../assets/kama.png';
@@ -16,6 +17,7 @@ interface DashboardProps {
   items: ItemSummary[];
   favorites: Set<string>;
   onNavigateToItem: (item: ItemSummary) => void;
+  onToggleFavorite: (itemName: string) => void;
   server: string | null;
   dateRange: DateRangePreset;
   minPrice: string;
@@ -99,10 +101,67 @@ const SmallSparkline: React.FC<{ data: TimeseriesPoint[] | null }> = ({ data }) 
   );
 };
 
+const DashboardRow: React.FC<{
+  item: { item_name: string; server: string; last_price: number };
+  ts: TimeseriesPoint[] | null;
+  onNavigate: () => void;
+  isFavorite: boolean;
+  onToggleFavorite: (itemName: string) => void;
+  metric: React.ReactNode;
+}> = ({ item, ts, onNavigate, isFavorite, onToggleFavorite, metric }) => {
+  return (
+    <li className="grid grid-cols-[minmax(0,1fr)_6rem_7rem] gap-4 items-center p-2 rounded-lg bg-bg-primary/40 border border-transparent hover:border-border-strong hover:bg-bg-primary/60 transition-all duration-200">
+      <div className="flex items-center gap-2 min-w-0 relative group">
+         <Link 
+            to={`/item/${item.server}/${item.item_name}`}
+            className="text-sm font-medium text-text-primary hover:text-accent-primary no-underline truncate" 
+            onClick={(e) => {
+              if (!e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey && e.button === 0) {
+                e.preventDefault();
+                onNavigate();
+              }
+            }}
+         >
+            {item.item_name}
+         </Link>
+         <button
+            className={`
+              text-lg leading-none bg-transparent border-none cursor-pointer transition-all duration-200
+              ${isFavorite 
+                 ? 'text-accent-warning opacity-30 group-hover:opacity-100' 
+                 : 'text-text-muted opacity-0 group-hover:opacity-100 hover:text-accent-warning'
+              }
+            `}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite(item.item_name);
+            }}
+            title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+         >
+            ★
+         </button>
+      </div>
+      
+      <div className="h-10 hidden sm:block w-full">
+        <SmallSparkline data={ts} />
+      </div>
+      
+      <div className="flex flex-col items-end min-w-20">
+        <div className="text-base font-mono text-text-primary flex items-center">
+            {Math.round(item.last_price).toLocaleString('fr-FR')} 
+            <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} />
+        </div>
+        {metric}
+      </div>
+    </li>
+  );
+};
+
 export const Dashboard: React.FC<DashboardProps> = ({
   items,
   favorites,
   onNavigateToItem,
+  onToggleFavorite,
   server,
   dateRange,
   minPrice,
@@ -209,6 +268,54 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // timeseries cache for movers
   const [moversTs, setMoversTs] = useState<Record<string, TimeseriesPoint[] | null>>({});
 
+  // Volatility rankings
+  const [volatile, setVolatile] = useState<VolatilityRanking[] | null>(null);
+  const [stable, setStable] = useState<VolatilityRanking[] | null>(null);
+  const [volatilityLoading, setVolatilityLoading] = useState(false);
+
+  // Sort states for other sections
+  type PriceSortType = 'price-asc' | 'price-desc' | null;
+  const [moversUpSort, setMoversUpSort] = useState<PriceSortType>(null);
+  const [moversDownSort, setMoversDownSort] = useState<PriceSortType>(null);
+  const [volatileSort, setVolatileSort] = useState<PriceSortType>(null);
+  const [stableSort, setStableSort] = useState<PriceSortType>(null);
+
+  const sortedMoversUp = useMemo(() => {
+    if (!moversUp) return null;
+    if (!moversUpSort) return moversUp;
+    return [...moversUp].sort((a, b) => {
+        if (moversUpSort === 'price-asc') return a.last_price - b.last_price;
+        return b.last_price - a.last_price;
+    });
+  }, [moversUp, moversUpSort]);
+
+  const sortedMoversDown = useMemo(() => {
+    if (!moversDown) return null;
+    if (!moversDownSort) return moversDown;
+    return [...moversDown].sort((a, b) => {
+        if (moversDownSort === 'price-asc') return a.last_price - b.last_price;
+        return b.last_price - a.last_price;
+    });
+  }, [moversDown, moversDownSort]);
+
+  const sortedVolatile = useMemo(() => {
+    if (!volatile) return null;
+    if (!volatileSort) return volatile;
+    return [...volatile].sort((a, b) => {
+        if (volatileSort === 'price-asc') return a.last_price - b.last_price;
+        return b.last_price - a.last_price;
+    });
+  }, [volatile, volatileSort]);
+
+  const sortedStable = useMemo(() => {
+    if (!stable) return null;
+    if (!stableSort) return stable;
+    return [...stable].sort((a, b) => {
+        if (stableSort === 'price-asc') return a.last_price - b.last_price;
+        return b.last_price - a.last_price;
+    });
+  }, [stable, stableSort]);
+
   const loadMovers = async () => {
     if (!server) return;
     setMoversLoading(true);
@@ -264,11 +371,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Market index (HDV)
   const [marketIndex, setMarketIndex] = useState<MarketIndex | null>(null);
   const [indexLoading, setIndexLoading] = useState(false);
-
-  // Volatility rankings
-  const [volatile, setVolatile] = useState<VolatilityRanking[] | null>(null);
-  const [stable, setStable] = useState<VolatilityRanking[] | null>(null);
-  const [volatilityLoading, setVolatilityLoading] = useState(false);
 
   // Timeseries for volatility items
   const [volatilityTs, setVolatilityTs] = useState<Record<string, TimeseriesPoint[] | null>>({});
@@ -412,87 +514,98 @@ export const Dashboard: React.FC<DashboardProps> = ({
               }
               
               return (
-                <li key={key} className="grid grid-cols-[minmax(0,1fr)_6rem_auto] gap-4 items-center p-2 rounded-lg bg-bg-primary/40 border border-transparent hover:border-border-strong hover:bg-bg-primary/60 transition-all duration-200">
-                  <button className="text-sm font-medium text-text-primary hover:text-accent-primary bg-transparent border-none cursor-pointer text-left p-0 truncate" onClick={() => onNavigateToItem(it)}>{it.item_name}</button>
-                  <div className="h-10 hidden sm:block w-full">
-                    {isLoading ? (
-                      <div className="text-center text-xs leading-10 opacity-50">⏳</div>
-                    ) : (
-                      <SmallSparkline data={ts} />
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end min-w-20">
-                    {isLoading ? (
-                      <div className="text-xs text-text-muted italic">Chargement...</div>
-                    ) : hasPriceData ? (
-                      <>
-                        <div className="text-base font-mono text-text-primary flex items-center">{Math.round(it.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
-                        {hasEvolution ? (
-                          <div className={`text-sm font-bold ${pct > 0 ? 'text-accent-success' : pct < 0 ? 'text-accent-danger' : ''}`}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</div>
-                        ) : (
-                          <div className="text-[0.7rem] text-text-muted italic font-normal">N/A</div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="text-[0.7rem] text-text-muted italic" title="Aucune donnée disponible sur cette période">N/A</div>
-                    )}
-                  </div>
-                </li>
+                <DashboardRow
+                  key={key}
+                  item={it}
+                  ts={ts}
+                  onNavigate={() => onNavigateToItem(it)}
+                  isFavorite={favorites.has(it.item_name)}
+                  onToggleFavorite={onToggleFavorite}
+                  metric={hasEvolution ? (
+                    <div className={`text-sm font-bold ${pct > 0 ? 'text-accent-success' : pct < 0 ? 'text-accent-danger' : ''}`}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</div>
+                  ) : (
+                    <div className="text-[0.7rem] text-text-muted italic font-normal">N/A</div>
+                  )}
+                />
               );
             })}
           </ul>
         </div>
 
         <div className="bg-bg-secondary/30 backdrop-blur-sm rounded-xl border border-border-normal p-4 flex flex-col shadow-md">
-          <h3 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2 border-b border-border-subtle pb-2">📈 Plus fortes hausses</h3>
+          <div className="flex justify-between items-center mb-4 border-b border-border-subtle pb-2">
+            <h3 className="text-lg font-bold text-text-primary m-0 border-none pb-0 flex items-center gap-2">📈 Plus fortes hausses</h3>
+            <button
+                className={`px-2 py-1 text-xs font-medium rounded transition-all duration-300 flex items-center gap-1 border ${moversUpSort === 'price-asc' || moversUpSort === 'price-desc' ? 'bg-accent-primary/10 border-accent-primary text-accent-primary shadow-[0_0_10px_rgba(59,130,246,0.4)] hover:bg-accent-primary/20 hover:shadow-[0_0_12px_rgba(59,130,246,0.6)]' : 'bg-transparent border-border-normal text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:shadow-[0_0_8px_rgba(59,130,246,0.2)] hover:bg-accent-primary/5'}`}
+                onClick={() => {
+                  if (moversUpSort === 'price-asc') setMoversUpSort('price-desc');
+                  else if (moversUpSort === 'price-desc') setMoversUpSort(null);
+                  else setMoversUpSort('price-asc');
+                }}
+                title="Trier par prix"
+              >
+                <img src={kamaIcon} alt="kamas" style={{width: '12px', height: '12px', verticalAlign: 'middle'}} /> {moversUpSort === 'price-asc' ? '↑' : moversUpSort === 'price-desc' ? '↓' : '⇅'}
+              </button>
+          </div>
           {moversLoading && <p className="text-text-muted text-sm text-center py-4">Chargement des movers…</p>}
           {moversError && <p className="text-accent-danger text-sm text-center py-4">{moversError}</p>}
           <ul className="list-none p-0 m-0 flex flex-col gap-2">
             {!moversLoading && moversUp && moversUp.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
-            {moversUp && moversUp.slice(0, 5).map((m) => {
+            {sortedMoversUp && sortedMoversUp.slice(0, 5).map((m) => {
               const key = `${m.server}::${m.item_name}`;
               const ts = moversTs[key] ?? null;
               return (
-                <li key={key} className="grid grid-cols-[minmax(0,1fr)_6rem_auto] gap-4 items-center p-2 rounded-lg bg-bg-primary/40 border border-transparent hover:border-border-strong hover:bg-bg-primary/60 transition-all duration-200">
-                  <button className="text-sm font-medium text-text-primary hover:text-accent-primary bg-transparent border-none cursor-pointer text-left p-0 truncate" onClick={() => {
+                <DashboardRow
+                  key={key}
+                  item={m}
+                  ts={ts}
+                  onNavigate={() => {
                     const found = items.find(it => it.item_name === m.item_name && it.server === m.server);
                     if (found) onNavigateToItem(found);
-                  }}>{m.item_name}</button>
-                  <div className="h-10 hidden sm:block w-full">
-                    <SmallSparkline data={ts} />
-                  </div>
-                  <div className="flex flex-col items-end min-w-20">
-                    <div className="text-base font-mono text-text-primary flex items-center">{Math.round(m.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
-                    <div className="text-sm font-bold text-accent-success">+{m.pct_change.toFixed(1)}%</div>
-                  </div>
-                </li>
+                  }}
+                  isFavorite={favorites.has(m.item_name)}
+                  onToggleFavorite={onToggleFavorite}
+                  metric={<div className="text-sm font-bold text-accent-success">+{m.pct_change.toFixed(1)}%</div>}
+                />
               );
             })}
           </ul>
         </div>
 
         <div className="bg-bg-secondary/30 backdrop-blur-sm rounded-xl border border-border-normal p-4 flex flex-col shadow-md">
-          <h3 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2 border-b border-border-subtle pb-2">📉 Plus fortes baisses</h3>
+          <div className="flex justify-between items-center mb-4 border-b border-border-subtle pb-2">
+            <h3 className="text-lg font-bold text-text-primary m-0 border-none pb-0 flex items-center gap-2">📉 Plus fortes baisses</h3>
+            <button
+                className={`px-2 py-1 text-xs font-medium rounded transition-all duration-300 flex items-center gap-1 border ${moversDownSort === 'price-asc' || moversDownSort === 'price-desc' ? 'bg-accent-primary/10 border-accent-primary text-accent-primary shadow-[0_0_10px_rgba(59,130,246,0.4)] hover:bg-accent-primary/20 hover:shadow-[0_0_12px_rgba(59,130,246,0.6)]' : 'bg-transparent border-border-normal text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:shadow-[0_0_8px_rgba(59,130,246,0.2)] hover:bg-accent-primary/5'}`}
+                onClick={() => {
+                  if (moversDownSort === 'price-asc') setMoversDownSort('price-desc');
+                  else if (moversDownSort === 'price-desc') setMoversDownSort(null);
+                  else setMoversDownSort('price-asc');
+                }}
+                title="Trier par prix"
+              >
+                <img src={kamaIcon} alt="kamas" style={{width: '12px', height: '12px', verticalAlign: 'middle'}} /> {moversDownSort === 'price-asc' ? '↑' : moversDownSort === 'price-desc' ? '↓' : '⇅'}
+              </button>
+          </div>
           {moversLoading && <p className="text-text-muted text-sm text-center py-4">Chargement des movers…</p>}
           <ul className="list-none p-0 m-0 flex flex-col gap-2">
             {!moversLoading && moversDown && moversDown.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
-            {moversDown && moversDown.slice(0, 5).map((m) => {
+            {sortedMoversDown && sortedMoversDown.slice(0, 5).map((m) => {
               const key = `${m.server}::${m.item_name}`;
               const ts = moversTs[key] ?? null;
               return (
-                <li key={key} className="grid grid-cols-[minmax(0,1fr)_6rem_auto] gap-4 items-center p-2 rounded-lg bg-bg-primary/40 border border-transparent hover:border-border-strong hover:bg-bg-primary/60 transition-all duration-200">
-                  <button className="text-sm font-medium text-text-primary hover:text-accent-primary bg-transparent border-none cursor-pointer text-left p-0 truncate" onClick={() => {
+                <DashboardRow
+                  key={key}
+                  item={m}
+                  ts={ts}
+                  onNavigate={() => {
                     const found = items.find(it => it.item_name === m.item_name && it.server === m.server);
                     if (found) onNavigateToItem(found);
-                  }}>{m.item_name}</button>
-                  <div className="h-10 hidden sm:block w-full">
-                    <SmallSparkline data={ts} />
-                  </div>
-                  <div className="flex flex-col items-end min-w-20">
-                    <div className="text-base font-mono text-text-primary flex items-center">{Math.round(m.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
-                    <div className="text-sm font-bold text-accent-danger">{m.pct_change.toFixed(1)}%</div>
-                  </div>
-                </li>
+                  }}
+                  isFavorite={favorites.has(m.item_name)}
+                  onToggleFavorite={onToggleFavorite}
+                  metric={<div className="text-sm font-bold text-accent-danger">{m.pct_change.toFixed(1)}%</div>}
+                />
               );
             })}
           </ul>
@@ -502,54 +615,78 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Volatility Section */}
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-bg-secondary/30 backdrop-blur-sm rounded-xl border border-border-normal p-4 flex flex-col shadow-md">
-          <h3 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2 border-b border-border-subtle pb-2">⚡ Items les plus volatils</h3>
+          <div className="flex justify-between items-center mb-4 border-b border-border-subtle pb-2">
+            <h3 className="text-lg font-bold text-text-primary m-0 border-none pb-0 flex items-center gap-2">⚡ Items les plus volatils</h3>
+            <button
+                className={`px-2 py-1 text-xs font-medium rounded transition-all duration-300 flex items-center gap-1 border ${volatileSort === 'price-asc' || volatileSort === 'price-desc' ? 'bg-accent-primary/10 border-accent-primary text-accent-primary shadow-[0_0_10px_rgba(59,130,246,0.4)] hover:bg-accent-primary/20 hover:shadow-[0_0_12px_rgba(59,130,246,0.6)]' : 'bg-transparent border-border-normal text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:shadow-[0_0_8px_rgba(59,130,246,0.2)] hover:bg-accent-primary/5'}`}
+                onClick={() => {
+                  if (volatileSort === 'price-asc') setVolatileSort('price-desc');
+                  else if (volatileSort === 'price-desc') setVolatileSort(null);
+                  else setVolatileSort('price-asc');
+                }}
+                title="Trier par prix"
+              >
+                <img src={kamaIcon} alt="kamas" style={{width: '12px', height: '12px', verticalAlign: 'middle'}} /> {volatileSort === 'price-asc' ? '↑' : volatileSort === 'price-desc' ? '↓' : '⇅'}
+              </button>
+          </div>
           {volatilityLoading && <p className="text-text-muted text-sm text-center py-4">Chargement…</p>}
           <ul className="list-none p-0 m-0 flex flex-col gap-2">
             {!volatilityLoading && volatile && volatile.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
-            {volatile && volatile.slice(0, 5).map((v) => {
+            {sortedVolatile && sortedVolatile.slice(0, 5).map((v) => {
               const key = `${v.server}::${v.item_name}`;
               const ts = volatilityTs[key] ?? null;
               return (
-                <li key={key} className="grid grid-cols-[minmax(0,1fr)_6rem_auto] gap-4 items-center p-2 rounded-lg bg-bg-primary/40 border border-transparent hover:border-border-strong hover:bg-bg-primary/60 transition-all duration-200">
-                  <button className="text-sm font-medium text-text-primary hover:text-accent-primary bg-transparent border-none cursor-pointer text-left p-0 truncate" onClick={() => {
+                <DashboardRow
+                  key={key}
+                  item={v}
+                  ts={ts}
+                  onNavigate={() => {
                     const found = items.find(it => it.item_name === v.item_name && it.server === v.server);
                     if (found) onNavigateToItem(found);
-                  }}>{v.item_name}</button>
-                  <div className="h-10 hidden sm:block w-full">
-                    <SmallSparkline data={ts} />
-                  </div>
-                  <div className="flex flex-col items-end min-w-20">
-                    <div className="text-base font-mono text-text-primary flex items-center">{Math.round(v.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
-                    <div className="text-sm font-bold text-accent-warning">{v.volatility != null ? `${v.volatility.toFixed(1)}%` : <span className="text-[0.7rem] text-text-muted italic font-normal">N/A</span>}</div>
-                  </div>
-                </li>
+                  }}
+                  isFavorite={favorites.has(v.item_name)}
+                  onToggleFavorite={onToggleFavorite}
+                  metric={<div className="text-sm font-bold text-accent-warning">{v.volatility != null ? `${v.volatility.toFixed(1)}%` : <span className="text-[0.7rem] text-text-muted italic font-normal">N/A</span>}</div>}
+                />
               );
             })}
           </ul>
         </div>
 
         <div className="bg-bg-secondary/30 backdrop-blur-sm rounded-xl border border-border-normal p-4 flex flex-col shadow-md">
-          <h3 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2 border-b border-border-subtle pb-2">🛡️ Items les plus stables</h3>
+          <div className="flex justify-between items-center mb-4 border-b border-border-subtle pb-2">
+            <h3 className="text-lg font-bold text-text-primary m-0 border-none pb-0 flex items-center gap-2">🛡️ Items les plus stables</h3>
+            <button
+                className={`px-2 py-1 text-xs font-medium rounded transition-all duration-300 flex items-center gap-1 border ${stableSort === 'price-asc' || stableSort === 'price-desc' ? 'bg-accent-primary/10 border-accent-primary text-accent-primary shadow-[0_0_10px_rgba(59,130,246,0.4)] hover:bg-accent-primary/20 hover:shadow-[0_0_12px_rgba(59,130,246,0.6)]' : 'bg-transparent border-border-normal text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:shadow-[0_0_8px_rgba(59,130,246,0.2)] hover:bg-accent-primary/5'}`}
+                onClick={() => {
+                  if (stableSort === 'price-asc') setStableSort('price-desc');
+                  else if (stableSort === 'price-desc') setStableSort(null);
+                  else setStableSort('price-asc');
+                }}
+                title="Trier par prix"
+              >
+                <img src={kamaIcon} alt="kamas" style={{width: '12px', height: '12px', verticalAlign: 'middle'}} /> {stableSort === 'price-asc' ? '↑' : stableSort === 'price-desc' ? '↓' : '⇅'}
+              </button>
+          </div>
           {volatilityLoading && <p className="text-text-muted text-sm text-center py-4">Chargement…</p>}
           <ul className="list-none p-0 m-0 flex flex-col gap-2">
             {!volatilityLoading && stable && stable.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
-            {stable && stable.slice(0, 5).map((s) => {
+            {sortedStable && sortedStable.slice(0, 5).map((s) => {
               const key = `${s.server}::${s.item_name}`;
               const ts = volatilityTs[key] ?? null;
               return (
-                <li key={key} className="grid grid-cols-[minmax(0,1fr)_6rem_auto] gap-4 items-center p-2 rounded-lg bg-bg-primary/40 border border-transparent hover:border-border-strong hover:bg-bg-primary/60 transition-all duration-200">
-                  <button className="text-sm font-medium text-text-primary hover:text-accent-primary bg-transparent border-none cursor-pointer text-left p-0 truncate" onClick={() => {
+                <DashboardRow
+                  key={key}
+                  item={s}
+                  ts={ts}
+                  onNavigate={() => {
                     const found = items.find(it => it.item_name === s.item_name && it.server === s.server);
                     if (found) onNavigateToItem(found);
-                  }}>{s.item_name}</button>
-                  <div className="h-10 hidden sm:block w-full">
-                    <SmallSparkline data={ts} />
-                  </div>
-                  <div className="flex flex-col items-end min-w-20">
-                    <div className="text-base font-mono text-text-primary flex items-center">{Math.round(s.last_price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} /></div>
-                    <div className="text-sm font-bold text-accent-primary">{s.volatility != null ? `${s.volatility.toFixed(1)}%` : <span className="text-[0.7rem] text-text-muted italic font-normal">N/A</span>}</div>
-                  </div>
-                </li>
+                  }}
+                  isFavorite={favorites.has(s.item_name)}
+                  onToggleFavorite={onToggleFavorite}
+                  metric={<div className="text-sm font-bold text-accent-primary">{s.volatility != null ? `${s.volatility.toFixed(1)}%` : <span className="text-[0.7rem] text-text-muted italic font-normal">N/A</span>}</div>}
+                />
               );
             })}
           </ul>

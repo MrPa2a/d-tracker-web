@@ -21,6 +21,7 @@ interface PriceChartProps {
   error: string | null;
   dateRange: DateRangePreset;
   onRefresh: () => void;
+  refreshTrigger?: number;
   onBackToDashboard?: () => void;
   favorites?: Set<string>;
   onToggleFavorite?: (key: string) => void;
@@ -75,6 +76,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
   error,
   dateRange,
   onRefresh,
+  refreshTrigger = 0,
   onBackToDashboard,
   favorites = new Set<string>(),
   onToggleFavorite,
@@ -143,7 +145,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [selectedItem, server, dateRange]);
+  }, [selectedItem, server, dateRange, refreshTrigger]);
 
   const stats = useMemo(() => {
     if (!hasData || !timeseries) return null;
@@ -210,28 +212,34 @@ export const PriceChart: React.FC<PriceChartProps> = ({
                 {favorites.has(selectedItem.item_name) ? '★' : '☆'}
               </button>
             )}
-            {itemStats && !statsLoading && itemStats.signal && (
+            {(statsLoading || (itemStats && itemStats.signal)) && (
               <>
                 <span className="text-border-strong">—</span>
-                <span 
-                  className={`
-                    px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider
-                    ${itemStats.signal === 'buy'
-                      ? 'bg-accent-success/20 text-accent-success border border-accent-success/30'
-                      : itemStats.signal === 'sell'
-                      ? 'bg-accent-danger/20 text-accent-danger border border-accent-danger/30'
-                      : 'bg-accent-warning/20 text-accent-warning border border-accent-warning/30'}
-                  `}
-                  title={
-                    itemStats.signal === 'buy' 
-                      ? 'Le prix est actuellement bas par rapport à la moyenne récente. Bon moment pour acheter !' 
-                      : itemStats.signal === 'sell'
-                      ? 'Le prix est actuellement élevé par rapport à la moyenne récente. Bon moment pour vendre !'
-                      : 'Le prix est stable autour de sa moyenne récente.'
-                  }
-                >
-                  {itemStats.signal === 'buy' ? '🟢 ACHAT' : itemStats.signal === 'sell' ? '🔴 VENTE' : '🟡 NEUTRE'}
-                </span>
+                {statsLoading ? (
+                  <span className="px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-bg-primary/50 text-text-muted border border-border-subtle animate-pulse">
+                    ...
+                  </span>
+                ) : itemStats?.signal ? (
+                  <span 
+                    className={`
+                      px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider
+                      ${itemStats.signal === 'buy'
+                        ? 'bg-accent-success/20 text-accent-success border border-accent-success/30'
+                        : itemStats.signal === 'sell'
+                        ? 'bg-accent-danger/20 text-accent-danger border border-accent-danger/30'
+                        : 'bg-accent-warning/20 text-accent-warning border border-accent-warning/30'}
+                    `}
+                    title={
+                      itemStats.signal === 'buy' 
+                        ? 'Le prix est actuellement bas par rapport à la moyenne récente. Bon moment pour acheter !' 
+                        : itemStats.signal === 'sell'
+                        ? 'Le prix est actuellement élevé par rapport à la moyenne récente. Bon moment pour vendre !'
+                        : 'Le prix est stable autour de sa moyenne récente.'
+                    }
+                  >
+                    {itemStats.signal === 'buy' ? '🟢 ACHAT' : itemStats.signal === 'sell' ? '🔴 VENTE' : '🟡 NEUTRE'}
+                  </span>
+                ) : null}
               </>
             )}
           </div>
@@ -240,39 +248,63 @@ export const PriceChart: React.FC<PriceChartProps> = ({
           </p>
         </div>
 
-        {stats && (
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex gap-4 bg-bg-primary/40 p-3 rounded-xl border border-border-subtle">
-              <div className="flex flex-col">
-                <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Dernier prix</span>
-                <span className="text-sm md:text-base font-bold text-text-primary font-mono">
-                  {Math.round(stats.last).toLocaleString('fr-FR')}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Min</span>
-                <span className="text-sm md:text-base font-bold text-text-primary font-mono">
-                  {Math.round(stats.min).toLocaleString('fr-FR')}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Max</span>
-                <span className="text-sm md:text-base font-bold text-text-primary font-mono">
-                  {Math.round(stats.max).toLocaleString('fr-FR')}
-                </span>
-              </div>
-              {itemStats && !statsLoading && itemStats.median_price != null && (
-                <div className="flex flex-col">
-                  <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Médian</span>
-                  <span className="text-sm md:text-base font-bold text-text-primary font-mono">
-                    {Math.round(itemStats.median_price).toLocaleString('fr-FR')}
-                  </span>
-                </div>
-              )}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex gap-4 bg-bg-primary/40 p-3 rounded-xl border border-border-subtle">
+            <div className="flex flex-col">
+              <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Dernier prix</span>
+              <span className="text-sm md:text-base font-bold text-text-primary font-mono">
+                {loading ? (
+                  <span className="animate-pulse text-text-muted">...</span>
+                ) : stats ? (
+                  Math.round(stats.last).toLocaleString('fr-FR')
+                ) : (
+                  '—'
+                )}
+              </span>
             </div>
-            <div className="flex gap-4 bg-bg-primary/40 p-3 rounded-xl border border-border-subtle">
-              <div className="flex flex-col">
-                <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Évolution</span>
+            <div className="flex flex-col">
+              <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Min</span>
+              <span className="text-sm md:text-base font-bold text-text-primary font-mono">
+                {loading ? (
+                  <span className="animate-pulse text-text-muted">...</span>
+                ) : stats ? (
+                  Math.round(stats.min).toLocaleString('fr-FR')
+                ) : (
+                  '—'
+                )}
+              </span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Max</span>
+              <span className="text-sm md:text-base font-bold text-text-primary font-mono">
+                {loading ? (
+                  <span className="animate-pulse text-text-muted">...</span>
+                ) : stats ? (
+                  Math.round(stats.max).toLocaleString('fr-FR')
+                ) : (
+                  '—'
+                )}
+              </span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Médian</span>
+              <span className="text-sm md:text-base font-bold text-text-primary font-mono">
+                {statsLoading ? (
+                  <span className="animate-pulse text-text-muted">...</span>
+                ) : (itemStats && itemStats.median_price != null) ? (
+                  Math.round(itemStats.median_price).toLocaleString('fr-FR')
+                ) : (
+                  '—'
+                )}
+              </span>
+            </div>
+          </div>
+          <div className="flex gap-4 bg-bg-primary/40 p-3 rounded-xl border border-border-subtle">
+            <div className="flex flex-col">
+              <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Évolution</span>
+              {loading ? (
+                <span className="text-sm md:text-base font-bold font-mono animate-pulse text-text-muted">...</span>
+              ) : stats ? (
                 <span
                   className={`
                     text-sm md:text-base font-bold font-mono
@@ -286,18 +318,24 @@ export const PriceChart: React.FC<PriceChartProps> = ({
                   {stats.pctChange >= 0 ? '+' : ''}
                   {stats.pctChange.toFixed(1)}%
                 </span>
-              </div>
-              {itemStats && !statsLoading && itemStats.volatility != null && (
-                <div className="flex flex-col">
-                  <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Volatilité</span>
-                  <span className="text-sm md:text-base font-bold font-mono text-accent-warning">
-                    {itemStats.volatility.toFixed(1)}%
-                  </span>
-                </div>
+              ) : (
+                <span className="text-sm md:text-base font-bold font-mono">—</span>
               )}
             </div>
+            <div className="flex flex-col">
+              <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Volatilité</span>
+              <span className="text-sm md:text-base font-bold font-mono text-accent-warning">
+                {statsLoading ? (
+                  <span className="animate-pulse text-text-muted">...</span>
+                ) : (itemStats && itemStats.volatility != null) ? (
+                  itemStats.volatility.toFixed(1) + '%'
+                ) : (
+                  '—'
+                )}
+              </span>
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
       {loading && <p className="text-text-muted text-sm text-center py-4">Chargement de la courbe…</p>}

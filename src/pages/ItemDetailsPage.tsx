@@ -90,6 +90,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
       error={error}
       dateRange={dateRange}
       onRefresh={handleRefresh}
+      refreshTrigger={refreshIndex}
       onBackToDashboard={handleBack}
       favorites={favorites}
       onToggleFavorite={onToggleFavorite}
