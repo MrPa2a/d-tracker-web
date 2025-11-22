@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Routes, Route, useNavigate, useMatch } from 'react-router-dom';
 import { fetchItems } from './api';
-import type { DateRangePreset, ItemSummary } from './types';
+import type { DateRangePreset, ItemSummary, SortType, SortOrder } from './types';
 import { Layout } from './components/Layout';
 import { ItemList } from './components/ItemList';
 import { TopBar } from './components/TopBar';
@@ -20,6 +20,8 @@ const App: React.FC = () => {
   const [dashboardServer, setDashboardServer] = useState<string | null>(null);
   
   const [search, setSearch] = useState('');
+  const [sortType, setSortType] = useState<SortType>('name');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   
   // Favorites stored as set of item names (server-independent)
   const [favorites, setFavorites] = useState<Set<string>>(() => {
@@ -122,8 +124,18 @@ const App: React.FC = () => {
       .filter((i) =>
         i.item_name.toLowerCase().includes(search.trim().toLowerCase())
       )
-      .sort((a, b) => a.item_name.localeCompare(b.item_name, 'fr'));
-  }, [items, currentServer, search]);
+      .sort((a, b) => {
+        if (sortType === 'name') {
+          return sortOrder === 'asc' 
+            ? a.item_name.localeCompare(b.item_name, 'fr')
+            : b.item_name.localeCompare(a.item_name, 'fr');
+        } else {
+          return sortOrder === 'asc'
+            ? a.last_price - b.last_price
+            : b.last_price - a.last_price;
+        }
+      });
+  }, [items, currentServer, search, sortType, sortOrder]);
 
   // Handle server selection from TopBar
   const handleSelectServer = (newServer: string | null) => {
@@ -177,6 +189,12 @@ const App: React.FC = () => {
           onSelectItem={handleSelectItem}
           favorites={favorites}
           onToggleFavorite={handleToggleFavorite}
+          sortType={sortType}
+          sortOrder={sortOrder}
+          onSortChange={(type, order) => {
+            setSortType(type);
+            setSortOrder(order);
+          }}
         />
       }
       topBar={

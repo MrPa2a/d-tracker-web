@@ -329,7 +329,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
     setMoversLoading(true);
     setMoversError(null);
     try {
-      const list = await fetchMovers(server, dateRange, 10);
+      // On récupère plus d'items (60 au lieu de 10) pour être sûr d'avoir assez de hausses ET de baisses
+      // car l'API renvoie les plus gros mouvements en valeur absolue.
+      const list = await fetchMovers(server, dateRange, 60);
       // split into up/down and apply price filter
       const up = list.filter((m) => m.pct_change > 0 && filterByPrice(m)).sort((a, b) => b.pct_change - a.pct_change).slice(0, 10);
       const down = list.filter((m) => m.pct_change < 0 && filterByPrice(m)).sort((a, b) => a.pct_change - b.pct_change).slice(0, 10);

@@ -65,3 +65,6 @@ export interface SellOpportunity {
   target_price: number;
   premium_pct: number;
 }
+
+export type SortType = 'name' | 'price';
+export type SortOrder = 'asc' | 'desc';
