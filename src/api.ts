@@ -83,12 +83,16 @@ export async function fetchTimeseries(
 export async function fetchMovers(
   server: string,
   range: DateRangePreset,
-  limit = 10
+  limit = 10,
+  minPrice?: number,
+  maxPrice?: number
 ): Promise<Mover[]> {
   const from = computeFromDate(range);
   const to = toDateOnlyIso(new Date());
 
   const params = new URLSearchParams({ server, from, to, limit: String(limit) });
+  if (minPrice !== undefined) params.append('min_price', String(minPrice));
+  if (maxPrice !== undefined) params.append('max_price', String(maxPrice));
 
   const res = await fetch(`${API_BASE}/api/movers?${params.toString()}`, {
     method: 'GET',
@@ -158,7 +162,9 @@ export async function fetchVolatilityRankings(
   server: string,
   range: DateRangePreset,
   limit = 10,
-  order: 'asc' | 'desc' = 'desc'
+  order: 'asc' | 'desc' = 'desc',
+  minPrice?: number,
+  maxPrice?: number
 ): Promise<VolatilityRanking[]> {
   const from = computeFromDate(range);
   const to = toDateOnlyIso(new Date());
@@ -170,6 +176,8 @@ export async function fetchVolatilityRankings(
     limit: String(limit),
     order 
   });
+  if (minPrice !== undefined) params.append('min_price', String(minPrice));
+  if (maxPrice !== undefined) params.append('max_price', String(maxPrice));
 
   const res = await fetch(`${API_BASE}/api/volatility-rankings?${params.toString()}`, {
     method: 'GET',
@@ -189,12 +197,16 @@ export async function fetchVolatilityRankings(
 export async function fetchOpportunities(
   server: string,
   range: DateRangePreset,
-  limit = 20
+  limit = 20,
+  minPrice?: number,
+  maxPrice?: number
 ): Promise<InvestmentOpportunity[]> {
   const from = computeFromDate(range);
   const to = toDateOnlyIso(new Date());
 
   const params = new URLSearchParams({ server, from, to, limit: String(limit) });
+  if (minPrice !== undefined) params.append('min_price', String(minPrice));
+  if (maxPrice !== undefined) params.append('max_price', String(maxPrice));
 
   const res = await fetch(`${API_BASE}/api/opportunities?${params.toString()}`, {
     method: 'GET',
@@ -214,12 +226,16 @@ export async function fetchOpportunities(
 export async function fetchSellOpportunities(
   server: string,
   range: DateRangePreset,
-  limit = 20
+  limit = 20,
+  minPrice?: number,
+  maxPrice?: number
 ): Promise<SellOpportunity[]> {
   const from = computeFromDate(range);
   const to = toDateOnlyIso(new Date());
 
   const params = new URLSearchParams({ server, from, to, limit: String(limit) });
+  if (minPrice !== undefined) params.append('min_price', String(minPrice));
+  if (maxPrice !== undefined) params.append('max_price', String(maxPrice));
 
   const res = await fetch(`${API_BASE}/api/sell-opportunities?${params.toString()}`, {
     method: 'GET',

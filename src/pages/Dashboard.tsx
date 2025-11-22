@@ -182,13 +182,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
     });
   }, [items, favorites, server, parsedMinPrice, parsedMaxPrice]);
 
-  // Filter function for items based on price
-  const filterByPrice = <T extends { last_price: number }>(item: T): boolean => {
-    if (parsedMinPrice !== null && item.last_price < parsedMinPrice) return false;
-    if (parsedMaxPrice !== null && item.last_price > parsedMaxPrice) return false;
-    return true;
-  };
-
   // timeseries cache for favorites
   const [favTs, setFavTs] = useState<Record<string, TimeseriesPoint[] | null>>({});
 
@@ -228,26 +221,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
       // Reset state first
       setFavTs({});
       
-      // Load all timeseries in parallel and update state progressively
-      const promises = itemsToLoad.map(async (it) => {
-        const key = `${it.item_name}`; // Use only item name as key since server is global
+      // Load all timeseries in parallel
+      const results: Record<string, TimeseriesPoint[] | null> = {};
+      
+      await Promise.all(itemsToLoad.map(async (it) => {
+        const key = `${it.item_name}`;
         try {
           const data = await fetchTimeseries(it.item_name, server, dateRange);
-          // Update state immediately when this item loads
           if (!cancelled) {
-            setFavTs((prev) => ({ ...prev, [key]: data }));
+            results[key] = data;
           }
-          return { key, data };
         } catch (err) {
           console.error(`Error loading timeseries for ${it.item_name} on ${server}:`, err);
           if (!cancelled) {
-            setFavTs((prev) => ({ ...prev, [key]: null }));
+            results[key] = null;
           }
-          return { key, data: null };
         }
-      });
+      }));
 
-      await Promise.allSettled(promises);
+      if (!cancelled) {
+        setFavTs(results);
+      }
     };
     if (favItems.length > 0 && server) {
       load();
@@ -329,33 +323,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
     setMoversLoading(true);
     setMoversError(null);
     try {
-      // On récupère plus d'items (60 au lieu de 10) pour être sûr d'avoir assez de hausses ET de baisses
-      // car l'API renvoie les plus gros mouvements en valeur absolue.
-      const list = await fetchMovers(server, dateRange, 60);
-      // split into up/down and apply price filter
-      const up = list.filter((m) => m.pct_change > 0 && filterByPrice(m)).sort((a, b) => b.pct_change - a.pct_change).slice(0, 10);
-      const down = list.filter((m) => m.pct_change < 0 && filterByPrice(m)).sort((a, b) => a.pct_change - b.pct_change).slice(0, 10);
+      // On récupère 20 items avec le filtre de prix appliqué côté serveur
+      const list = await fetchMovers(server, dateRange, 20, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined);
+      // split into up/down
+      const up = list.filter((m) => m.pct_change > 0).sort((a, b) => b.pct_change - a.pct_change).slice(0, 10);
+      const down = list.filter((m) => m.pct_change < 0).sort((a, b) => a.pct_change - b.pct_change).slice(0, 10);
       setMoversUp(up);
       setMoversDown(down);
 
-      // Load timeseries for movers in parallel with progressive updates
+      // Load timeseries for movers in parallel
       const allMovers = [...up, ...down];
       setMoversTs({}); // Reset first
       
-      const promises = allMovers.map(async (m) => {
+      const results: Record<string, TimeseriesPoint[] | null> = {};
+      await Promise.all(allMovers.map(async (m) => {
         const key = `${m.server}::${m.item_name}`;
         try {
           const data = await fetchTimeseries(m.item_name, m.server, dateRange);
-          // Update state immediately when this item loads
-          setMoversTs((prev) => ({ ...prev, [key]: data }));
-          return { key, data };
+          results[key] = data;
         } catch {
-          setMoversTs((prev) => ({ ...prev, [key]: null }));
-          return { key, data: null };
+          results[key] = null;
         }
-      });
-
-      await Promise.allSettled(promises);
+      }));
+      
+      setMoversTs(results);
     } catch (err: unknown) {
       console.error(err);
       const errMessage = err instanceof Error ? err.message : 'Erreur inconnue';
@@ -385,89 +376,77 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Timeseries for volatility items
   const [volatilityTs, setVolatilityTs] = useState<Record<string, TimeseriesPoint[] | null>>({});
 
-  const loadMarketStats = async () => {
+  const loadMarketStats = () => {
     if (!server) return;
 
-    // Load market index
+    // 1. Market Index
     setIndexLoading(true);
-    try {
-      const indexData = await fetchMarketIndex(server, dateRange);
-      console.log('Market index data:', indexData);
-      setMarketIndex(indexData);
-    } catch (err) {
-      console.error('Error loading market index:', err);
-      setMarketIndex(null);
-    } finally {
-      setIndexLoading(false);
-    }
+    fetchMarketIndex(server, dateRange)
+      .then(data => {
+        console.log('Market index data:', data);
+        setMarketIndex(data);
+      })
+      .catch(err => {
+        console.error('Error loading market index:', err);
+        setMarketIndex(null);
+      })
+      .finally(() => setIndexLoading(false));
 
-    // Load opportunities
-    setOpportunitiesLoading(true);
-    try {
-      const opps = await fetchOpportunities(server, dateRange, 10);
-      setOpportunities(opps.filter(it => {
-        if (parsedMinPrice !== null && it.current_price < parsedMinPrice) return false;
-        if (parsedMaxPrice !== null && it.current_price > parsedMaxPrice) return false;
-        return true;
-      }));
-    } catch (err) {
-      console.error('Error loading opportunities:', err);
-      setOpportunities(null);
-    } finally {
-      setOpportunitiesLoading(false);
-    }
-
-    // Load sell opportunities
-    setSellOpportunitiesLoading(true);
-    try {
-      const sells = await fetchSellOpportunities(server, dateRange, 10);
-      setSellOpportunities(sells.filter(it => {
-        if (parsedMinPrice !== null && it.current_price < parsedMinPrice) return false;
-        if (parsedMaxPrice !== null && it.current_price > parsedMaxPrice) return false;
-        return true;
-      }));
-    } catch (err) {
-      console.error('Error loading sell opportunities:', err);
-      setSellOpportunities(null);
-    } finally {
-      setSellOpportunitiesLoading(false);
-    }
-
-    // Load volatility rankings
+    // 2. Volatility Rankings (Moved up to match UI order)
     setVolatilityLoading(true);
-    try {
-      const [volatileData, stableData] = await Promise.all([
-        fetchVolatilityRankings(server, dateRange, 10, 'desc'),
-        fetchVolatilityRankings(server, dateRange, 10, 'asc'),
-      ]);
-      setVolatile(volatileData.filter(filterByPrice));
-      setStable(stableData.filter(filterByPrice));
+    const loadVolatility = async () => {
+      try {
+        const [volatileData, stableData] = await Promise.all([
+          fetchVolatilityRankings(server, dateRange, 10, 'desc', parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined),
+          fetchVolatilityRankings(server, dateRange, 10, 'asc', parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined),
+        ]);
+        setVolatile(volatileData);
+        setStable(stableData);
 
-      // Load timeseries for volatility items in parallel with progressive updates
-      const allItems = [...volatileData, ...stableData];
-      setVolatilityTs({}); // Reset first
-      
-      const promises = allItems.map(async (item) => {
-        const key = `${item.server}::${item.item_name}`;
-        try {
-          const data = await fetchTimeseries(item.item_name, item.server, dateRange);
-          // Update state immediately when this item loads
-          setVolatilityTs((prev) => ({ ...prev, [key]: data }));
-          return { key, data };
-        } catch {
-          setVolatilityTs((prev) => ({ ...prev, [key]: null }));
-          return { key, data: null };
-        }
-      });
+        // Load timeseries for volatility items in parallel
+        const allItems = [...volatileData, ...stableData];
+        setVolatilityTs({}); // Reset first
+        
+        const results: Record<string, TimeseriesPoint[] | null> = {};
+        await Promise.all(allItems.map(async (item) => {
+          const key = `${item.server}::${item.item_name}`;
+          try {
+            const data = await fetchTimeseries(item.item_name, item.server, dateRange);
+            results[key] = data;
+          } catch {
+            results[key] = null;
+          }
+        }));
+        setVolatilityTs(results);
+      } catch (err) {
+        console.error('Error loading volatility rankings:', err);
+        setVolatile(null);
+        setStable(null);
+      } finally {
+        setVolatilityLoading(false);
+      }
+    };
+    loadVolatility();
 
-      await Promise.allSettled(promises);
-    } catch (err) {
-      console.error('Error loading volatility rankings:', err);
-      setVolatile(null);
-      setStable(null);
-    } finally {
-      setVolatilityLoading(false);
-    }
+    // 3. Opportunities
+    setOpportunitiesLoading(true);
+    fetchOpportunities(server, dateRange, 12, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined)
+      .then(opps => setOpportunities(opps))
+      .catch(err => {
+        console.error('Error loading opportunities:', err);
+        setOpportunities(null);
+      })
+      .finally(() => setOpportunitiesLoading(false));
+
+    // 4. Sell Opportunities
+    setSellOpportunitiesLoading(true);
+    fetchSellOpportunities(server, dateRange, 12, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined)
+      .then(sells => setSellOpportunities(sells))
+      .catch(err => {
+        console.error('Error loading sell opportunities:', err);
+        setSellOpportunities(null);
+      })
+      .finally(() => setSellOpportunitiesLoading(false));
   };
 
   useEffect(() => {

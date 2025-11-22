@@ -25,6 +25,70 @@ const RANGE_LABELS: Record<DateRangePreset, string> = {
   '365d': '1 an',
 };
 
+const DebouncedPriceInput: React.FC<{
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  className?: string;
+}> = ({ value, onChange, placeholder, className }) => {
+  const [displayValue, setDisplayValue] = React.useState('');
+
+  // Sync from parent (e.g. reset)
+  React.useEffect(() => {
+    const rawLocal = displayValue.replace(/\s/g, '');
+    if (value !== rawLocal) {
+      if (value === '') {
+        setDisplayValue('');
+      } else {
+        // Format initial/external value
+        const num = parseFloat(value);
+        if (!isNaN(num)) {
+          setDisplayValue(num.toLocaleString('fr-FR'));
+        } else {
+          setDisplayValue(value);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  // Debounce update to parent
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      const raw = displayValue.replace(/\s/g, '');
+      if (raw !== value) {
+        onChange(raw);
+      }
+    }, 600); // 600ms debounce
+    return () => clearTimeout(timer);
+  }, [displayValue, onChange, value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    // Allow digits and spaces only
+    const raw = val.replace(/\s/g, '');
+    if (val !== '' && !/^\d*$/.test(raw)) return;
+
+    if (raw === '') {
+      setDisplayValue('');
+    } else {
+      // Format while typing
+      const num = parseInt(raw, 10);
+      setDisplayValue(num.toLocaleString('fr-FR'));
+    }
+  };
+
+  return (
+    <input
+      type="text"
+      placeholder={placeholder}
+      value={displayValue}
+      onChange={handleChange}
+      className={className}
+    />
+  );
+};
+
 export const TopBar: React.FC<TopBarProps> = ({
   servers,
   selectedServer,
@@ -114,19 +178,17 @@ export const TopBar: React.FC<TopBarProps> = ({
           <div className="flex flex-col gap-1.5 w-full md:w-auto">
             <span className="text-[0.7rem] uppercase tracking-wider text-text-muted font-bold ml-1">Prix</span>
             <div className="flex items-center gap-2 bg-bg-primary/50 p-1 rounded-lg border border-border-normal w-full md:w-auto">
-              <input
-                type="number"
+              <DebouncedPriceInput
                 placeholder="Min"
                 value={minPrice}
-                onChange={(e) => onMinPriceChange(e.target.value)}
-                className="flex-1 md:flex-none md:w-20 bg-transparent text-text-primary text-xs px-2 py-1 outline-none border-r border-border-normal placeholder:text-text-muted/50 text-center min-w-0"
+                onChange={onMinPriceChange}
+                className="flex-1 md:flex-none md:w-28 bg-transparent text-text-primary text-xs px-2 py-1 outline-none border-r border-border-normal placeholder:text-text-muted/50 text-center min-w-0"
               />
-              <input
-                type="number"
+              <DebouncedPriceInput
                 placeholder="Max"
                 value={maxPrice}
-                onChange={(e) => onMaxPriceChange(e.target.value)}
-                className="flex-1 md:flex-none md:w-20 bg-transparent text-text-primary text-xs px-2 py-1 outline-none placeholder:text-text-muted/50 text-center min-w-0"
+                onChange={onMaxPriceChange}
+                className="flex-1 md:flex-none md:w-28 bg-transparent text-text-primary text-xs px-2 py-1 outline-none placeholder:text-text-muted/50 text-center min-w-0"
               />
               {(minPrice || maxPrice) && (
                 <button
