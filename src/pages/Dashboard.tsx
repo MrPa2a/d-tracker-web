@@ -110,7 +110,7 @@ const DashboardRow: React.FC<{
   metric: React.ReactNode;
 }> = ({ item, ts, onNavigate, isFavorite, onToggleFavorite, metric }) => {
   return (
-    <li className="grid grid-cols-[minmax(0,1fr)_6rem_7rem] gap-4 items-center p-2 rounded-lg bg-bg-primary/40 border border-transparent hover:border-border-strong hover:bg-bg-primary/60 transition-all duration-200">
+    <li className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_6rem_7rem] gap-4 items-center p-2 rounded-lg bg-bg-primary/40 border border-transparent hover:border-border-strong hover:bg-bg-primary/60 transition-all duration-200">
       <div className="flex items-center gap-2 min-w-0 relative group">
          <Link 
             to={`/item/${item.server}/${item.item_name}`}
