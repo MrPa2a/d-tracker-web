@@ -1,11 +1,12 @@
 // src/App.tsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { Routes, Route, useNavigate, useMatch } from 'react-router-dom';
-import { fetchItems } from './api';
-import type { DateRangePreset, ItemSummary, SortType, SortOrder } from './types';
+import { fetchItems, fetchProfileFavorites, addProfileFavorite, removeProfileFavorite } from './api';
+import type { DateRangePreset, ItemSummary, SortType, SortOrder, Profile } from './types';
 import { Layout } from './components/Layout';
 import { ItemList } from './components/ItemList';
 import { TopBar } from './components/TopBar';
+import { ProfileSelector } from './components/ProfileSelector';
 import Dashboard from './pages/Dashboard';
 import ItemDetailsPage from './pages/ItemDetailsPage';
 
@@ -17,11 +18,41 @@ const App: React.FC = () => {
   const [itemsError, setItemsError] = useState<string | null>(null);
 
   // Dashboard server state
-  const [dashboardServer, setDashboardServer] = useState<string | null>(null);
+  const [dashboardServer, setDashboardServer] = useState<string | null>(() => {
+    return localStorage.getItem('dashboardServer');
+  });
+
+  useEffect(() => {
+    if (dashboardServer) {
+      localStorage.setItem('dashboardServer', dashboardServer);
+    } else {
+      localStorage.removeItem('dashboardServer');
+    }
+  }, [dashboardServer]);
   
   const [search, setSearch] = useState('');
   const [sortType, setSortType] = useState<SortType>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+  // Profile state
+  const [currentProfile, setCurrentProfile] = useState<Profile | null>(() => {
+    try {
+      const raw = localStorage.getItem('currentProfile');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (currentProfile) {
+      localStorage.setItem('currentProfile', JSON.stringify(currentProfile));
+    } else {
+      localStorage.removeItem('currentProfile');
+    }
+  }, [currentProfile]);
+
+  const [favoritesLoading, setFavoritesLoading] = useState(false);
   
   // Favorites stored as set of item names (server-independent)
   const [favorites, setFavorites] = useState<Set<string>>(() => {
@@ -41,20 +72,62 @@ const App: React.FC = () => {
     }
   });
 
-  const persistFavorites = (next: Set<string>) => {
-    setFavorites(next);
-    try {
-      localStorage.setItem('favorites', JSON.stringify(Array.from(next)));
-    } catch (e) {
-      console.warn('Failed to persist favorites', e);
+  // Load favorites when profile changes
+  useEffect(() => {
+    setFavoritesLoading(true);
+    if (currentProfile) {
+      fetchProfileFavorites(currentProfile.id)
+        .then(favs => setFavorites(new Set(favs)))
+        .catch(err => console.error('Failed to load profile favorites', err))
+        .finally(() => setFavoritesLoading(false));
+    } else {
+      // Load from local storage
+      try {
+        const raw = localStorage.getItem('favorites');
+        if (raw) {
+          const arr = JSON.parse(raw) as string[];
+          const migrated = arr.map(fav => {
+            const parts = fav.split('::');
+            return parts.length > 1 ? parts[1] : fav;
+          });
+          setFavorites(new Set(migrated));
+        } else {
+          setFavorites(new Set());
+        }
+      } catch (e) {
+        console.warn('Failed to load favorites', e);
+        setFavorites(new Set());
+      }
+      setFavoritesLoading(false);
     }
-  };
+  }, [currentProfile]);
 
-  const handleToggleFavorite = (key: string) => {
+  const handleToggleFavorite = async (key: string) => {
     const next = new Set(favorites);
-    if (next.has(key)) next.delete(key);
-    else next.add(key);
-    persistFavorites(next);
+    const isAdding = !next.has(key);
+    
+    if (isAdding) next.add(key);
+    else next.delete(key);
+    
+    setFavorites(next);
+
+    if (currentProfile) {
+      try {
+        if (isAdding) {
+          await addProfileFavorite(currentProfile.id, key);
+        } else {
+          await removeProfileFavorite(currentProfile.id, key);
+        }
+      } catch (err) {
+        console.error('Failed to update profile favorite', err);
+      }
+    } else {
+      try {
+        localStorage.setItem('favorites', JSON.stringify(Array.from(next)));
+      } catch (e) {
+        console.warn('Failed to persist favorites', e);
+      }
+    }
   };
 
   const [dateRange, setDateRange] = useState<DateRangePreset>(DEFAULT_RANGE);
@@ -179,23 +252,31 @@ const App: React.FC = () => {
   return (
     <Layout
       sidebar={
-        <ItemList
-          items={filteredItems}
-          loading={itemsLoading}
-          error={itemsError}
-          onSearchChange={setSearch}
-          search={search}
-          selectedItem={selectedItem}
-          onSelectItem={handleSelectItem}
-          favorites={favorites}
-          onToggleFavorite={handleToggleFavorite}
-          sortType={sortType}
-          sortOrder={sortOrder}
-          onSortChange={(type, order) => {
-            setSortType(type);
-            setSortOrder(order);
-          }}
-        />
+        <div className="flex flex-col h-full">
+          <ProfileSelector 
+            currentProfile={currentProfile} 
+            onSelectProfile={setCurrentProfile} 
+          />
+          <div className="flex-1 min-h-0">
+            <ItemList
+              items={filteredItems}
+              loading={itemsLoading}
+              error={itemsError}
+              onSearchChange={setSearch}
+              search={search}
+              selectedItem={selectedItem}
+              onSelectItem={handleSelectItem}
+              favorites={favorites}
+              onToggleFavorite={handleToggleFavorite}
+              sortType={sortType}
+              sortOrder={sortOrder}
+              onSortChange={(type, order) => {
+                setSortType(type);
+                setSortOrder(order);
+              }}
+            />
+          </div>
+        </div>
       }
       topBar={
         <TopBar
@@ -222,6 +303,7 @@ const App: React.FC = () => {
                 <Dashboard
                   items={items}
                   favorites={favorites}
+                  favoritesLoading={favoritesLoading}
                   onNavigateToItem={handleNavigateToItem}
                   onToggleFavorite={handleToggleFavorite}
                   server={dashboardServer}

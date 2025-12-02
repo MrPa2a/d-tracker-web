@@ -6,6 +6,7 @@ import kamaIcon from '../assets/kama.png';
 interface ItemListProps {
   items: ItemSummary[];
   loading: boolean;
+  favoritesLoading?: boolean;
   error: string | null;
   search: string;
   onSearchChange: (value: string) => void;
@@ -21,6 +22,7 @@ interface ItemListProps {
 export const ItemList: React.FC<ItemListProps> = ({
   items,
   loading,
+  favoritesLoading = false,
   error,
   search,
   onSearchChange,

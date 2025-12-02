@@ -60,10 +60,15 @@ export interface SellOpportunity {
   item_name: string;
   server: string;
   current_price: number;
-  ma7: number;
-  volatility: number;
-  target_price: number;
-  premium_pct: number;
+  purchase_price: number;
+  profit_pct: number;
+  purchase_date: string;
+}
+
+export interface Profile {
+  id: string;
+  name: string;
+  created_at: string;
 }
 
 export type SortType = 'name' | 'price';

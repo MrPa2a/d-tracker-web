@@ -16,6 +16,7 @@ import {
 interface DashboardProps {
   items: ItemSummary[];
   favorites: Set<string>;
+  favoritesLoading?: boolean;
   onNavigateToItem: (item: ItemSummary) => void;
   onToggleFavorite: (itemName: string) => void;
   server: string | null;
@@ -160,6 +161,7 @@ const DashboardRow: React.FC<{
 export const Dashboard: React.FC<DashboardProps> = ({
   items,
   favorites,
+  favoritesLoading = false,
   onNavigateToItem,
   onToggleFavorite,
   server,
@@ -513,12 +515,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </button>
             </div>
           </div>
-          {favorites.size === 0 && <p className="text-text-muted text-sm text-center py-4">Aucun item en favoris. Cliquez sur ☆ pour en ajouter.</p>}
-          {favorites.size > 0 && favItems.length === 0 && server && (
+          {favoritesLoading && <p className="text-text-muted text-sm text-center py-4">Chargement des favoris...</p>}
+          {!favoritesLoading && favorites.size === 0 && <p className="text-text-muted text-sm text-center py-4">Aucun item en favoris. Cliquez sur ☆ pour en ajouter.</p>}
+          {!favoritesLoading && favorites.size > 0 && favItems.length === 0 && server && (
             <p className="text-text-muted text-sm text-center py-4">Aucun de vos favoris n'est disponible sur <strong>{server}</strong>.</p>
           )}
-          {!server && favorites.size > 0 && <p className="text-text-muted text-sm text-center py-4">Sélectionnez un serveur pour voir vos favoris.</p>}
-          <ul className="list-none p-0 m-0 flex flex-col gap-2 max-h-[350px] overflow-y-auto pr-1">
+          {!favoritesLoading && !server && favorites.size > 0 && <p className="text-text-muted text-sm text-center py-4">Sélectionnez un serveur pour voir vos favoris.</p>}
+          <ul className={`list-none p-0 m-0 flex flex-col gap-2 max-h-[350px] overflow-y-auto pr-1 ${favoritesLoading ? 'opacity-50 pointer-events-none' : ''}`}>
             {sortedFavItems.map((it) => {
               const key = it.item_name;
               const ts = favTs[key];

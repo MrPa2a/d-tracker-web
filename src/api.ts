@@ -1,5 +1,5 @@
 // src/api.ts
-import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity } from './types';
+import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
@@ -27,6 +27,70 @@ export async function fetchItems(): Promise<ItemSummary[]> {
     throw new Error(`Erreur API /api/items : ${res.status} ${res.statusText}`);
   }
   return res.json();
+}
+
+export async function fetchProfiles(): Promise<Profile[]> {
+  const res = await fetch(`${API_BASE}/api/profiles`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/profiles : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function createProfile(name: string): Promise<Profile> {
+  const res = await fetch(`${API_BASE}/api/profiles`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify({ name }),
+  });
+
+  if (!res.ok) {
+    if (res.status === 409) {
+      throw new Error('Ce nom de profil existe déjà');
+    }
+    throw new Error(`Erreur API /api/profiles : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchProfileFavorites(profileId: string): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/api/favorites?profileId=${profileId}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/favorites : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function addProfileFavorite(profileId: string, itemName: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/favorites`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify({ profileId, itemName }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/favorites : ${res.status} ${res.statusText}`);
+  }
+}
+
+export async function removeProfileFavorite(profileId: string, itemName: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/favorites`, {
+    method: 'DELETE',
+    headers: buildHeaders(),
+    body: JSON.stringify({ profileId, itemName }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/favorites : ${res.status} ${res.statusText}`);
+  }
 }
 
 function toDateOnlyIso(d: Date): string {
