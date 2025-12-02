@@ -261,6 +261,7 @@ const App: React.FC = () => {
             <ItemList
               items={filteredItems}
               loading={itemsLoading}
+              favoritesLoading={favoritesLoading}
               error={itemsError}
               onSearchChange={setSearch}
               search={search}

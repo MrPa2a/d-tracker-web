@@ -37,8 +37,11 @@ export const ItemList: React.FC<ItemListProps> = ({
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold bg-linear-to-br from-accent-primary to-accent-secondary bg-clip-text text-transparent tracking-tight m-0">
+        <h2 className="text-xl font-bold bg-linear-to-br from-accent-primary to-accent-secondary bg-clip-text text-transparent tracking-tight m-0 flex items-center gap-2">
           Items
+          {favoritesLoading && (
+            <div className="w-4 h-4 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" />
+          )}
         </h2>
         <div className="flex gap-1">
           <button
@@ -110,13 +113,14 @@ export const ItemList: React.FC<ItemListProps> = ({
               <div className="text-sm font-semibold text-text-primary relative z-10 flex justify-between items-center">
                 {item.item_name}
                 <button
-                  className={`ml-2 text-lg leading-none bg-transparent border-none cursor-pointer transition-colors ${isFav ? 'text-accent-warning' : 'text-text-muted hover:text-accent-warning'}`}
+                  className={`ml-2 text-lg leading-none bg-transparent border-none cursor-pointer transition-colors ${isFav ? 'text-accent-warning' : 'text-text-muted hover:text-accent-warning'} ${favoritesLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (onToggleFavorite) {
+                    if (onToggleFavorite && !favoritesLoading) {
                       onToggleFavorite(item.item_name);
                     }
                   }}
+                  disabled={favoritesLoading}
                   title={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                 >
                   {isFav ? '★' : '☆'}

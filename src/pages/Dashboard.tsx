@@ -173,6 +173,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const parsedMinPrice = minPrice ? parseFloat(minPrice) : null;
   const parsedMaxPrice = maxPrice ? parseFloat(maxPrice) : null;
 
+  const [isFocusMode, setIsFocusMode] = useState(false);
+
   // Get favorite items from the currently selected server and apply price filter
   const favItems = useMemo(() => {
     if (!server) return [];
@@ -326,7 +328,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     setMoversError(null);
     try {
       // On récupère 20 items avec le filtre de prix appliqué côté serveur
-      const list = await fetchMovers(server, dateRange, 20, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined);
+      // Si le mode focus est activé, on passe la liste des favoris
+      const filterItems = isFocusMode && favorites.size > 0 ? Array.from(favorites) : undefined;
+      
+      const list = await fetchMovers(server, dateRange, 20, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems);
       // split into up/down
       const up = list.filter((m) => m.pct_change > 0).sort((a, b) => b.pct_change - a.pct_change).slice(0, 10);
       const down = list.filter((m) => m.pct_change < 0).sort((a, b) => a.pct_change - b.pct_change).slice(0, 10);
@@ -369,7 +374,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       setMoversError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [server, dateRange, parsedMinPrice, parsedMaxPrice]);
+  }, [server, dateRange, parsedMinPrice, parsedMaxPrice, isFocusMode, favorites]);
 
   // Market index (HDV)
   const [marketIndex, setMarketIndex] = useState<MarketIndex | null>(null);
@@ -381,9 +386,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const loadMarketStats = () => {
     if (!server) return;
 
+    const filterItems = isFocusMode && favorites.size > 0 ? Array.from(favorites) : undefined;
+
     // 1. Market Index
     setIndexLoading(true);
-    fetchMarketIndex(server, dateRange)
+    fetchMarketIndex(server, dateRange, filterItems)
       .then(data => {
         console.log('Market index data:', data);
         setMarketIndex(data);
@@ -399,8 +406,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const loadVolatility = async () => {
       try {
         const [volatileData, stableData] = await Promise.all([
-          fetchVolatilityRankings(server, dateRange, 10, 'desc', parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined),
-          fetchVolatilityRankings(server, dateRange, 10, 'asc', parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined),
+          fetchVolatilityRankings(server, dateRange, 10, 'desc', parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems),
+          fetchVolatilityRankings(server, dateRange, 10, 'asc', parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems),
         ]);
         setVolatile(volatileData);
         setStable(stableData);
@@ -432,7 +439,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
     // 3. Opportunities
     setOpportunitiesLoading(true);
-    fetchOpportunities(server, dateRange, 12, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined)
+    fetchOpportunities(server, dateRange, 12, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems)
       .then(opps => setOpportunities(opps))
       .catch(err => {
         console.error('Error loading opportunities:', err);
@@ -442,7 +449,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
     // 4. Sell Opportunities
     setSellOpportunitiesLoading(true);
-    fetchSellOpportunities(server, dateRange, 12, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined)
+    fetchSellOpportunities(server, dateRange, 12, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems)
       .then(sells => setSellOpportunities(sells))
       .catch(err => {
         console.error('Error loading sell opportunities:', err);
@@ -460,13 +467,42 @@ export const Dashboard: React.FC<DashboardProps> = ({
       setStable(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [server, dateRange, parsedMinPrice, parsedMaxPrice]);
+  }, [server, dateRange, parsedMinPrice, parsedMaxPrice, isFocusMode, favorites]);
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
         <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-text-primary to-text-secondary bg-clip-text text-transparent m-0">Tableau de bord</h1>
+        
+        {favorites.size > 0 && (
+          <div className="flex items-center gap-2 bg-bg-secondary/50 p-1 rounded-lg border border-border-normal">
+            <span className="text-xs text-text-muted px-2">Vue Focus</span>
+            <button
+              onClick={() => setIsFocusMode(!isFocusMode)}
+              className={`
+                relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer outline-none
+                ${isFocusMode ? 'bg-accent-primary' : 'bg-bg-tertiary'}
+              `}
+            >
+              <span
+                className={`
+                  inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                  ${isFocusMode ? 'translate-x-6' : 'translate-x-1'}
+                `}
+              />
+            </button>
+          </div>
+        )}
       </div>
+
+      {isFocusMode && (
+        <div className="bg-accent-primary/10 border border-accent-primary/20 rounded-lg p-4 mb-4 text-sm text-text-primary">
+          <p className="font-semibold mb-1">Mode Focus activé</p>
+          <p className="text-text-muted">
+            Le tableau de bord affiche uniquement les données relatives aux <strong>{favorites.size} items</strong> de votre liste de surveillance.
+          </p>
+        </div>
+      )}
 
       {/* Market Index Section */}
       {indexLoading && <p className="text-text-muted text-sm text-center py-4">Chargement de l'indice HDV…</p>}
