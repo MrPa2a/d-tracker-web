@@ -175,6 +175,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const [isFocusMode, setIsFocusMode] = useState(false);
 
+  // Reset focus mode if favorites become empty
+  useEffect(() => {
+    if (favorites.size === 0 && isFocusMode) {
+      setIsFocusMode(false);
+    }
+  }, [favorites, isFocusMode]);
+
   // Get favorite items from the currently selected server and apply price filter
   const favItems = useMemo(() => {
     if (!server) return [];
