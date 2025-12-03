@@ -483,7 +483,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         
         {favorites.size > 0 && (
           <div className="flex items-center gap-2 bg-bg-secondary/50 p-1 rounded-lg border border-border-normal">
-            <span className="text-xs text-text-muted px-2">Vue Focus</span>
+            <span className="text-xs text-text-muted px-2">Mode Focus</span>
             <button
               onClick={() => setIsFocusMode(!isFocusMode)}
               className={`
@@ -767,7 +767,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <h3 className="text-lg font-bold text-text-primary m-0 border-none pb-0 flex items-center gap-2">💰 Opportunités d'Achat (Sous-évalués)</h3>
           </div>
           {opportunitiesLoading && <p className="text-text-muted text-sm text-center py-4">Recherche d'opportunités…</p>}
-          {!opportunitiesLoading && opportunities && opportunities.length === 0 && <p className="text-text-muted text-sm text-center py-4">Aucune opportunité détectée pour le moment.</p>}
+          {!opportunitiesLoading && opportunities && opportunities.length === 0 && <p className="text-text-muted text-sm text-center py-4">Aucune opportunité d'achat détectée pour le moment.</p>}
           
           {opportunities && opportunities.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

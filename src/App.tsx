@@ -257,6 +257,7 @@ const App: React.FC = () => {
             currentProfile={currentProfile} 
             onSelectProfile={setCurrentProfile} 
           />
+          <div className="my-4 mx-2 h-px bg-gradient-to-r from-transparent via-border-normal to-transparent" />
           <div className="flex-1 min-h-0">
             <ItemList
               items={filteredItems}

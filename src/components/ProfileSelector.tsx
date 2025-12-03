@@ -48,7 +48,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ currentProfile
   };
 
   return (
-    <div className="mb-4 p-3 bg-bg-secondary/30 rounded-lg border border-white/5">
+    <div className="p-3 bg-bg-secondary/30 rounded-lg border border-white/5">
       <div className="flex justify-between items-center mb-2">
         <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
           Profil
