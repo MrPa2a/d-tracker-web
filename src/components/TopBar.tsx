@@ -1,6 +1,7 @@
 // src/components/TopBar.tsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { DateRangePreset, ItemSummary } from '../types';
+import { fetchItems } from '../api';
 
 interface TopBarProps {
   servers: string[];
@@ -8,9 +9,8 @@ interface TopBarProps {
   onSelectServer: (server: string | null) => void;
   dateRange: DateRangePreset;
   onChangeDateRange: (range: DateRangePreset) => void;
-  onToggleSidebar: () => void; // 👈 nouveau
+  onToggleSidebar: () => void;
   // Pour la recherche horizontale
-  items?: ItemSummary[];
   onNavigateToItem?: (item: ItemSummary) => void;
   minPrice: string;
   maxPrice: string;
@@ -96,27 +96,49 @@ export const TopBar: React.FC<TopBarProps> = ({
   dateRange,
   onChangeDateRange,
   onToggleSidebar,
-  items = [],
   onNavigateToItem,
   minPrice,
   maxPrice,
   onMinPriceChange,
   onMaxPriceChange,
 }) => {
-  const [query, setQuery] = React.useState('');
-  const [open, setOpen] = React.useState(false);
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [suggestions, setSuggestions] = useState<ItemSummary[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const suggestions = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [] as ItemSummary[];
-    return items
-      .filter((it) =>
-        it.item_name.toLowerCase().includes(q) &&
-        (!selectedServer || it.server === selectedServer)
-      )
-      .slice(0, 8);
-  }, [query, items, selectedServer]);
+  // Debounced search effect
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      if (query.trim()) {
+        setLoading(true);
+        // Search on selected server if available, otherwise global
+        fetchItems(query, selectedServer || undefined)
+          .then((data) => {
+            if (!cancelled) {
+              setSuggestions(data.slice(0, 8));
+              setLoading(false);
+            }
+          })
+          .catch((err) => {
+            if (!cancelled) {
+              console.error('Search error:', err);
+              setSuggestions([]);
+              setLoading(false);
+            }
+          });
+      } else {
+        setSuggestions([]);
+      }
+    }, 500);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, selectedServer]);
 
   const handleChoose = (it: ItemSummary) => {
     setQuery('');
@@ -246,18 +268,28 @@ export const TopBar: React.FC<TopBarProps> = ({
                 onBlur={() => setTimeout(() => setOpen(false), 150)}
                 placeholder="Rechercher un item…"
               />
-              {open && suggestions.length > 0 && (
+              {open && (query.trim().length > 0) && (
                 <ul className="absolute top-full left-0 right-0 mt-2 bg-bg-secondary border border-border-normal rounded-xl shadow-xl overflow-hidden z-50 max-h-[300px] overflow-y-auto">
-                  {suggestions.map((s) => (
-                    <li
-                      key={`${s.server}::${s.item_name}`}
-                      className="px-4 py-2.5 cursor-pointer flex justify-between items-center hover:bg-accent-primary/10 hover:text-accent-primary transition-colors border-b border-border-subtle last:border-0"
-                      onMouseDown={() => handleChoose(s)}
-                    >
-                      <strong>{s.item_name}</strong>
-                      <span className="text-xs text-text-muted bg-bg-tertiary px-2 py-0.5 rounded-full">{s.server}</span>
+                  {loading ? (
+                    <li className="px-4 py-3 text-sm text-text-muted text-center italic">
+                      Recherche en cours...
                     </li>
-                  ))}
+                  ) : suggestions.length > 0 ? (
+                    suggestions.map((s) => (
+                      <li
+                        key={`${s.server}::${s.item_name}`}
+                        className="px-4 py-2.5 cursor-pointer flex justify-between items-center hover:bg-accent-primary/10 hover:text-accent-primary transition-colors border-b border-border-subtle last:border-0"
+                        onMouseDown={() => handleChoose(s)}
+                      >
+                        <strong>{s.item_name}</strong>
+                        <span className="text-xs text-text-muted bg-bg-tertiary px-2 py-0.5 rounded-full">{s.server}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="px-4 py-3 text-sm text-text-muted text-center">
+                      Aucun résultat
+                    </li>
+                  )}
                 </ul>
               )}
             </div>

@@ -328,7 +328,6 @@ const App: React.FC = () => {
           dateRange={dateRange}
           onChangeDateRange={setDateRange}
           onToggleSidebar={toggleSidebar}
-          items={items}
           onNavigateToItem={handleNavigateToItem}
           minPrice={minPrice}
           maxPrice={maxPrice}
