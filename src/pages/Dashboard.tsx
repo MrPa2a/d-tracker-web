@@ -149,7 +149,7 @@ const DashboardRow: React.FC<{
       
       <div className="flex flex-col items-end min-w-20">
         <div className="text-base font-mono text-text-primary flex items-center">
-            {Math.round(item.last_price).toLocaleString('fr-FR')} 
+            {Math.round(ts && ts.length > 0 ? ts[ts.length - 1].avg_price : item.last_price).toLocaleString('fr-FR')} 
             <img src={kamaIcon} alt="kamas" style={{width: '14px', height: '14px', verticalAlign: 'middle', marginLeft: '4px'}} />
         </div>
         {metric}
@@ -185,12 +185,31 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Get favorite items from the currently selected server and apply price filter
   const favItems = useMemo(() => {
     if (!server) return [];
-    return items.filter((it) => {
-      if (it.server !== server || !favorites.has(it.item_name)) return false;
-      if (parsedMinPrice !== null && it.last_price < parsedMinPrice) return false;
-      if (parsedMaxPrice !== null && it.last_price > parsedMaxPrice) return false;
-      return true;
+    
+    // Create a map of known items for quick lookup
+    const knownItemsMap = new Map(items.filter(i => i.server === server).map(i => [i.item_name, i]));
+    
+    const result: ItemSummary[] = [];
+    
+    favorites.forEach(favName => {
+        const known = knownItemsMap.get(favName);
+        if (known) {
+            if (parsedMinPrice !== null && known.last_price < parsedMinPrice) return;
+            if (parsedMaxPrice !== null && known.last_price > parsedMaxPrice) return;
+            result.push(known);
+        } else {
+            // Item not in the loaded list. Add as placeholder.
+            // We can't apply price filter yet because we don't know the price.
+            result.push({
+                item_name: favName,
+                server: server,
+                last_price: 0,
+                last_observation_at: new Date().toISOString()
+            });
+        }
     });
+    
+    return result;
   }, [items, favorites, server, parsedMinPrice, parsedMaxPrice]);
 
   // timeseries cache for favorites
@@ -205,8 +224,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
     if (!watchlistSort) return favItems;
     
     return [...favItems].sort((a, b) => {
-      if (watchlistSort === 'price-asc') return a.last_price - b.last_price;
-      if (watchlistSort === 'price-desc') return b.last_price - a.last_price;
+      const priceA = favTs[a.item_name] && favTs[a.item_name]!.length > 0 ? favTs[a.item_name]![favTs[a.item_name]!.length - 1].avg_price : a.last_price;
+      const priceB = favTs[b.item_name] && favTs[b.item_name]!.length > 0 ? favTs[b.item_name]![favTs[b.item_name]!.length - 1].avg_price : b.last_price;
+
+      if (watchlistSort === 'price-asc') return priceA - priceB;
+      if (watchlistSort === 'price-desc') return priceB - priceA;
       
       // For percentage sort, we need to compute pct change
       const tsA = favTs[a.item_name];
@@ -227,7 +249,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const load = async () => {
       if (!server) return;
       
-      const itemsToLoad = favItems.slice(0, 10);
+      // Load all favorites timeseries (up to 50 to avoid too many requests)
+      const itemsToLoad = favItems.slice(0, 50);
       
       // Reset state first
       setFavTs({});
