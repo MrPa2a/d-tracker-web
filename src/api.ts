@@ -93,6 +93,30 @@ export async function removeProfileFavorite(profileId: string, itemName: string)
   }
 }
 
+export async function updateItem(oldName: string, newName: string, server: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/update-item`, {
+    method: 'PUT',
+    headers: buildHeaders(),
+    body: JSON.stringify({ old_item_name: oldName, new_item_name: newName, server }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/update-item : ${res.status} ${res.statusText}`);
+  }
+}
+
+export async function updateObservation(id: number, price: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/update-observation`, {
+    method: 'PUT',
+    headers: buildHeaders(),
+    body: JSON.stringify({ id, price_unit_avg: price }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/update-observation : ${res.status} ${res.statusText}`);
+  }
+}
+
 function toDateOnlyIso(d: Date): string {
   // YYYY-MM-DD
   return d.toISOString().slice(0, 10);

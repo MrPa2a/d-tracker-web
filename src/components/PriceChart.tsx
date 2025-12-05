@@ -2,6 +2,7 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
 import type { DateRangePreset, ItemSummary, TimeseriesPoint, ItemStats } from '../types';
 import { fetchItemStats } from '../api';
+import { EditItemModal } from './EditItemModal';
 import kamaIcon from '../assets/kama.png';
 import {
   ResponsiveContainer,
@@ -86,6 +87,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
   // State for item stats (volatility, median, signal)
   const [itemStats, setItemStats] = useState<ItemStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Ref et state pour la hauteur dynamique du graphique
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -212,6 +214,13 @@ export const PriceChart: React.FC<PriceChartProps> = ({
                 {favorites.has(selectedItem.item_name) ? '★' : '☆'}
               </button>
             )}
+            <button
+              className="text-xl leading-none bg-transparent border-none cursor-pointer transition-colors text-text-muted hover:text-accent-primary ml-1"
+              onClick={() => setIsEditModalOpen(true)}
+              title="Modifier l'item"
+            >
+              ✎
+            </button>
             {(statsLoading || (itemStats && itemStats.signal)) && (
               <>
                 <span className="text-border-strong">—</span>
@@ -384,6 +393,15 @@ export const PriceChart: React.FC<PriceChartProps> = ({
             </LineChart>
           </ResponsiveContainer>
         </div>
+      )}
+      {selectedItem && timeseries && Array.isArray(timeseries) && (
+        <EditItemModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          item={selectedItem}
+          timeseries={timeseries.filter((p): p is TimeseriesPoint => p !== null)}
+          onRefresh={onRefresh}
+        />
       )}
     </div>
   );
