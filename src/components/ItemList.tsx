@@ -72,13 +72,24 @@ export const ItemList: React.FC<ItemListProps> = ({
           </button>
         </div>
       </div>
-      <input
-        type="text"
-        className="w-full px-4 py-3 rounded-xl border border-border-normal bg-bg-secondary/50 text-text-primary mb-4 outline-none transition-all duration-300 text-sm shadow-inner focus:border-accent-primary focus:bg-bg-secondary/80 focus:ring-2 focus:ring-accent-primary/10 focus:shadow-lg transform focus:-translate-y-px placeholder:text-text-muted"
-        placeholder="Rechercher un item…"
-        value={search}
-        onChange={(e) => onSearchChange(e.target.value)}
-      />
+      <div className="relative mb-4">
+        <input
+          type="text"
+          className="w-full px-4 py-3 rounded-xl border border-border-normal bg-bg-secondary/50 text-text-primary outline-none transition-all duration-300 text-sm shadow-inner focus:border-accent-primary focus:bg-bg-secondary/80 focus:ring-2 focus:ring-accent-primary/10 focus:shadow-lg transform focus:-translate-y-px placeholder:text-text-muted pr-10"
+          placeholder="Rechercher un item…"
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+        />
+        {search && (
+          <button
+            onClick={() => onSearchChange('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 rounded-full hover:bg-bg-tertiary transition-colors"
+            title="Effacer la recherche"
+          >
+            ✕
+          </button>
+        )}
+      </div>
 
       {loading && <p className="text-text-muted text-sm text-center py-4">Chargement des items…</p>}
       {error && <p className="text-accent-danger text-sm text-center py-4">Erreur : {error}</p>}

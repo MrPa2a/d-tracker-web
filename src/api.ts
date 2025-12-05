@@ -17,8 +17,12 @@ function buildHeaders(): HeadersInit {
   return headers;
 }
 
-export async function fetchItems(): Promise<ItemSummary[]> {
-  const res = await fetch(`${API_BASE}/api/items`, {
+export async function fetchItems(search?: string, server?: string): Promise<ItemSummary[]> {
+  const params = new URLSearchParams();
+  if (search) params.append('search', search);
+  if (server) params.append('server', server);
+
+  const res = await fetch(`${API_BASE}/api/items?${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });

@@ -31,6 +31,7 @@ const App: React.FC = () => {
   }, [dashboardServer]);
   
   const [search, setSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<ItemSummary[] | null>(null);
   const [sortType, setSortType] = useState<SortType>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
@@ -191,12 +192,51 @@ const App: React.FC = () => {
     }
   }, [dashboardServer, servers]);
 
+  // Search effect
+  useEffect(() => {
+    let cancelled = false;
+
+    const timer = setTimeout(() => {
+      if (search.trim()) {
+        setItemsLoading(true);
+        // On cherche sur le serveur courant si défini, sinon globalement (ou comportement par défaut)
+        // Note: fetchItems a été modifié pour accepter search et server
+        fetchItems(search, currentServer || undefined)
+          .then((data) => {
+            if (!cancelled) {
+              setSearchResults(data);
+              setItemsLoading(false);
+            }
+          })
+          .catch((err) => {
+            if (!cancelled) {
+              console.error(err);
+              setItemsLoading(false);
+            }
+          });
+      } else {
+        if (!cancelled) {
+          setSearchResults(null);
+        }
+      }
+    }, 500);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [search, currentServer]);
+
   const filteredItems = useMemo(() => {
-    return items
+    // Si on a des résultats de recherche, on les utilise, sinon on prend la liste initiale
+    const source = searchResults !== null ? searchResults : items;
+    
+    return source
       .filter((i) => !currentServer || i.server === currentServer)
-      .filter((i) =>
-        i.item_name.toLowerCase().includes(search.trim().toLowerCase())
-      )
+      // On ne filtre plus par nom ici car c'est fait côté serveur lors de la recherche
+      // .filter((i) =>
+      //   i.item_name.toLowerCase().includes(search.trim().toLowerCase())
+      // )
       .sort((a, b) => {
         if (sortType === 'name') {
           return sortOrder === 'asc' 
@@ -208,7 +248,7 @@ const App: React.FC = () => {
             : b.last_price - a.last_price;
         }
       });
-  }, [items, currentServer, search, sortType, sortOrder]);
+  }, [items, searchResults, currentServer, sortType, sortOrder]);
 
   // Handle server selection from TopBar
   const handleSelectServer = (newServer: string | null) => {
