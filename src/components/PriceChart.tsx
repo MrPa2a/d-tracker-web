@@ -309,9 +309,9 @@ export const PriceChart: React.FC<PriceChartProps> = ({
                   className={`
                     text-sm md:text-base font-bold font-mono
                     ${stats.pctChange > 0
-                      ? 'text-accent-success'
-                      : stats.pctChange < 0
                       ? 'text-accent-danger'
+                      : stats.pctChange < 0
+                      ? 'text-accent-success'
                       : ''}
                   `}
                 >

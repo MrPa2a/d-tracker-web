@@ -482,18 +482,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-text-primary to-text-secondary bg-clip-text text-transparent m-0">Tableau de bord</h1>
         
         {favorites.size > 0 && (
-          <div className="flex items-center gap-2 bg-bg-secondary/50 p-1 rounded-lg border border-border-normal">
-            <span className="text-xs text-text-muted px-2">Mode Focus</span>
+          <div className="flex items-center gap-3 bg-bg-secondary/50 p-2 rounded-lg border border-border-normal">
+            <span className="text-sm font-medium text-text-muted px-2">Focus Favoris</span>
             <button
               onClick={() => setIsFocusMode(!isFocusMode)}
               className={`
-                relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer outline-none
+                relative inline-flex h-7 w-12 items-center rounded-full transition-colors cursor-pointer outline-none
                 ${isFocusMode ? 'bg-accent-primary' : 'bg-bg-tertiary'}
               `}
             >
               <span
                 className={`
-                  inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                  inline-block h-5 w-5 transform rounded-full bg-white transition-transform
                   ${isFocusMode ? 'translate-x-6' : 'translate-x-1'}
                 `}
               />
@@ -504,7 +504,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {isFocusMode && (
         <div className="bg-accent-primary/10 border border-accent-primary/20 rounded-lg p-4 mb-4 text-sm text-text-primary">
-          <p className="font-semibold mb-1">Mode Focus activé</p>
+          <p className="font-semibold mb-1">Focus Favoris activé</p>
           <p className="text-text-muted">
             Le tableau de bord affiche uniquement les données relatives aux <strong>{favorites.size} items</strong> de votre liste de surveillance.
           </p>
@@ -518,7 +518,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="text-sm text-text-muted uppercase tracking-wider font-semibold mb-1 relative z-10">Indice HDV ({marketIndex.total_items ?? 0} items)</div>
           <div className={`
             text-3xl font-bold font-mono relative z-10
-            ${marketIndex.index_change > 0 ? 'text-accent-success' : marketIndex.index_change < 0 ? 'text-accent-danger' : ''}
+            ${marketIndex.index_change > 0 ? 'text-accent-danger' : marketIndex.index_change < 0 ? 'text-accent-success' : ''}
           `}>
             {marketIndex.index_change >= 0 ? '+' : ''}{marketIndex.index_change.toFixed(2)}%
             {marketIndex.index_change > 0 ? ' ↗' : marketIndex.index_change < 0 ? ' ↘' : ''}
@@ -587,7 +587,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   isFavorite={favorites.has(it.item_name)}
                   onToggleFavorite={onToggleFavorite}
                   metric={hasEvolution ? (
-                    <div className={`text-sm font-bold ${pct > 0 ? 'text-accent-success' : pct < 0 ? 'text-accent-danger' : ''}`}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</div>
+                    <div className={`text-sm font-bold ${pct > 0 ? 'text-accent-danger' : pct < 0 ? 'text-accent-success' : ''}`}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</div>
                   ) : (
                     <div className="text-[0.7rem] text-text-muted italic font-normal">N/A</div>
                   )}
@@ -630,7 +630,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   }}
                   isFavorite={favorites.has(m.item_name)}
                   onToggleFavorite={onToggleFavorite}
-                  metric={<div className="text-sm font-bold text-accent-success">+{m.pct_change.toFixed(1)}%</div>}
+                  metric={<div className="text-sm font-bold text-accent-danger">+{m.pct_change.toFixed(1)}%</div>}
                 />
               );
             })}
@@ -669,7 +669,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   }}
                   isFavorite={favorites.has(m.item_name)}
                   onToggleFavorite={onToggleFavorite}
-                  metric={<div className="text-sm font-bold text-accent-danger">{m.pct_change.toFixed(1)}%</div>}
+                  metric={<div className="text-sm font-bold text-accent-success">{m.pct_change.toFixed(1)}%</div>}
                 />
               );
             })}
