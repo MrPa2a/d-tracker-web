@@ -346,3 +346,39 @@ export async function fetchSellOpportunities(
 
   return res.json();
 }
+
+export async function createObservation(itemName: string, server: string, price: number, date: string): Promise<TimeseriesPoint> {
+  const res = await fetch(`${API_BASE}/api/create-observation`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify({ 
+      item_name: itemName, 
+      server, 
+      price_unit_avg: price, 
+      captured_at: date 
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/create-observation : ${res.status} ${res.statusText}`);
+  }
+  
+  const json = await res.json();
+  return {
+    id: json.data.id,
+    date: json.data.captured_at,
+    avg_price: json.data.price_unit_avg
+  };
+}
+
+export async function deleteObservation(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/delete-observation`, {
+    method: 'DELETE',
+    headers: buildHeaders(),
+    body: JSON.stringify({ id }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/delete-observation : ${res.status} ${res.statusText}`);
+  }
+}
