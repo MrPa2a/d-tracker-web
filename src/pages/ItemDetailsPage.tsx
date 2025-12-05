@@ -26,9 +26,16 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
   const [refreshIndex, setRefreshIndex] = useState(0);
 
   // Find the item object from the global list
-  const selectedItem = items.find(
+  const foundItem = items.find(
     (i) => i.item_name === itemName && i.server === server
-  ) || null;
+  );
+
+  const selectedItem = foundItem || (server && itemName ? {
+    item_name: itemName,
+    server: server,
+    last_price: 0,
+    last_observation_at: new Date().toISOString()
+  } as ItemSummary : null);
 
   useEffect(() => {
     if (!server || !itemName) return;
@@ -71,6 +78,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
     navigate('/');
   };
 
+  /*
   if (!selectedItem && items.length > 0) {
     // Item not found in the list (maybe list not loaded yet or invalid URL)
     // We can show a loading state or error if items are loaded
@@ -80,6 +88,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
       </div>
     );
   }
+  */
 
   return (
     <PriceChart

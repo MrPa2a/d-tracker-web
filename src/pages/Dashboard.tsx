@@ -626,7 +626,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   ts={ts}
                   onNavigate={() => {
                     const found = items.find(it => it.item_name === m.item_name && it.server === m.server);
-                    if (found) onNavigateToItem(found);
+                    if (found) {
+                      onNavigateToItem(found);
+                    } else {
+                      onNavigateToItem({
+                        item_name: m.item_name,
+                        server: m.server,
+                        last_price: m.last_price,
+                        last_observation_at: new Date().toISOString()
+                      });
+                    }
                   }}
                   isFavorite={favorites.has(m.item_name)}
                   onToggleFavorite={onToggleFavorite}
@@ -665,7 +674,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   ts={ts}
                   onNavigate={() => {
                     const found = items.find(it => it.item_name === m.item_name && it.server === m.server);
-                    if (found) onNavigateToItem(found);
+                    if (found) {
+                      onNavigateToItem(found);
+                    } else {
+                      onNavigateToItem({
+                        item_name: m.item_name,
+                        server: m.server,
+                        last_price: m.last_price,
+                        last_observation_at: new Date().toISOString()
+                      });
+                    }
                   }}
                   isFavorite={favorites.has(m.item_name)}
                   onToggleFavorite={onToggleFavorite}
@@ -708,7 +726,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   ts={ts}
                   onNavigate={() => {
                     const found = items.find(it => it.item_name === v.item_name && it.server === v.server);
-                    if (found) onNavigateToItem(found);
+                    if (found) {
+                      onNavigateToItem(found);
+                    } else {
+                      onNavigateToItem({
+                        item_name: v.item_name,
+                        server: v.server,
+                        last_price: v.last_price,
+                        last_observation_at: new Date().toISOString()
+                      });
+                    }
                   }}
                   isFavorite={favorites.has(v.item_name)}
                   onToggleFavorite={onToggleFavorite}
@@ -748,7 +775,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   ts={ts}
                   onNavigate={() => {
                     const found = items.find(it => it.item_name === v.item_name && it.server === v.server);
-                    if (found) onNavigateToItem(found);
+                    if (found) {
+                      onNavigateToItem(found);
+                    } else {
+                      onNavigateToItem({
+                        item_name: v.item_name,
+                        server: v.server,
+                        last_price: v.last_price,
+                        last_observation_at: new Date().toISOString()
+                      });
+                    }
                   }}
                   isFavorite={favorites.has(v.item_name)}
                   onToggleFavorite={onToggleFavorite}
@@ -777,7 +813,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   className="p-3 rounded-lg bg-bg-primary/40 border border-transparent hover:border-accent-success/50 hover:bg-bg-primary/60 transition-all duration-200 cursor-pointer group"
                   onClick={() => {
                     const found = items.find(it => it.item_name === opp.item_name && it.server === opp.server);
-                    if (found) onNavigateToItem(found);
+                    if (found) {
+                      onNavigateToItem(found);
+                    } else {
+                      onNavigateToItem({
+                        item_name: opp.item_name,
+                        server: opp.server,
+                        last_price: opp.current_price,
+                        last_observation_at: new Date().toISOString()
+                      });
+                    }
                   }}
                 >
                   <div className="flex justify-between items-start mb-2">
@@ -823,7 +868,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   className="p-3 rounded-lg bg-bg-primary/40 border border-transparent hover:border-accent-danger/50 hover:bg-bg-primary/60 transition-all duration-200 cursor-pointer group"
                   onClick={() => {
                     const found = items.find(it => it.item_name === opp.item_name && it.server === opp.server);
-                    if (found) onNavigateToItem(found);
+                    if (found) {
+                      onNavigateToItem(found);
+                    } else {
+                      onNavigateToItem({
+                        item_name: opp.item_name,
+                        server: opp.server,
+                        last_price: opp.current_price,
+                        last_observation_at: new Date().toISOString()
+                      });
+                    }
                   }}
                 >
                   <div className="flex justify-between items-start mb-2">
