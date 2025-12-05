@@ -364,7 +364,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     } catch (err: unknown) {
       console.error(err);
       const errMessage = err instanceof Error ? err.message : 'Erreur inconnue';
-      setMoversError(errMessage || 'Erreur lors du chargement des movers. Le backend pourrait ne pas exposer /api/movers.');
+      setMoversError(errMessage || 'Erreur lors du chargement des movers. Le backend pourrait ne pas exposer /api/market?type=movers.');
       setMoversUp(null);
       setMoversDown(null);
     } finally {

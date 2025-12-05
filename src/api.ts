@@ -58,62 +58,62 @@ export async function createProfile(name: string): Promise<Profile> {
 }
 
 export async function fetchProfileFavorites(profileId: string): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/api/favorites?profileId=${profileId}`, {
+  const res = await fetch(`${API_BASE}/api/profiles?mode=favorites&profileId=${profileId}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/favorites : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/profiles?mode=favorites : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
 
 export async function addProfileFavorite(profileId: string, itemName: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/favorites`, {
+  const res = await fetch(`${API_BASE}/api/profiles?mode=favorites`, {
     method: 'POST',
     headers: buildHeaders(),
     body: JSON.stringify({ profileId, itemName }),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/favorites : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/profiles?mode=favorites : ${res.status} ${res.statusText}`);
   }
 }
 
 export async function removeProfileFavorite(profileId: string, itemName: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/favorites`, {
+  const res = await fetch(`${API_BASE}/api/profiles?mode=favorites`, {
     method: 'DELETE',
     headers: buildHeaders(),
     body: JSON.stringify({ profileId, itemName }),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/favorites : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/profiles?mode=favorites : ${res.status} ${res.statusText}`);
   }
 }
 
 export async function updateItem(oldName: string, newName: string, server: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/update-item`, {
+  const res = await fetch(`${API_BASE}/api/items`, {
     method: 'PUT',
     headers: buildHeaders(),
     body: JSON.stringify({ old_item_name: oldName, new_item_name: newName, server }),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/update-item : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/items (update) : ${res.status} ${res.statusText}`);
   }
 }
 
 export async function updateObservation(id: number, price: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/update-observation`, {
+  const res = await fetch(`${API_BASE}/api/observations`, {
     method: 'PUT',
     headers: buildHeaders(),
     body: JSON.stringify({ id, price_unit_avg: price }),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/update-observation : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/observations (update) : ${res.status} ${res.statusText}`);
   }
 }
 
@@ -184,13 +184,13 @@ export async function fetchMovers(
   if (maxPrice !== undefined) params.append('max_price', String(maxPrice));
   if (filterItems && filterItems.length > 0) params.append('filterItems', filterItems.join(','));
 
-  const res = await fetch(`${API_BASE}/api/movers?${params.toString()}`, {
+  const res = await fetch(`${API_BASE}/api/market?type=movers&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/movers : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/market?type=movers : ${res.status} ${res.statusText}`);
   }
 
   return res.json();
@@ -209,13 +209,13 @@ export async function fetchItemStats(
 
   const params = new URLSearchParams({ item: itemName, server, from, to });
 
-  const res = await fetch(`${API_BASE}/api/item-stats?${params.toString()}`, {
+  const res = await fetch(`${API_BASE}/api/market?type=stats&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/item-stats : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/market?type=stats : ${res.status} ${res.statusText}`);
   }
 
   return res.json();
@@ -235,13 +235,13 @@ export async function fetchMarketIndex(
   const params = new URLSearchParams({ server, from, to });
   if (filterItems && filterItems.length > 0) params.append('filterItems', filterItems.join(','));
 
-  const res = await fetch(`${API_BASE}/api/market-index?${params.toString()}`, {
+  const res = await fetch(`${API_BASE}/api/market?type=index&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/market-index : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/market?type=index : ${res.status} ${res.statusText}`);
   }
 
   return res.json();
@@ -273,13 +273,13 @@ export async function fetchVolatilityRankings(
   if (maxPrice !== undefined) params.append('max_price', String(maxPrice));
   if (filterItems && filterItems.length > 0) params.append('filterItems', filterItems.join(','));
 
-  const res = await fetch(`${API_BASE}/api/volatility-rankings?${params.toString()}`, {
+  const res = await fetch(`${API_BASE}/api/market?type=volatility&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/volatility-rankings : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/market?type=volatility : ${res.status} ${res.statusText}`);
   }
 
   return res.json();
@@ -304,13 +304,13 @@ export async function fetchOpportunities(
   if (maxPrice !== undefined) params.append('max_price', String(maxPrice));
   if (filterItems && filterItems.length > 0) params.append('filterItems', filterItems.join(','));
 
-  const res = await fetch(`${API_BASE}/api/opportunities?${params.toString()}`, {
+  const res = await fetch(`${API_BASE}/api/market?type=opportunities&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/opportunities : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/market?type=opportunities : ${res.status} ${res.statusText}`);
   }
 
   return res.json();
@@ -335,20 +335,20 @@ export async function fetchSellOpportunities(
   if (maxPrice !== undefined) params.append('max_price', String(maxPrice));
   if (filterItems && filterItems.length > 0) params.append('filterItems', filterItems.join(','));
 
-  const res = await fetch(`${API_BASE}/api/sell-opportunities?${params.toString()}`, {
+  const res = await fetch(`${API_BASE}/api/market?type=sell-opportunities&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/sell-opportunities : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/market?type=sell-opportunities : ${res.status} ${res.statusText}`);
   }
 
   return res.json();
 }
 
 export async function createObservation(itemName: string, server: string, price: number, date: string): Promise<TimeseriesPoint> {
-  const res = await fetch(`${API_BASE}/api/create-observation`, {
+  const res = await fetch(`${API_BASE}/api/observations`, {
     method: 'POST',
     headers: buildHeaders(),
     body: JSON.stringify({ 
@@ -360,7 +360,7 @@ export async function createObservation(itemName: string, server: string, price:
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/create-observation : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/observations (create) : ${res.status} ${res.statusText}`);
   }
   
   const json = await res.json();
@@ -372,13 +372,13 @@ export async function createObservation(itemName: string, server: string, price:
 }
 
 export async function deleteObservation(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/delete-observation`, {
+  const res = await fetch(`${API_BASE}/api/observations`, {
     method: 'DELETE',
     headers: buildHeaders(),
     body: JSON.stringify({ id }),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/delete-observation : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/observations (delete) : ${res.status} ${res.statusText}`);
   }
 }
