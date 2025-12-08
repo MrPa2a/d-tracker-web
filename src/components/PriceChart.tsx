@@ -187,7 +187,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
           <div className="flex items-center gap-3 mb-1">
             {onBackToDashboard && (
               <button
-                className="text-xs text-accent-primary hover:text-accent-primary/80 hover:underline bg-transparent border-none cursor-pointer p-0"
+                className="text-sm font-medium text-accent-primary hover:text-accent-primary/80 hover:underline bg-transparent border-none cursor-pointer p-0"
                 type="button"
                 onClick={onBackToDashboard}
                 title="Retour au tableau de bord"
