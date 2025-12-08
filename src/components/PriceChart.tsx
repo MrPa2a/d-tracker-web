@@ -252,7 +252,14 @@ export const PriceChart: React.FC<PriceChartProps> = ({
               </>
             )}
           </div>
-          <p className="text-sm text-text-muted m-0">
+          <div className="flex items-center gap-2 mt-1">
+            {selectedItem.category && (
+              <span className="text-xs font-medium text-text-muted bg-bg-tertiary px-2 py-0.5 rounded-full border border-border-subtle">
+                {selectedItem.category}
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-text-muted m-0 mt-1">
             Serveur : {server} — Période : {dateRange}
           </p>
         </div>
