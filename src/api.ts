@@ -178,12 +178,13 @@ export async function fetchMovers(
   limit = 10,
   minPrice?: number,
   maxPrice?: number,
-  filterItems?: string[]
+  filterItems?: string[],
+  order: 'asc' | 'desc' | 'abs' = 'abs'
 ): Promise<Mover[]> {
   const from = computeFromDate(range);
   const to = toDateOnlyIso(new Date());
 
-  const params = new URLSearchParams({ server, from, to, limit: String(limit) });
+  const params = new URLSearchParams({ server, from, to, limit: String(limit), order });
   if (minPrice !== undefined) params.append('min_price', String(minPrice));
   if (maxPrice !== undefined) params.append('max_price', String(maxPrice));
   if (filterItems && filterItems.length > 0) params.append('filterItems', filterItems.join(','));

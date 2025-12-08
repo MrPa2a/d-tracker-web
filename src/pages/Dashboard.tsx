@@ -361,10 +361,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
       // Si le mode focus est activé, on passe la liste des favoris
       const filterItems = isFocusMode && favorites.size > 0 ? Array.from(favorites) : undefined;
       
-      const list = await fetchMovers(server, dateRange, 20, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems);
-      // split into up/down
-      const up = list.filter((m) => m.pct_change > 0).sort((a, b) => b.pct_change - a.pct_change).slice(0, 10);
-      const down = list.filter((m) => m.pct_change < 0).sort((a, b) => a.pct_change - b.pct_change).slice(0, 10);
+      // Fetch Top Gainers (desc) and Top Losers (asc) separately
+      const [up, down] = await Promise.all([
+        fetchMovers(server, dateRange, 10, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems, 'desc'),
+        fetchMovers(server, dateRange, 10, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems, 'asc')
+      ]);
+
       setMoversUp(up);
       setMoversDown(down);
 
