@@ -253,9 +253,9 @@ export const PriceChart: React.FC<PriceChartProps> = ({
             )}
           </div>
           <div className="flex items-center gap-2 mt-1">
-            {selectedItem.category && (
+            {(selectedItem.category || itemStats?.category) && (
               <span className="text-xs font-medium text-text-muted bg-bg-tertiary px-2 py-0.5 rounded-full border border-border-subtle">
-                {selectedItem.category}
+                {selectedItem.category || itemStats?.category}
               </span>
             )}
           </div>

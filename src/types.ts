@@ -31,6 +31,7 @@ export interface ItemStats {
   signal: 'buy' | 'neutral' | 'sell'; // signal trading
   ma7: number;             // moyenne mobile 7 jours
   current_price: number;   // prix actuel
+  category?: string;
 }
 
 export interface MarketIndex {
