@@ -1,73 +1,50 @@
-# React + TypeScript + Vite
+#  Dofus Tracker Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The modern web dashboard for visualizing Dofus market data. Built with **React**, **Vite**, and **Tailwind CSS**.
 
-Currently, two official plugins are available:
+##  Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+*   **Interactive Charts**: Price history visualization using `Recharts`.
+*   **Market Dashboard**: Real-time view of market indexes and top movers.
+*   **Opportunity Scanner**: Automatically highlights items with high profit potential based on statistical analysis.
+*   **Responsive Design**: Fully responsive UI built with Tailwind CSS.
+*   **Dark Mode**: Optimized for long gaming sessions.
 
-## React Compiler
+##  Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+*   **Framework**: React 18
+*   **Build Tool**: Vite
+*   **Styling**: Tailwind CSS
+*   **State Management**: React Query (TanStack Query)
+*   **Charts**: Recharts
+*   **Icons**: Lucide React
 
-## Expanding the ESLint configuration
+##  Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1.  **Install Dependencies**:
+    `ash
+    npm install
+    ` 
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+2.  **Environment Variables**:
+    Create a `.env` file:
+    `env
+    VITE_API_URL=http://localhost:3000/api  # Or your production URL
+    ` 
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+3.  **Run Development Server**:
+    `ash
+    npm run dev
+    ` 
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+4.  **Build for Production**:
+    `ash
+    npm run build
+    ` 
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+##  Project Structure
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+*   `src/components/`: Reusable UI components.
+*   `src/pages/`: Main application views (Dashboard, Item Details, etc.).
+*   `src/hooks/`: Custom React hooks for data fetching.
+*   `src/lib/`: Utility functions and API clients.
