@@ -5,6 +5,7 @@ export interface ItemSummary {
   server: string;
   last_observation_at: string; // ISO string
   last_price: number;
+  category?: string;
 }
 
 export interface TimeseriesPoint {

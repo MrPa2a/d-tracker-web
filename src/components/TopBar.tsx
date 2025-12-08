@@ -282,7 +282,12 @@ export const TopBar: React.FC<TopBarProps> = ({
                         onMouseDown={() => handleChoose(s)}
                       >
                         <strong>{s.item_name}</strong>
-                        <span className="text-xs text-text-muted bg-bg-tertiary px-2 py-0.5 rounded-full">{s.server}</span>
+                        <span 
+                          className="text-xs text-text-muted bg-bg-tertiary px-2 py-0.5 rounded-full max-w-[120px] truncate"
+                          title={s.category || s.server}
+                        >
+                          {s.category || s.server}
+                        </span>
                       </li>
                     ))
                   ) : (
