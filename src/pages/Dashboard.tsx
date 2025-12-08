@@ -182,6 +182,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   }, [favorites, isFocusMode]);
 
+  // Memoize filterItems to avoid re-triggering effects when favorites change but focus mode is off
+  const filterItems = useMemo(() => {
+    return isFocusMode && favorites.size > 0 ? Array.from(favorites) : undefined;
+  }, [isFocusMode, favorites]);
+
   // Get favorite items from the currently selected server and apply price filter
   const favItems = useMemo(() => {
     if (!server) return [];
@@ -406,7 +411,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       setMoversError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [server, dateRange, parsedMinPrice, parsedMaxPrice, isFocusMode, favorites]);
+  }, [server, dateRange, parsedMinPrice, parsedMaxPrice, filterItems]);
 
   // Market index (HDV)
   const [marketIndex, setMarketIndex] = useState<MarketIndex | null>(null);
@@ -499,7 +504,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       setStable(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [server, dateRange, parsedMinPrice, parsedMaxPrice, isFocusMode, favorites]);
+  }, [server, dateRange, parsedMinPrice, parsedMaxPrice, filterItems]);
 
   return (
     <div className="flex flex-col gap-6">
