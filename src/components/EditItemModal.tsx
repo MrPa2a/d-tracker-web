@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import type { ItemSummary, TimeseriesPoint } from '../types';
-import { updateItem, updateObservation, createObservation, deleteObservation } from '../api';
+import type { ItemSummary, TimeseriesPoint, Category } from '../types';
+import { updateItem, updateObservation, createObservation, deleteObservation, fetchCategories } from '../api';
 
 interface EditItemModalProps {
   isOpen: boolean;
@@ -8,6 +8,7 @@ interface EditItemModalProps {
   item: ItemSummary;
   timeseries: TimeseriesPoint[];
   onRefresh: () => void;
+  onItemUpdate?: (oldName: string, newName: string, server: string, newCategory: string) => void;
 }
 
 export const EditItemModal: React.FC<EditItemModalProps> = ({
@@ -16,8 +17,11 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   item,
   timeseries,
   onRefresh,
+  onItemUpdate,
 }) => {
   const [newItemName, setNewItemName] = useState(item.item_name);
+  const [newItemCategory, setNewItemCategory] = useState(item.category || '');
+  const [categories, setCategories] = useState<Category[]>([]);
   const [editedTimeseries, setEditedTimeseries] = useState<TimeseriesPoint[]>([]);
   const [deletedIds, setDeletedIds] = useState<Set<number>>(new Set());
   const [newDate, setNewDate] = useState('');
@@ -28,6 +32,13 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setNewItemName(item.item_name);
+      setNewItemCategory(item.category || 'Catégorie Inconnue');
+      
+      // Fetch categories
+      fetchCategories()
+        .then(setCategories)
+        .catch(err => console.error('Failed to fetch categories', err));
+
       // Clone timeseries and sort by date descending (newest first)
       const sorted = [...timeseries].sort((a, b) => 
         new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -82,9 +93,13 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
     setSaving(true);
     setError(null);
     try {
-      // 1. Rename item if changed
-      if (newItemName !== item.item_name) {
-        await updateItem(item.item_name, newItemName, item.server);
+      // 1. Rename item or update category if changed
+      const currentCategory = item.category || 'Catégorie Inconnue';
+      if (newItemName !== item.item_name || newItemCategory !== currentCategory) {
+        await updateItem(item.item_name, newItemName, item.server, newItemCategory);
+        if (onItemUpdate) {
+          onItemUpdate(item.item_name, newItemName, item.server, newItemCategory);
+        }
       }
 
       const promises = [];
@@ -148,6 +163,26 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
               onChange={(e) => setNewItemName(e.target.value)}
               className="w-full bg-bg-primary border border-border-normal rounded px-3 py-2 text-text-primary focus:outline-none focus:border-accent-primary"
             />
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-text-muted mb-2">
+              Catégorie
+            </label>
+            <select
+              value={newItemCategory}
+              onChange={(e) => setNewItemCategory(e.target.value)}
+              className="w-full bg-bg-primary border border-border-normal rounded px-3 py-2 text-text-primary focus:outline-none focus:border-accent-primary"
+            >
+              {newItemCategory && !categories.some(c => c.name === newItemCategory) && (
+                <option value={newItemCategory}>{newItemCategory}</option>
+              )}
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.name}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="mb-6">

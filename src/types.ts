@@ -75,5 +75,10 @@ export interface Profile {
   created_at: string;
 }
 
+export interface Category {
+  id: number;
+  name: string;
+}
+
 export type SortType = 'name' | 'price';
 export type SortOrder = 'asc' | 'desc';

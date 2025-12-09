@@ -145,6 +145,17 @@ const App: React.FC = () => {
     setIsSidebarOpen((open) => !open);
   };
 
+  const handleItemUpdate = (oldName: string, newName: string, server: string, newCategory: string) => {
+    setItems((prevItems) => 
+      prevItems.map((item) => {
+        if (item.item_name === oldName && item.server === server) {
+          return { ...item, item_name: newName, category: newCategory };
+        }
+        return item;
+      })
+    );
+  };
+
   const navigate = useNavigate();
   const itemMatch = useMatch('/item/:server/:itemName');
 
@@ -363,6 +374,7 @@ const App: React.FC = () => {
                 dateRange={dateRange}
                 favorites={favorites}
                 onToggleFavorite={handleToggleFavorite}
+                onItemUpdate={handleItemUpdate}
               />
             } 
           />

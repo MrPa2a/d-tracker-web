@@ -1,5 +1,5 @@
 // src/api.ts
-import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile } from './types';
+import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
@@ -29,6 +29,18 @@ export async function fetchItems(search?: string, server?: string): Promise<Item
 
   if (!res.ok) {
     throw new Error(`Erreur API /api/items : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchCategories(): Promise<Category[]> {
+  const res = await fetch(`${API_BASE}/api/categories`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/categories : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
@@ -97,11 +109,11 @@ export async function removeProfileFavorite(profileId: string, itemName: string)
   }
 }
 
-export async function updateItem(oldName: string, newName: string, server: string): Promise<void> {
+export async function updateItem(oldName: string, newName: string, server: string, category?: string): Promise<void> {
   const res = await fetch(`${API_BASE}/api/items`, {
     method: 'PUT',
     headers: buildHeaders(),
-    body: JSON.stringify({ old_item_name: oldName, new_item_name: newName, server }),
+    body: JSON.stringify({ old_item_name: oldName, new_item_name: newName, server, category }),
   });
 
   if (!res.ok) {

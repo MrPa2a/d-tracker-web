@@ -9,6 +9,7 @@ interface ItemDetailsPageProps {
   dateRange: DateRangePreset;
   favorites: Set<string>;
   onToggleFavorite: (key: string) => void;
+  onItemUpdate?: (oldName: string, newName: string, server: string, newCategory: string) => void;
 }
 
 const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
@@ -16,6 +17,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
   dateRange,
   favorites,
   onToggleFavorite,
+  onItemUpdate,
 }) => {
   const { server, itemName } = useParams<{ server: string; itemName: string }>();
   const navigate = useNavigate();
@@ -103,6 +105,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
       onBackToDashboard={handleBack}
       favorites={favorites}
       onToggleFavorite={onToggleFavorite}
+      onItemUpdate={onItemUpdate}
     />
   );
 };

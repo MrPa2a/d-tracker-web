@@ -26,6 +26,7 @@ interface PriceChartProps {
   onBackToDashboard?: () => void;
   favorites?: Set<string>;
   onToggleFavorite?: (key: string) => void;
+  onItemUpdate?: (oldName: string, newName: string, server: string, newCategory: string) => void;
 }
 
 // Tooltip custom, cohérent avec le thème
@@ -81,6 +82,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
   onBackToDashboard,
   favorites = new Set<string>(),
   onToggleFavorite,
+  onItemUpdate,
 }) => {
   const hasData = !!timeseries && Array.isArray(timeseries) && timeseries.length > 0;
 
@@ -408,6 +410,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
           item={selectedItem}
           timeseries={timeseries.filter((p): p is TimeseriesPoint => p !== null)}
           onRefresh={onRefresh}
+          onItemUpdate={onItemUpdate}
         />
       )}
     </div>
