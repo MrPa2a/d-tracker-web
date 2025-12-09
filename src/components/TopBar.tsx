@@ -118,7 +118,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         fetchItems(query, selectedServer || undefined)
           .then((data) => {
             if (!cancelled) {
-              setSuggestions(data.slice(0, 8));
+              setSuggestions(data.slice(0, 50));
               setLoading(false);
             }
           })

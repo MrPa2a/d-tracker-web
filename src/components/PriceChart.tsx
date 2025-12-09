@@ -132,6 +132,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
 
     let cancelled = false;
     setStatsLoading(true);
+    setItemStats(null); // Clear previous stats to avoid showing stale data
 
     fetchItemStats(selectedItem.item_name, server, dateRange)
       .then((data) => {
@@ -255,11 +256,15 @@ export const PriceChart: React.FC<PriceChartProps> = ({
             )}
           </div>
           <div className="flex items-center gap-2 mt-1">
-            {(selectedItem.category || itemStats?.category) && (
+            {statsLoading && !selectedItem.category ? (
+              <span className="text-xs font-medium text-text-muted bg-bg-tertiary px-2 py-0.5 rounded-full border border-border-subtle animate-pulse">
+                -
+              </span>
+            ) : (selectedItem.category || itemStats?.category) ? (
               <span className="text-xs font-medium text-text-muted bg-bg-tertiary px-2 py-0.5 rounded-full border border-border-subtle">
                 {selectedItem.category || itemStats?.category}
               </span>
-            )}
+            ) : null}
           </div>
           <p className="text-sm text-text-muted m-0 mt-1">
             Serveur : {server} — Période : {dateRange}
