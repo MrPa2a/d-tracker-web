@@ -6,6 +6,7 @@ export interface ItemSummary {
   last_observation_at: string; // ISO string
   last_price: number;
   category?: string;
+  average_price?: number;
 }
 
 export interface TimeseriesPoint {

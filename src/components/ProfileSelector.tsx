@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Profile } from '../types';
 import { fetchProfiles, createProfile } from '../api';
+import { ChevronDown } from 'lucide-react';
 
 interface ProfileSelectorProps {
   currentProfile: Profile | null;
@@ -13,6 +14,19 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ currentProfile
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newProfileName, setNewProfileName] = useState('');
   const [error, setError] = useState<string | null>(null);
+  
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const loadProfiles = async () => {
@@ -110,26 +124,41 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ currentProfile
           </div>
         </div>
       ) : (
-        <select
-          value={currentProfile?.id || ''}
-          onChange={(e) => {
-            const val = e.target.value;
-            if (!val) {
-              onSelectProfile(null);
-            } else {
-              const p = profiles.find((p) => p.id === val);
-              if (p) onSelectProfile(p);
-            }
-          }}
-          className="w-full bg-bg-primary border border-border-normal rounded px-2 py-1.5 text-sm text-text-primary focus:border-accent-primary outline-none appearance-none cursor-pointer"
-        >
-          <option value="">Local (Défaut)</option>
-          {profiles.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="w-full bg-bg-primary border border-border-normal rounded px-2 py-1.5 text-sm text-text-primary focus:border-accent-primary outline-none cursor-pointer flex justify-between items-center hover:border-white/20 transition-colors"
+          >
+            <span className="truncate">{currentProfile?.name || 'Local (Défaut)'}</span>
+            <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {isDropdownOpen && (
+            <div className="absolute bottom-full left-0 mb-1 w-full max-h-60 overflow-y-auto bg-[#1a1b1e] border border-white/10 rounded-lg shadow-xl z-50 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+              <button
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-white/5 transition-colors ${!currentProfile ? 'text-blue-400 bg-blue-500/10' : 'text-gray-200'}`}
+                onClick={() => {
+                  onSelectProfile(null);
+                  setIsDropdownOpen(false);
+                }}
+              >
+                Local (Défaut)
+              </button>
+              {profiles.map((p) => (
+                <button
+                  key={p.id}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-white/5 transition-colors ${currentProfile?.id === p.id ? 'text-blue-400 bg-blue-500/10' : 'text-gray-200'}`}
+                  onClick={() => {
+                    onSelectProfile(p);
+                    setIsDropdownOpen(false);
+                  }}
+                >
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

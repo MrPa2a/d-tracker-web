@@ -80,33 +80,22 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
     navigate('/');
   };
 
-  /*
-  if (!selectedItem && items.length > 0) {
-    // Item not found in the list (maybe list not loaded yet or invalid URL)
-    // We can show a loading state or error if items are loaded
-    return (
-      <div className="flex items-center justify-center h-full text-text-muted">
-        <p>Item introuvable ou chargement...</p>
-      </div>
-    );
-  }
-  */
-
   return (
-    <PriceChart
-      selectedItem={selectedItem}
-      server={server || null}
-      timeseries={timeseries}
-      loading={loading}
-      error={error}
-      dateRange={dateRange}
-      onRefresh={handleRefresh}
-      refreshTrigger={refreshIndex}
-      onBackToDashboard={handleBack}
-      favorites={favorites}
-      onToggleFavorite={onToggleFavorite}
-      onItemUpdate={onItemUpdate}
-    />
+    <div className="flex flex-col h-full">
+      <PriceChart
+        selectedItem={selectedItem}
+        server={server || null}
+        timeseries={timeseries}
+        loading={loading}
+        error={error}
+        dateRange={dateRange}
+        favorites={favorites}
+        onToggleFavorite={onToggleFavorite}
+        onRefresh={handleRefresh}
+        onBackToDashboard={handleBack}
+        onItemUpdate={onItemUpdate}
+      />
+    </div>
   );
 };
 

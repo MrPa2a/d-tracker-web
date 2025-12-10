@@ -17,10 +17,11 @@ function buildHeaders(): HeadersInit {
   return headers;
 }
 
-export async function fetchItems(search?: string, server?: string): Promise<ItemSummary[]> {
+export async function fetchItems(search?: string, server?: string, category?: string): Promise<ItemSummary[]> {
   const params = new URLSearchParams();
   if (search) params.append('search', search);
   if (server) params.append('server', server);
+  if (category) params.append('category', category);
 
   const res = await fetch(`${API_BASE}/api/items?${params.toString()}`, {
     method: 'GET',
@@ -150,6 +151,8 @@ function computeFromDate(preset: DateRangePreset): string {
   return toDateOnlyIso(d);
 }
 
+const timeseriesCache = new Map<string, Promise<TimeseriesPoint[]>>();
+
 export async function fetchTimeseries(
   itemName: string,
   server: string,
@@ -157,6 +160,11 @@ export async function fetchTimeseries(
 ): Promise<TimeseriesPoint[]> {
   const from = computeFromDate(range);
   const to = toDateOnlyIso(new Date());
+  const cacheKey = `${itemName}::${server}::${from}::${to}`;
+
+  if (timeseriesCache.has(cacheKey)) {
+    return timeseriesCache.get(cacheKey)!;
+  }
 
   const params = new URLSearchParams({
     item: itemName,
@@ -165,20 +173,26 @@ export async function fetchTimeseries(
     to,
   });
 
-  const res = await fetch(
+  const promise = fetch(
     `${API_BASE}/api/timeseries?${params.toString()}`,
     {
       method: 'GET',
       headers: buildHeaders(),
     }
-  );
+  ).then(async (res) => {
+    if (!res.ok) {
+      throw new Error(
+        `Erreur API /api/timeseries : ${res.status} ${res.statusText}`
+      );
+    }
+    return res.json();
+  }).catch(err => {
+    timeseriesCache.delete(cacheKey);
+    throw err;
+  });
 
-  if (!res.ok) {
-    throw new Error(
-      `Erreur API /api/timeseries : ${res.status} ${res.statusText}`
-    );
-  }
-  return res.json();
+  timeseriesCache.set(cacheKey, promise);
+  return promise;
 }
 
 /**

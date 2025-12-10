@@ -1,17 +1,10 @@
 // src/pages/Dashboard.tsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import type { ItemSummary, TimeseriesPoint, Mover, DateRangePreset, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity } from '../types';
 import { fetchTimeseries, fetchMovers, fetchMarketIndex, fetchVolatilityRankings, fetchOpportunities, fetchSellOpportunities } from '../api';
 import kamaIcon from '../assets/kama.png';
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  Tooltip,
-} from 'recharts';
+import { SmallSparkline } from '../components/Sparkline';
 
 interface DashboardProps {
   items: ItemSummary[];
@@ -23,84 +16,8 @@ interface DashboardProps {
   dateRange: DateRangePreset;
   minPrice: string;
   maxPrice: string;
+  onlyFavorites: boolean;
 }
-
-// Tooltip custom for sparklines
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const SmallSparklineTooltip: React.FC<{ active?: boolean; payload?: any[]; coordinate?: { x: number; y: number }; containerNode?: HTMLDivElement | null }> = ({ active, payload, coordinate, containerNode }) => {
-  if (!active || !payload || payload.length === 0 || !coordinate || !containerNode) return null;
-
-  const point = payload[0];
-  const price = point.value as number;
-  const date = point.payload.date;
-
-  let formattedDate = date;
-  try {
-    // Support ISO string or YYYY-MM-DD
-    const d = new Date(date);
-    if (isNaN(d.getTime())) {
-       const d2 = new Date(date + 'T00:00:00Z');
-       if (!isNaN(d2.getTime())) {
-         formattedDate = d2.toLocaleDateString('fr-FR', {
-            day: '2-digit',
-            month: 'short',
-         });
-       }
-    } else {
-      formattedDate = d.toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    }
-  } catch {
-    // keep raw date
-  }
-
-  const rect = containerNode.getBoundingClientRect();
-  const x = rect.left + coordinate.x;
-  const y = rect.top + coordinate.y;
-
-  const style: React.CSSProperties = {
-    position: 'fixed',
-    left: x,
-    top: y - 10,
-    transform: 'translate(-50%, -100%)',
-    zIndex: 9999,
-    pointerEvents: 'none',
-  };
-
-  return createPortal(
-    <div style={style} className="bg-bg-secondary/90 backdrop-blur-md border border-border-normal p-2 rounded shadow-lg text-xs whitespace-nowrap">
-      <div className="font-bold text-text-primary mb-0.5 flex items-center justify-center">
-        {Math.round(price).toLocaleString('fr-FR')} <img src={kamaIcon} alt="kamas" style={{width: '10px', height: '10px', verticalAlign: 'middle', marginLeft: '5px'}} />
-      </div>
-      <div className="text-text-muted text-center">{formattedDate}</div>
-    </div>,
-    document.body
-  );
-};
-
-const SmallSparkline: React.FC<{ data: TimeseriesPoint[] | null }> = ({ data }) => {
-  const [containerNode, setContainerNode] = useState<HTMLDivElement | null>(null);
-  if (!data || data.length === 0) return <div className="text-center text-text-muted text-xs leading-10">—</div>;
-  return (
-    <div className="w-full h-full" ref={setContainerNode}>
-      <ResponsiveContainer width="100%" height={40}>
-        <LineChart data={data}>
-          <XAxis dataKey="date" hide />
-          <Tooltip
-            content={<SmallSparklineTooltip containerNode={containerNode} />}
-            cursor={{ strokeDasharray: '3 3' }}
-            isAnimationActive={false}
-          />
-          <Line type="monotone" dataKey="avg_price" stroke="#60a5fa" dot={false} strokeWidth={2} />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};
 
 const DashboardRow: React.FC<{
   item: { item_name: string; server: string; last_price: number };
@@ -111,7 +28,7 @@ const DashboardRow: React.FC<{
   metric: React.ReactNode;
 }> = ({ item, ts, onNavigate, isFavorite, onToggleFavorite, metric }) => {
   return (
-    <li className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_6rem_7rem] gap-4 items-center p-2 rounded-lg bg-bg-primary/40 border border-transparent hover:border-border-strong hover:bg-bg-primary/60 transition-all duration-200">
+    <li className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_6rem_7rem] gap-4 items-center p-2 rounded-lg bg-bg-tertiary/10 border border-transparent hover:border-border-normal hover:bg-bg-tertiary/30 transition-all duration-200">
       <div className="flex items-center gap-2 min-w-0 relative group">
          <Link 
             to={`/item/${item.server}/${item.item_name}`}
@@ -168,24 +85,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
   dateRange,
   minPrice,
   maxPrice,
+  onlyFavorites,
 }) => {
   // Parse price filters
   const parsedMinPrice = minPrice ? parseFloat(minPrice) : null;
   const parsedMaxPrice = maxPrice ? parseFloat(maxPrice) : null;
-
-  const [isFocusMode, setIsFocusMode] = useState(false);
-
-  // Reset focus mode if favorites become empty
-  useEffect(() => {
-    if (favorites.size === 0 && isFocusMode) {
-      setIsFocusMode(false);
-    }
-  }, [favorites, isFocusMode]);
-
-  // Memoize filterItems to avoid re-triggering effects when favorites change but focus mode is off
-  const filterItems = useMemo(() => {
-    return isFocusMode && favorites.size > 0 ? Array.from(favorites) : undefined;
-  }, [isFocusMode, favorites]);
 
   // Get favorite items from the currently selected server and apply price filter
   const favItems = useMemo(() => {
@@ -359,12 +263,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const loadMovers = async () => {
     if (!server) return;
+
+    // If filtering by favorites but no favorites, return empty results immediately
+    if (onlyFavorites && favorites.size === 0) {
+      setMoversUp([]);
+      setMoversDown([]);
+      setMoversTs({});
+      return;
+    }
+
+    const filterItems = onlyFavorites ? Array.from(favorites) : undefined;
+
     setMoversLoading(true);
     setMoversError(null);
     try {
       // On récupère 20 items avec le filtre de prix appliqué côté serveur
       // Si le mode focus est activé, on passe la liste des favoris
-      const filterItems = isFocusMode && favorites.size > 0 ? Array.from(favorites) : undefined;
       
       // Fetch Top Gainers (desc) and Top Losers (asc) separately
       const [up, down] = await Promise.all([
@@ -411,7 +325,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       setMoversError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [server, dateRange, parsedMinPrice, parsedMaxPrice, filterItems]);
+  }, [server, dateRange, parsedMinPrice, parsedMaxPrice, onlyFavorites, favorites]);
 
   // Market index (HDV)
   const [marketIndex, setMarketIndex] = useState<MarketIndex | null>(null);
@@ -423,7 +337,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const loadMarketStats = () => {
     if (!server) return;
 
-    const filterItems = isFocusMode && favorites.size > 0 ? Array.from(favorites) : undefined;
+    // If filtering by favorites but no favorites, return empty results immediately
+    if (onlyFavorites && favorites.size === 0) {
+      setMarketIndex(null);
+      setVolatile([]);
+      setStable([]);
+      setVolatilityTs({});
+      setOpportunities([]);
+      setSellOpportunities([]);
+      return;
+    }
+
+    const filterItems = onlyFavorites ? Array.from(favorites) : undefined;
 
     // 1. Market Index
     setIndexLoading(true);
@@ -504,35 +429,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
       setStable(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [server, dateRange, parsedMinPrice, parsedMaxPrice, filterItems]);
+  }, [server, dateRange, parsedMinPrice, parsedMaxPrice, onlyFavorites, favorites]);
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
-        <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-text-primary to-text-secondary bg-clip-text text-transparent m-0">Tableau de bord</h1>
-        
-        {favorites.size > 0 && (
-          <div className="flex items-center gap-3 bg-bg-secondary/50 p-2 rounded-lg border border-border-normal">
-            <span className="text-sm font-medium text-text-muted px-2">Focus Favoris</span>
-            <button
-              onClick={() => setIsFocusMode(!isFocusMode)}
-              className={`
-                relative inline-flex h-7 w-12 items-center rounded-full transition-colors cursor-pointer outline-none
-                ${isFocusMode ? 'bg-accent-primary' : 'bg-bg-tertiary'}
-              `}
-            >
-              <span
-                className={`
-                  inline-block h-5 w-5 transform rounded-full bg-white transition-transform
-                  ${isFocusMode ? 'translate-x-6' : 'translate-x-1'}
-                `}
-              />
-            </button>
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-text-primary to-text-secondary bg-clip-text text-transparent m-0">Tableau de bord</h1>
           </div>
-        )}
+        </div>
       </div>
 
-      {isFocusMode && (
+      {onlyFavorites && (
         <div className="bg-accent-primary/10 border border-accent-primary/20 rounded-lg p-4 mb-4 text-sm text-text-primary">
           <p className="font-semibold mb-1">Focus Favoris activé</p>
           <p className="text-text-muted">
@@ -544,7 +453,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Market Index Section */}
       {indexLoading && <p className="text-text-muted text-sm text-center py-4">Chargement de l'indice HDV…</p>}
       {marketIndex && !indexLoading && marketIndex.index_change != null && (
-        <div className="bg-linear-to-r from-bg-secondary to-bg-primary p-4 rounded-xl border border-border-normal flex flex-col items-center justify-center shadow-lg relative overflow-hidden">
+        <div className="bg-linear-to-r from-bg-secondary/50 to-bg-secondary/10 p-4 rounded-xl border border-border-normal flex flex-col items-center justify-center shadow-lg relative overflow-hidden">
           <div className="text-sm text-text-muted uppercase tracking-wider font-semibold mb-1 relative z-10">Indice HDV ({marketIndex.total_items ?? 0} items)</div>
           <div className={`
             text-3xl font-bold font-mono relative z-10
@@ -840,7 +749,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {opportunities.map((opp) => (
                 <div 
                   key={`${opp.server}::${opp.item_name}`}
-                  className="p-3 rounded-lg bg-bg-primary/40 border border-transparent hover:border-accent-success/50 hover:bg-bg-primary/60 transition-all duration-200 cursor-pointer group"
+                  className="p-3 rounded-lg bg-bg-tertiary/10 border border-transparent hover:border-accent-success/50 hover:bg-bg-tertiary/30 transition-all duration-200 cursor-pointer group"
                   onClick={() => {
                     const found = items.find(it => it.item_name === opp.item_name && it.server === opp.server);
                     if (found) {
@@ -895,7 +804,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {sellOpportunities.map((opp) => (
                 <div 
                   key={`${opp.server}::${opp.item_name}`}
-                  className="p-3 rounded-lg bg-bg-primary/40 border border-transparent hover:border-accent-danger/50 hover:bg-bg-primary/60 transition-all duration-200 cursor-pointer group"
+                  className="p-3 rounded-lg bg-bg-tertiary/10 border border-transparent hover:border-accent-danger/50 hover:bg-bg-tertiary/30 transition-all duration-200 cursor-pointer group"
                   onClick={() => {
                     const found = items.find(it => it.item_name === opp.item_name && it.server === opp.server);
                     if (found) {

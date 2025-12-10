@@ -254,7 +254,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Search - Order 4 Mobile, Order 2 Desktop */}
         <div className="flex-1 flex min-w-[250px] order-4 md:order-2 md:justify-start w-full">
-          <div className="w-full md:max-w-md relative z-[9999] flex flex-col gap-1.5">
+          <div className="w-full md:max-w-md relative z-9999 flex flex-col gap-1.5">
             <span className="text-[0.7rem] uppercase tracking-wider text-text-muted font-bold ml-1">Recherche</span>
             <div className="relative">
               <input

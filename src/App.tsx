@@ -1,14 +1,12 @@
 // src/App.tsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { Routes, Route, useNavigate, useMatch } from 'react-router-dom';
-import { fetchItems, fetchProfileFavorites, addProfileFavorite, removeProfileFavorite } from './api';
-import type { DateRangePreset, ItemSummary, SortType, SortOrder, Profile } from './types';
-import { Layout } from './components/Layout';
-import { ItemList } from './components/ItemList';
-import { TopBar } from './components/TopBar';
-import { ProfileSelector } from './components/ProfileSelector';
+import { Routes, Route, useNavigate } from 'react-router-dom';
+import { fetchItems, fetchProfileFavorites, addProfileFavorite, removeProfileFavorite, fetchCategories } from './api';
+import type { DateRangePreset, ItemSummary, SortType, SortOrder, Profile, Category } from './types';
+import { MainLayout } from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import ItemDetailsPage from './pages/ItemDetailsPage';
+import MarketPage from './pages/MarketPage';
 
 const DEFAULT_RANGE: DateRangePreset = '30d';
 
@@ -16,6 +14,9 @@ const App: React.FC = () => {
   const [items, setItems] = useState<ItemSummary[]>([]);
   const [itemsLoading, setItemsLoading] = useState(true);
   const [itemsError, setItemsError] = useState<string | null>(null);
+  
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // Dashboard server state
   const [dashboardServer, setDashboardServer] = useState<string | null>(() => {
@@ -30,8 +31,7 @@ const App: React.FC = () => {
     }
   }, [dashboardServer]);
   
-  const [search, setSearch] = useState('');
-  const [searchResults, setSearchResults] = useState<ItemSummary[] | null>(null);
+  const search = '';
   const [sortType, setSortType] = useState<SortType>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
@@ -75,250 +75,232 @@ const App: React.FC = () => {
 
   // Load favorites when profile changes
   useEffect(() => {
-    setFavoritesLoading(true);
-    if (currentProfile) {
-      fetchProfileFavorites(currentProfile.id)
-        .then(favs => setFavorites(new Set(favs)))
-        .catch(err => console.error('Failed to load profile favorites', err))
-        .finally(() => setFavoritesLoading(false));
-    } else {
-      // Load from local storage
-      try {
-        const raw = localStorage.getItem('favorites');
-        if (raw) {
-          const arr = JSON.parse(raw) as string[];
-          const migrated = arr.map(fav => {
-            const parts = fav.split('::');
-            return parts.length > 1 ? parts[1] : fav;
-          });
-          setFavorites(new Set(migrated));
-        } else {
-          setFavorites(new Set());
+    let cancelled = false;
+    
+    const loadFavorites = async () => {
+      if (currentProfile) {
+        setFavoritesLoading(true);
+        try {
+          const favs = await fetchProfileFavorites(currentProfile.id);
+          if (!cancelled) setFavorites(new Set(favs));
+        } catch (err) {
+          console.error('Failed to load profile favorites', err);
+        } finally {
+          if (!cancelled) setFavoritesLoading(false);
         }
-      } catch (e) {
-        console.warn('Failed to load favorites', e);
-        setFavorites(new Set());
+      } else {
+        // Load from local storage
+        try {
+          const raw = localStorage.getItem('favorites');
+          if (raw) {
+            const arr = JSON.parse(raw) as string[];
+            const migrated = arr.map(fav => {
+              const parts = fav.split('::');
+              return parts.length > 1 ? parts[1] : fav;
+            });
+            if (!cancelled) setFavorites(new Set(migrated));
+          } else {
+            if (!cancelled) setFavorites(new Set());
+          }
+        } catch (e) {
+          console.warn('Failed to load favorites', e);
+          if (!cancelled) setFavorites(new Set());
+        }
+        if (!cancelled) setFavoritesLoading(false);
       }
-      setFavoritesLoading(false);
-    }
+    };
+
+    loadFavorites();
+
+    return () => {
+      cancelled = true;
+    };
   }, [currentProfile]);
 
-  const handleToggleFavorite = async (key: string) => {
-    const next = new Set(favorites);
-    const isAdding = !next.has(key);
+  // Save local favorites
+  useEffect(() => {
+    if (!currentProfile) {
+      const arr = Array.from(favorites);
+      localStorage.setItem('favorites', JSON.stringify(arr));
+    }
+  }, [favorites, currentProfile]);
+
+  const handleToggleFavorite = async (itemName: string) => {
+    const newFavs = new Set(favorites);
+    const isAdding = !newFavs.has(itemName);
     
-    if (isAdding) next.add(key);
-    else next.delete(key);
-    
-    setFavorites(next);
+    if (isAdding) {
+      newFavs.add(itemName);
+    } else {
+      newFavs.delete(itemName);
+    }
+    setFavorites(newFavs);
 
     if (currentProfile) {
       try {
         if (isAdding) {
-          await addProfileFavorite(currentProfile.id, key);
+          await addProfileFavorite(currentProfile.id, itemName);
         } else {
-          await removeProfileFavorite(currentProfile.id, key);
+          await removeProfileFavorite(currentProfile.id, itemName);
         }
       } catch (err) {
-        console.error('Failed to update profile favorite', err);
-      }
-    } else {
-      try {
-        localStorage.setItem('favorites', JSON.stringify(Array.from(next)));
-      } catch (e) {
-        console.warn('Failed to persist favorites', e);
+        console.error('Failed to sync favorite', err);
+        // Revert on error
+        setFavorites(prev => {
+          const rev = new Set(prev);
+          if (isAdding) rev.delete(itemName);
+          else rev.add(itemName);
+          return rev;
+        });
       }
     }
   };
 
-  const [dateRange, setDateRange] = useState<DateRangePreset>(DEFAULT_RANGE);
-  const [minPrice, setMinPrice] = useState<string>('');
-  const [maxPrice, setMaxPrice] = useState<string>('');
+  // Load categories once
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const cats = await fetchCategories();
+        setCategories(cats);
+      } catch (err) {
+        console.error('Failed to load categories', err);
+      }
+    };
+    loadCategories();
+  }, []);
 
-  // 👉 Nouveau : état d'ouverture de la sidebar
-  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
-    // Ouverte par défaut uniquement sur desktop
-    return typeof window !== 'undefined' && window.innerWidth >= 768;
-  });
+  // Load items when category changes
+  useEffect(() => {
+    const loadItems = async () => {
+      setItemsLoading(true);
+      setItemsError(null);
+      
+      try {
+        const data = await fetchItems(undefined, undefined, selectedCategory || undefined);
+        setItems(data);
+      } catch (err) {
+        setItemsError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setItemsLoading(false);
+      }
+    };
+    loadItems();
+  }, [selectedCategory]);
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen((open) => !open);
+  // Derived state
+  const servers = useMemo(() => {
+    const s = new Set(items.map(i => i.server));
+    return Array.from(s).sort();
+  }, [items]);
+
+  // Default server selection logic
+  useEffect(() => {
+    if (!dashboardServer && servers.length > 0) {
+      const defaultServer = servers.includes('Draconiros') ? 'Draconiros' : servers[0];
+      setDashboardServer(defaultServer);
+    }
+  }, [servers, dashboardServer]);
+
+  const currentServer = dashboardServer;
+
+  // Filter items for Market Page
+  const filteredItems = useMemo(() => {
+    let res = items;
+    if (currentServer) {
+      res = res.filter(i => i.server === currentServer);
+    }
+    if (search.trim()) {
+      const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const q = normalize(search);
+      res = res.filter(i => normalize(i.item_name).includes(q));
+    }
+    
+    // Sort
+    res.sort((a, b) => {
+      if (sortType === 'price') {
+        const valA = a.last_price;
+        const valB = b.last_price;
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+      } else {
+        // Use localeCompare for accent-insensitive sorting
+        return sortOrder === 'asc' 
+          ? a.item_name.localeCompare(b.item_name, 'fr', { sensitivity: 'base' })
+          : b.item_name.localeCompare(a.item_name, 'fr', { sensitivity: 'base' });
+      }
+    });
+
+    return res;
+  }, [items, currentServer, search, sortType, sortOrder]);
+
+  const navigate = useNavigate();
+  const handleNavigateToItem = (item: ItemSummary) => {
+    navigate(`/item/${item.server}/${encodeURIComponent(item.item_name)}`);
   };
 
   const handleItemUpdate = (oldName: string, newName: string, server: string, newCategory: string) => {
-    setItems((prevItems) => 
-      prevItems.map((item) => {
-        if (item.item_name === oldName && item.server === server) {
-          return { ...item, item_name: newName, category: newCategory };
-        }
-        return item;
-      })
-    );
-  };
-
-  const navigate = useNavigate();
-  const itemMatch = useMatch('/item/:server/:itemName');
-
-  // Determine current server based on route or dashboard state
-  const currentServer = itemMatch ? itemMatch.params.server : dashboardServer;
-
-  // 1. Chargement des items
-  useEffect(() => {
-    let cancelled = false;
-
-    setItemsLoading(true);
-    setItemsError(null);
-
-    fetchItems()
-      .then((data) => {
-        if (cancelled) return;
-        setItems(data);
-        setItemsLoading(false);
-
-        if (data.length > 0 && !dashboardServer) {
-          setDashboardServer(data[0].server);
-        }
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        console.error(err);
-        setItemsError(err.message || 'Erreur inconnue');
-        setItemsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const servers = useMemo(
-    () => Array.from(new Set(items.map((i) => i.server))).sort(),
-    [items]
-  );
-
-  useEffect(() => {
-    if (dashboardServer && servers.length > 0 && !servers.includes(dashboardServer)) {
-      setDashboardServer(servers[0] ?? null);
-    }
-  }, [dashboardServer, servers]);
-
-  // Search effect
-  useEffect(() => {
-    let cancelled = false;
-
-    const timer = setTimeout(() => {
-      if (search.trim()) {
-        setItemsLoading(true);
-        // On cherche sur le serveur courant si défini, sinon globalement (ou comportement par défaut)
-        // Note: fetchItems a été modifié pour accepter search et server
-        fetchItems(search, currentServer || undefined)
-          .then((data) => {
-            if (!cancelled) {
-              setSearchResults(data);
-              setItemsLoading(false);
-            }
-          })
-          .catch((err) => {
-            if (!cancelled) {
-              console.error(err);
-              setItemsLoading(false);
-            }
-          });
-      } else {
-        if (!cancelled) {
-          setSearchResults(null);
-        }
+    setItems(prev => prev.map(i => {
+      if (i.item_name === oldName && i.server === server) {
+        return { ...i, item_name: newName, category: newCategory };
       }
-    }, 500);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [search, currentServer]);
-
-  const filteredItems = useMemo(() => {
-    // Si on a des résultats de recherche, on les utilise, sinon on prend la liste initiale
-    const source = searchResults !== null ? searchResults : items;
-    
-    return source
-      .filter((i) => !currentServer || i.server === currentServer)
-      // On ne filtre plus par nom ici car c'est fait côté serveur lors de la recherche
-      // .filter((i) =>
-      //   i.item_name.toLowerCase().includes(search.trim().toLowerCase())
-      // )
-      .sort((a, b) => {
-        if (sortType === 'name') {
-          return sortOrder === 'asc' 
-            ? a.item_name.localeCompare(b.item_name, 'fr')
-            : b.item_name.localeCompare(a.item_name, 'fr');
-        } else {
-          return sortOrder === 'asc'
-            ? a.last_price - b.last_price
-            : b.last_price - a.last_price;
-        }
-      });
-  }, [items, searchResults, currentServer, sortType, sortOrder]);
-
-  // Handle server selection from TopBar
-  const handleSelectServer = (newServer: string | null) => {
-    if (!newServer) return;
-    
-    if (itemMatch) {
-      // If on item page, navigate to same item on new server
-      const { itemName } = itemMatch.params;
-      if (itemName) {
-        navigate(`/item/${newServer}/${itemName}`);
-      }
-    } else {
-      // If on dashboard, just update state
-      setDashboardServer(newServer);
-    }
+      return i;
+    }));
   };
 
-  // handler de sélection d’item qui ferme la sidebar sur mobile
-  const handleSelectItem = (item: ItemSummary | null) => {
-    if (item) {
-      navigate(`/item/${item.server}/${item.item_name}`);
-      if (typeof window !== 'undefined' && window.innerWidth < 768) {
-        setIsSidebarOpen(false);
-      }
-    } else {
-      navigate('/');
-    }
-  };
+  // Date range state
+  const [dateRange, setDateRange] = useState<DateRangePreset>(DEFAULT_RANGE);
+  
+  // Price filters
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
 
-  const handleNavigateToItem = (item: ItemSummary) => {
-    navigate(`/item/${item.server}/${item.item_name}`);
-    // Don't open sidebar on mobile
-    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
-      setIsSidebarOpen(true);
-    }
-  };
-
-  // Determine selected item for sidebar highlighting
-  const selectedItem = itemMatch && currentServer ? items.find(i => i.server === currentServer && i.item_name === itemMatch.params.itemName) || null : null;
+  // Favorites filter state
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
 
   return (
-    <Layout
-      sidebar={
-        <div className="flex flex-col h-full">
-          <ProfileSelector 
-            currentProfile={currentProfile} 
-            onSelectProfile={setCurrentProfile} 
-          />
-          <div className="my-4 mx-2 h-px bg-gradient-to-r from-transparent via-border-normal to-transparent" />
-          <div className="flex-1 min-h-0">
-            <ItemList
+    <Routes>
+      <Route element={
+        <MainLayout 
+          currentProfile={currentProfile}
+          onSelectProfile={setCurrentProfile}
+          servers={servers}
+          selectedServer={dashboardServer}
+          onSelectServer={setDashboardServer}
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+          minPrice={minPrice}
+          onMinPriceChange={setMinPrice}
+          maxPrice={maxPrice}
+          onMaxPriceChange={setMaxPrice}
+          onlyFavorites={onlyFavorites}
+          onToggleOnlyFavorites={() => setOnlyFavorites(!onlyFavorites)}
+        />
+      }>
+        <Route 
+          path="/" 
+          element={
+            <Dashboard
+              items={items}
+              favorites={favorites}
+              favoritesLoading={favoritesLoading}
+              onNavigateToItem={handleNavigateToItem}
+              onToggleFavorite={handleToggleFavorite}
+              server={dashboardServer}
+              dateRange={dateRange}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
+              onlyFavorites={onlyFavorites}
+            />
+          } 
+        />
+        <Route 
+          path="/market" 
+          element={
+            <MarketPage
               items={filteredItems}
               loading={itemsLoading}
-              favoritesLoading={favoritesLoading}
               error={itemsError}
-              onSearchChange={setSearch}
-              search={search}
-              selectedItem={selectedItem}
-              onSelectItem={handleSelectItem}
               favorites={favorites}
               onToggleFavorite={handleToggleFavorite}
               sortType={sortType}
@@ -327,62 +309,33 @@ const App: React.FC = () => {
                 setSortType(type);
                 setSortOrder(order);
               }}
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
+              onlyFavorites={onlyFavorites}
+              dateRange={dateRange}
             />
-          </div>
-        </div>
-      }
-      topBar={
-        <TopBar
-          servers={servers}
-          selectedServer={currentServer || null}
-          onSelectServer={handleSelectServer}
-          dateRange={dateRange}
-          onChangeDateRange={setDateRange}
-          onToggleSidebar={toggleSidebar}
-          onNavigateToItem={handleNavigateToItem}
-          minPrice={minPrice}
-          maxPrice={maxPrice}
-          onMinPriceChange={setMinPrice}
-          onMaxPriceChange={setMaxPrice}
+          } 
         />
-      }
-      main={
-        <Routes>
-          <Route 
-            path="/" 
-            element={
-              <React.Suspense fallback={<div className="info-text">Chargement...</div>}>
-                <Dashboard
-                  items={items}
-                  favorites={favorites}
-                  favoritesLoading={favoritesLoading}
-                  onNavigateToItem={handleNavigateToItem}
-                  onToggleFavorite={handleToggleFavorite}
-                  server={dashboardServer}
-                  dateRange={dateRange}
-                  minPrice={minPrice}
-                  maxPrice={maxPrice}
-                />
-              </React.Suspense>
-            } 
-          />
-          <Route 
-            path="/item/:server/:itemName" 
-            element={
-              <ItemDetailsPage 
-                items={items}
-                dateRange={dateRange}
-                favorites={favorites}
-                onToggleFavorite={handleToggleFavorite}
-                onItemUpdate={handleItemUpdate}
-              />
-            } 
-          />
-        </Routes>
-      }
-      isSidebarOpen={isSidebarOpen}
-      onToggleSidebar={toggleSidebar}
-    />
+        <Route 
+          path="/item/:server/:itemName" 
+          element={
+            <ItemDetailsPage 
+              items={items}
+              dateRange={dateRange}
+              favorites={favorites}
+              onToggleFavorite={handleToggleFavorite}
+              onItemUpdate={handleItemUpdate}
+            />
+          } 
+        />
+        {/* Placeholder routes */}
+        <Route path="/favorites" element={<div className="text-white p-8">Favoris (À venir)</div>} />
+        <Route path="/analytics" element={<div className="text-white p-8">Analyses (À venir)</div>} />
+      </Route>
+    </Routes>
   );
 };
 

@@ -32,6 +32,9 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      zIndex: {
+        '9999': '9999',
       }
     },
   },

@@ -21,6 +21,7 @@ interface PriceChartProps {
   loading: boolean;
   error: string | null;
   dateRange: DateRangePreset;
+  onDateRangeChange?: (range: DateRangePreset) => void;
   onRefresh: () => void;
   refreshTrigger?: number;
   onBackToDashboard?: () => void;
@@ -77,6 +78,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
   loading,
   error,
   dateRange,
+  onDateRangeChange,
   onRefresh,
   refreshTrigger = 0,
   onBackToDashboard,
@@ -185,9 +187,10 @@ export const PriceChart: React.FC<PriceChartProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-bg-secondary/30 backdrop-blur-sm rounded-2xl border border-border-normal p-4 md:p-6 shadow-lg">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3 mb-1">
+      
+      {/* Top Bar: Navigation & Date Range */}
+      <div className="flex justify-between items-center mb-2">
+        <div className="flex items-center gap-3">
             {onBackToDashboard && (
               <button
                 className="text-sm font-medium text-accent-primary hover:text-accent-primary/80 hover:underline bg-transparent border-none cursor-pointer p-0"
@@ -205,7 +208,30 @@ export const PriceChart: React.FC<PriceChartProps> = ({
             >
               ↻ Actualiser
             </button>
+        </div>
+
+        {onDateRangeChange && (
+          <div className="flex bg-bg-tertiary/50 rounded-lg p-1 border border-border-normal">
+            {(['7d', '30d', '90d', '365d'] as DateRangePreset[]).map((range) => (
+              <button
+                key={range}
+                onClick={() => onDateRangeChange(range)}
+                className={`
+                  px-3 py-1 text-xs font-medium rounded-md transition-all cursor-pointer
+                  ${dateRange === range 
+                    ? 'bg-accent-primary text-white shadow-sm' 
+                    : 'text-text-muted hover:text-text-primary hover:bg-bg-tertiary'}
+                `}
+              >
+                {range === '365d' ? '1 an' : range.replace('d', 'j')}
+              </button>
+            ))}
           </div>
+        )}
+      </div>
+
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6">
+        <div className="flex flex-col gap-2">
           <div className="flex items-center flex-wrap gap-3">
             <h2 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-text-primary to-text-secondary bg-clip-text text-transparent m-0">{selectedItem.item_name}</h2>
             {onToggleFavorite && (
