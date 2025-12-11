@@ -1,6 +1,7 @@
 // src/types.ts
 
 export interface ItemSummary {
+  id: number;
   item_name: string;
   server: string;
   last_observation_at: string; // ISO string
@@ -83,3 +84,18 @@ export interface Category {
 
 export type SortType = 'name' | 'price';
 export type SortOrder = 'asc' | 'desc';
+
+export interface List {
+  id: string;
+  name: string;
+  scope: 'public' | 'private';
+  profile_id: string | null;
+  created_at: string;
+  list_items: { 
+    item_id: number; 
+    item_name: string;
+    server?: string;
+    last_price?: number;
+    category?: string;
+  }[];
+}

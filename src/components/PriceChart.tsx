@@ -1,10 +1,11 @@
 // src/components/PriceChart.tsx
 import React, { useMemo, useEffect, useState, useRef } from 'react';
-import type { DateRangePreset, ItemSummary, TimeseriesPoint, ItemStats } from '../types';
+import type { DateRangePreset, ItemSummary, TimeseriesPoint, ItemStats, Profile } from '../types';
 import { fetchItemStats } from '../api';
 import { EditItemModal } from './EditItemModal';
 import { ContextMenu } from './ContextMenu';
-import { MoreVertical, Star, Copy } from 'lucide-react';
+import { MoreVertical, Star, Copy, List } from 'lucide-react';
+import { useLists } from '../hooks/useLists';
 import kamaIcon from '../assets/kama.png';
 import {
   ResponsiveContainer,
@@ -30,6 +31,7 @@ interface PriceChartProps {
   favorites?: Set<string>;
   onToggleFavorite?: (key: string) => void;
   onItemUpdate?: (oldName: string, newName: string, server: string, newCategory: string) => void;
+  currentProfile?: Profile | null;
 }
 
 // Tooltip custom, cohérent avec le thème
@@ -87,6 +89,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
   favorites = new Set<string>(),
   onToggleFavorite,
   onItemUpdate,
+  currentProfile,
 }) => {
   const hasData = !!timeseries && Array.isArray(timeseries) && timeseries.length > 0;
 
@@ -95,10 +98,14 @@ export const PriceChart: React.FC<PriceChartProps> = ({
   const [statsLoading, setStatsLoading] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ItemSummary } | null>(null);
+  const [listContextMenu, setListContextMenu] = useState<{ x: number; y: number; item: ItemSummary } | null>(null);
+
+  const { lists, addItem } = useLists(currentProfile?.id);
 
   const handleContextMenu = (e: React.MouseEvent, item: ItemSummary) => {
     e.preventDefault();
     e.stopPropagation();
+    setListContextMenu(null);
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setContextMenu({
       x: rect.left + window.scrollX,
@@ -477,11 +484,37 @@ export const PriceChart: React.FC<PriceChartProps> = ({
               icon: <Star size={16} className={favorites?.has(contextMenu.item.item_name) ? "fill-accent-warning text-accent-warning" : ""} />,
               onClick: () => onToggleFavorite(contextMenu.item.item_name),
             }] : []),
+            ...(contextMenu.item.id ? [{
+              label: 'Ajouter à une liste...',
+              icon: <List size={16} />,
+              onClick: () => {
+                setListContextMenu({ x: contextMenu.x, y: contextMenu.y, item: contextMenu.item });
+                setContextMenu(null);
+              },
+            }] : []),
             {
               label: 'Copier le nom',
               icon: <Copy size={16} />,
               onClick: () => navigator.clipboard.writeText(contextMenu.item.item_name),
             },
+          ]}
+        />
+      )}
+
+      {listContextMenu && (
+        <ContextMenu
+          x={listContextMenu.x}
+          y={listContextMenu.y}
+          onClose={() => setListContextMenu(null)}
+          actions={[
+            ...lists.filter(l => l.profile_id === currentProfile?.id).map(list => ({
+              label: list.name,
+              onClick: () => addItem({ listId: list.id, itemId: listContextMenu.item.id }),
+            })),
+            ...(lists.filter(l => l.profile_id === currentProfile?.id).length === 0 ? [{
+              label: 'Aucune liste',
+              onClick: () => {},
+            }] : [])
           ]}
         />
       )}

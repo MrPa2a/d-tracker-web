@@ -1,8 +1,10 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { PriceChart } from '../components/PriceChart';
 import { useTimeseries } from '../hooks/useTimeseries';
-import type { DateRangePreset, ItemSummary } from '../types';
+import { fetchItems } from '../api';
+import type { DateRangePreset, ItemSummary, Profile } from '../types';
 
 interface ItemDetailsPageProps {
   items: ItemSummary[];
@@ -10,6 +12,7 @@ interface ItemDetailsPageProps {
   favorites: Set<string>;
   onToggleFavorite: (key: string) => void;
   onItemUpdate?: (oldName: string, newName: string, server: string, newCategory: string) => void;
+  currentProfile: Profile | null;
 }
 
 const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
@@ -18,6 +21,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
   favorites,
   onToggleFavorite,
   onItemUpdate,
+  currentProfile,
 }) => {
   const { server, itemName } = useParams<{ server: string; itemName: string }>();
   const navigate = useNavigate();
@@ -36,7 +40,17 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
     (i) => i.item_name === itemName && i.server === server
   );
 
-  const selectedItem = foundItem || (server && itemName ? {
+  // Fetch item details if not found in global list (to get the ID)
+  const { data: fetchedItems } = useQuery({
+    queryKey: ['item-details', server, itemName],
+    queryFn: () => fetchItems(itemName, server),
+    enabled: !foundItem && !!server && !!itemName,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  const fetchedItem = fetchedItems?.find(i => i.item_name === itemName && i.server === server);
+
+  const selectedItem = foundItem || fetchedItem || (server && itemName ? {
     item_name: itemName,
     server: server,
     last_price: 0,
@@ -65,6 +79,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
         onRefresh={handleRefresh}
         onBackToDashboard={handleBack}
         onItemUpdate={onItemUpdate}
+        currentProfile={currentProfile}
       />
     </div>
   );

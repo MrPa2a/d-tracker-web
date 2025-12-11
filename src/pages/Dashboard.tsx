@@ -2,13 +2,15 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueries } from '@tanstack/react-query';
-import type { ItemSummary, TimeseriesPoint, DateRangePreset } from '../types';
+import type { ItemSummary, TimeseriesPoint, DateRangePreset, Profile } from '../types';
 import { fetchTimeseries } from '../api';
 import { useMovers, useVolatilityRankings, useOpportunities, useSellOpportunities, useMarketIndex } from '../hooks/useMarketData';
 import kamaIcon from '../assets/kama.png';
 import { SmallSparkline } from '../components/Sparkline';
-import { MoreVertical, Star, StarOff, Copy } from 'lucide-react';
+import { MoreVertical, Star, StarOff, Copy, List } from 'lucide-react';
 import { ContextMenu } from '../components/ContextMenu';
+import { AddToListModal } from '../components/AddToListModal';
+import { useLists } from '../hooks/useLists';
 
 interface DashboardProps {
   items: ItemSummary[];
@@ -21,16 +23,17 @@ interface DashboardProps {
   minPrice: string;
   maxPrice: string;
   onlyFavorites: boolean;
+  currentProfile: Profile | null;
 }
 
 const DashboardRow: React.FC<{
-  item: { item_name: string; server: string; last_price: number };
+  item: ItemSummary;
   ts: TimeseriesPoint[] | null;
   onNavigate: () => void;
   isFavorite: boolean;
   onToggleFavorite: (itemName: string) => void;
   metric: React.ReactNode;
-  onContextMenu: (e: React.MouseEvent, item: { item_name: string; server: string; last_price: number }) => void;
+  onContextMenu: (e: React.MouseEvent, item: ItemSummary) => void;
 }> = ({ item, ts, onNavigate, isFavorite, onToggleFavorite, metric, onContextMenu }) => {
   return (
     <li className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_6rem_7rem] gap-4 items-center p-2 rounded-lg bg-bg-tertiary/10 border border-transparent hover:border-border-normal hover:bg-bg-tertiary/30 transition-all duration-200">
@@ -103,7 +106,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
   minPrice,
   maxPrice,
   onlyFavorites,
+  currentProfile,
 }) => {
+  const [addToListItem, setAddToListItem] = useState<ItemSummary | null>(null);
+  const [listContextMenu, setListContextMenu] = useState<{ x: number; y: number; item: ItemSummary } | null>(null);
+  const { lists, addItem } = useLists(currentProfile?.id);
+
   // Parse price filters
   const parsedMinPrice = minPrice ? parseFloat(minPrice) : null;
   const parsedMaxPrice = maxPrice ? parseFloat(maxPrice) : null;
@@ -127,6 +135,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             // Item not in the loaded list. Add as placeholder.
             // We can't apply price filter yet because we don't know the price.
             result.push({
+                id: 0,
                 item_name: favName,
                 server: server,
                 last_price: 0,
@@ -455,7 +464,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               return (
                 <DashboardRow
                   key={key}
-                  item={m}
+                  item={{...m, id: 0, last_observation_at: new Date().toISOString()}}
                   ts={ts}
                   onNavigate={() => {
                     const found = items.find(it => it.item_name === m.item_name && it.server === m.server);
@@ -463,6 +472,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       onNavigateToItem(found);
                     } else {
                       onNavigateToItem({
+                        id: 0,
                         item_name: m.item_name,
                         server: m.server,
                         last_price: m.last_price,
@@ -505,7 +515,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               return (
                 <DashboardRow
                   key={key}
-                  item={m}
+                  item={{...m, id: 0, last_observation_at: new Date().toISOString()}}
                   ts={ts}
                   onNavigate={() => {
                     const found = items.find(it => it.item_name === m.item_name && it.server === m.server);
@@ -513,6 +523,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       onNavigateToItem(found);
                     } else {
                       onNavigateToItem({
+                        id: 0,
                         item_name: m.item_name,
                         server: m.server,
                         last_price: m.last_price,
@@ -559,7 +570,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               return (
                 <DashboardRow
                   key={key}
-                  item={v}
+                  item={{...v, id: 0, last_observation_at: new Date().toISOString()}}
                   ts={ts}
                   onNavigate={() => {
                     const found = items.find(it => it.item_name === v.item_name && it.server === v.server);
@@ -567,6 +578,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       onNavigateToItem(found);
                     } else {
                       onNavigateToItem({
+                        id: 0,
                         item_name: v.item_name,
                         server: v.server,
                         last_price: v.last_price,
@@ -610,7 +622,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               return (
                 <DashboardRow
                   key={key}
-                  item={v}
+                  item={{...v, id: 0, last_observation_at: new Date().toISOString()}}
                   ts={ts}
                   onNavigate={() => {
                     const found = items.find(it => it.item_name === v.item_name && it.server === v.server);
@@ -618,6 +630,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       onNavigateToItem(found);
                     } else {
                       onNavigateToItem({
+                        id: 0,
                         item_name: v.item_name,
                         server: v.server,
                         last_price: v.last_price,
@@ -658,6 +671,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       onNavigateToItem(found);
                     } else {
                       onNavigateToItem({
+                        id: 0,
                         item_name: opp.item_name,
                         server: opp.server,
                         last_price: opp.current_price,
@@ -714,6 +728,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       onNavigateToItem(found);
                     } else {
                       onNavigateToItem({
+                        id: 0,
                         item_name: opp.item_name,
                         server: opp.server,
                         last_price: opp.current_price,
@@ -762,11 +777,43 @@ export const Dashboard: React.FC<DashboardProps> = ({
               onClick: () => onToggleFavorite && onToggleFavorite(contextMenu.item.item_name),
             },
             {
+              label: 'Ajouter à une liste',
+              icon: <List size={16} />,
+              onClick: () => {
+                setListContextMenu({ x: contextMenu.x, y: contextMenu.y, item: contextMenu.item });
+                setContextMenu(null);
+              },
+            },
+            {
               label: 'Copier le nom',
               icon: <Copy size={16} />,
               onClick: () => navigator.clipboard.writeText(contextMenu.item.item_name),
             },
           ]}
+        />
+      )}
+      {listContextMenu && (
+        <ContextMenu
+          x={listContextMenu.x}
+          y={listContextMenu.y}
+          onClose={() => setListContextMenu(null)}
+          actions={[
+            ...lists.filter(l => l.profile_id === currentProfile?.id).map(list => ({
+              label: list.name,
+              onClick: () => addItem({ listId: list.id, itemId: listContextMenu.item.id }),
+            })),
+            ...(lists.filter(l => l.profile_id === currentProfile?.id).length === 0 ? [{
+              label: 'Aucune liste',
+              onClick: () => {},
+            }] : [])
+          ]}
+        />
+      )}
+      {addToListItem && (
+        <AddToListModal
+          item={addToListItem}
+          currentProfile={currentProfile}
+          onClose={() => setAddToListItem(null)}
         />
       )}
     </div>

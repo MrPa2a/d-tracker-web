@@ -6,6 +6,8 @@ import kamaIcon from '../assets/kama.png';
 import { Star, StarOff, Search, Filter, X, ChevronDown, ChevronUp, LayoutGrid, List, MoreVertical, Copy } from 'lucide-react';
 import { SmallSparkline } from '../components/Sparkline';
 import { ContextMenu } from '../components/ContextMenu';
+import { useLists } from '../hooks/useLists';
+import type { Profile } from '../types';
 
 interface MarketPageProps {
   items: ItemSummary[];
@@ -25,6 +27,7 @@ interface MarketPageProps {
   dateRange: DateRangePreset;
   search: string;
   onSearchChange: (value: string) => void;
+  currentProfile: Profile | null;
 }
 
 const MarketGridCard: React.FC<{
@@ -280,6 +283,7 @@ const MarketPage: React.FC<MarketPageProps> = ({
   dateRange,
   search,
   onSearchChange,
+  currentProfile,
 }) => {
   const navigate = useNavigate();
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
@@ -288,6 +292,8 @@ const MarketPage: React.FC<MarketPageProps> = ({
     return (localStorage.getItem('marketViewMode') as 'grid' | 'table') || 'grid';
   });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ItemSummary } | null>(null);
+  const [listContextMenu, setListContextMenu] = useState<{ x: number; y: number; item: ItemSummary } | null>(null);
+  const { lists, addItem } = useLists(currentProfile?.id);
 
   const handleContextMenu = (e: React.MouseEvent, item: ItemSummary) => {
     e.preventDefault();
@@ -556,10 +562,35 @@ const MarketPage: React.FC<MarketPageProps> = ({
               onClick: () => onToggleFavorite && onToggleFavorite(contextMenu.item.item_name),
             },
             {
+              label: 'Ajouter à une liste',
+              icon: <List size={16} />,
+              onClick: () => {
+                setListContextMenu({ x: contextMenu.x, y: contextMenu.y, item: contextMenu.item });
+                setContextMenu(null);
+              },
+            },
+            {
               label: 'Copier le nom',
               icon: <Copy size={16} />,
               onClick: () => navigator.clipboard.writeText(contextMenu.item.item_name),
             },
+          ]}
+        />
+      )}
+      {listContextMenu && (
+        <ContextMenu
+          x={listContextMenu.x}
+          y={listContextMenu.y}
+          onClose={() => setListContextMenu(null)}
+          actions={[
+            ...lists.filter(l => l.profile_id === currentProfile?.id).map(list => ({
+              label: list.name,
+              onClick: () => addItem({ listId: list.id, itemId: listContextMenu.item.id }),
+            })),
+            ...(lists.filter(l => l.profile_id === currentProfile?.id).length === 0 ? [{
+              label: 'Aucune liste',
+              onClick: () => {},
+            }] : [])
           ]}
         />
       )}

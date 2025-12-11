@@ -6,6 +6,7 @@ import { MainLayout } from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import ItemDetailsPage from './pages/ItemDetailsPage';
 import MarketPage from './pages/MarketPage';
+import ListsPage from './pages/ListsPage';
 import { useItems, useUpdateItem } from './hooks/useItems';
 import { useCategories } from './hooks/useCategories';
 import { useFavorites } from './hooks/useFavorites';
@@ -166,6 +167,7 @@ const App: React.FC = () => {
               minPrice={minPrice}
               maxPrice={maxPrice}
               onlyFavorites={onlyFavorites}
+              currentProfile={currentProfile}
             />
           } 
         />
@@ -193,6 +195,7 @@ const App: React.FC = () => {
               maxPrice={maxPrice}
               onlyFavorites={onlyFavorites}
               dateRange={dateRange}
+              currentProfile={currentProfile}
             />
           } 
         />
@@ -205,11 +208,18 @@ const App: React.FC = () => {
               favorites={favorites}
               onToggleFavorite={toggleFavorite}
               onItemUpdate={handleItemUpdate}
+              currentProfile={currentProfile}
             />
           } 
         />
-        {/* Placeholder routes */}
-        <Route path="/favorites" element={<div className="text-white p-8">Favoris (À venir)</div>} />
+        <Route 
+          path="/lists" 
+          element={
+            <ListsPage 
+              currentProfile={currentProfile} 
+            />
+          } 
+        />
         <Route path="/analytics" element={<div className="text-white p-8">Analyses (À venir)</div>} />
       </Route>
     </Routes>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, Star, BarChart2 } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, List, BarChart2 } from 'lucide-react';
 import { ProfileSelector } from '../components/ProfileSelector';
 import type { Profile } from '../types';
 
@@ -20,7 +20,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/market', label: 'Marché', icon: ShoppingBag },
-    { path: '/favorites', label: 'Favoris', icon: Star },
+    { path: '/lists', label: 'Listes', icon: List },
     { path: '/analytics', label: 'Analyses', icon: BarChart2 },
   ];
 

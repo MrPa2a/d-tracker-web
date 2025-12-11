@@ -1,5 +1,5 @@
 // src/api.ts
-import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category } from './types';
+import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
@@ -409,5 +409,72 @@ export async function deleteObservation(id: number): Promise<void> {
 
   if (!res.ok) {
     throw new Error(`Erreur API /api/observations (delete) : ${res.status} ${res.statusText}`);
+  }
+}
+
+export async function fetchLists(profileId?: string): Promise<List[]> {
+  const params = new URLSearchParams();
+  if (profileId) params.append('profileId', profileId);
+
+  const res = await safeFetch(`${API_BASE}/api/lists?${params.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/lists : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function createList(name: string, scope: 'public' | 'private', profileId?: string): Promise<List> {
+  const res = await safeFetch(`${API_BASE}/api/lists`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify({ name, scope, profileId }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/lists (create) : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function deleteList(id: string): Promise<void> {
+  const res = await safeFetch(`${API_BASE}/api/lists?id=${id}`, {
+    method: 'DELETE',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/lists (delete) : ${res.status} ${res.statusText}`);
+  }
+}
+
+export async function addItemToList(listId: string, itemId: number): Promise<void> {
+  const res = await safeFetch(`${API_BASE}/api/lists?mode=items`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify({ listId, itemId }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/lists (add item) : ${res.status} ${res.statusText}`);
+  }
+}
+
+export async function removeItemFromList(listId: string, itemId: number): Promise<void> {
+  const params = new URLSearchParams();
+  params.append('mode', 'items');
+  params.append('listId', listId);
+  params.append('itemId', itemId.toString());
+
+  const res = await safeFetch(`${API_BASE}/api/lists?${params.toString()}`, {
+    method: 'DELETE',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/lists (remove item) : ${res.status} ${res.statusText}`);
   }
 }
