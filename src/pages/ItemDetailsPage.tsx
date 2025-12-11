@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PriceChart } from '../components/PriceChart';
-import { fetchTimeseries } from '../api';
-import type { DateRangePreset, ItemSummary, TimeseriesPoint } from '../types';
+import { useTimeseries } from '../hooks/useTimeseries';
+import type { DateRangePreset, ItemSummary } from '../types';
 
 interface ItemDetailsPageProps {
   items: ItemSummary[];
@@ -22,10 +22,14 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
   const { server, itemName } = useParams<{ server: string; itemName: string }>();
   const navigate = useNavigate();
   
-  const [timeseries, setTimeseries] = useState<TimeseriesPoint[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshIndex, setRefreshIndex] = useState(0);
+  const { data: timeseries, isLoading: loading, error: queryError, refetch } = useTimeseries(
+    itemName || '',
+    server || '',
+    dateRange,
+    { enabled: !!server && !!itemName }
+  );
+  
+  const error = queryError ? (queryError instanceof Error ? queryError.message : String(queryError)) : null;
 
   // Find the item object from the global list
   const foundItem = items.find(
@@ -39,41 +43,8 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
     last_observation_at: new Date().toISOString()
   } as ItemSummary : null);
 
-  useEffect(() => {
-    if (!server || !itemName) return;
-
-    let cancelled = false;
-
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await fetchTimeseries(itemName, server, dateRange);
-        if (!cancelled) {
-          setTimeseries(data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          console.error(err);
-          const message = err instanceof Error ? err.message : 'Erreur inconnue';
-          setError(message);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [server, itemName, dateRange, refreshIndex]);
-
   const handleRefresh = () => {
-    setRefreshIndex((i) => i + 1);
+    refetch();
   };
 
   const handleBack = () => {
@@ -85,7 +56,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
       <PriceChart
         selectedItem={selectedItem}
         server={server || null}
-        timeseries={timeseries}
+        timeseries={timeseries || null}
         loading={loading}
         error={error}
         dateRange={dateRange}

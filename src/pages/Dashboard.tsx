@@ -1,8 +1,10 @@
 // src/pages/Dashboard.tsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { ItemSummary, TimeseriesPoint, Mover, DateRangePreset, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity } from '../types';
-import { fetchTimeseries, fetchMovers, fetchMarketIndex, fetchVolatilityRankings, fetchOpportunities, fetchSellOpportunities } from '../api';
+import { useQueries } from '@tanstack/react-query';
+import type { ItemSummary, TimeseriesPoint, DateRangePreset } from '../types';
+import { fetchTimeseries } from '../api';
+import { useMovers, useVolatilityRankings, useOpportunities, useSellOpportunities, useMarketIndex } from '../hooks/useMarketData';
 import kamaIcon from '../assets/kama.png';
 import { SmallSparkline } from '../components/Sparkline';
 
@@ -122,7 +124,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, [items, favorites, server, parsedMinPrice, parsedMaxPrice]);
 
   // timeseries cache for favorites
-  const [favTs, setFavTs] = useState<Record<string, TimeseriesPoint[] | null>>({});
+  const itemsToLoad = useMemo(() => favItems.slice(0, 50), [favItems]);
+
+  const favQueries = useQueries({
+    queries: itemsToLoad.map(item => ({
+      queryKey: ['timeseries', item.item_name, server, dateRange],
+      queryFn: () => fetchTimeseries(item.item_name, server!, dateRange),
+      enabled: !!server,
+      staleTime: 1000 * 60 * 10,
+    })),
+  });
+
+  const favTs = useMemo(() => {
+    const map: Record<string, TimeseriesPoint[] | null> = {};
+    itemsToLoad.forEach((item, index) => {
+      map[item.item_name] = favQueries[index].data || null;
+    });
+    return map;
+  }, [itemsToLoad, favQueries]);
 
   // Watchlist sort state
   type WatchlistSortType = 'price-asc' | 'price-desc' | 'pct-asc' | 'pct-desc' | null;
@@ -153,70 +172,79 @@ export const Dashboard: React.FC<DashboardProps> = ({
     });
   }, [favItems, watchlistSort, favTs]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      if (!server) return;
-      
-      // Load all favorites timeseries (up to 50 to avoid too many requests)
-      const itemsToLoad = favItems.slice(0, 50);
-      
-      // Reset state first
-      setFavTs({});
-      
-      // Load all timeseries in parallel
-      const results: Record<string, TimeseriesPoint[] | null> = {};
-      
-      await Promise.all(itemsToLoad.map(async (it) => {
-        const key = `${it.item_name}`;
-        try {
-          const data = await fetchTimeseries(it.item_name, server, dateRange);
-          if (!cancelled) {
-            results[key] = data;
-          }
-        } catch (err) {
-          console.error(`Error loading timeseries for ${it.item_name} on ${server}:`, err);
-          if (!cancelled) {
-            results[key] = null;
-          }
-        }
-      }));
+  // Filter items
+  const filterItems = useMemo(() => onlyFavorites ? Array.from(favorites) : undefined, [onlyFavorites, favorites]);
 
-      if (!cancelled) {
-        setFavTs(results);
-      }
-    };
-    if (favItems.length > 0 && server) {
-      load();
-    } else {
-      setFavTs({});
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [favItems, dateRange, server]);
+  // Movers
+  const { data: moversUp, isLoading: moversUpLoading, error: moversUpError } = useMovers(
+    server!, dateRange, 10, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems, 'desc'
+  );
+  const { data: moversDown, isLoading: moversDownLoading } = useMovers(
+    server!, dateRange, 10, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems, 'asc'
+  );
 
-  // movers
-  const [moversUp, setMoversUp] = useState<Mover[] | null>(null);
-  const [moversDown, setMoversDown] = useState<Mover[] | null>(null);
-  const [moversError, setMoversError] = useState<string | null>(null);
-  const [moversLoading, setMoversLoading] = useState(false);
+  const moversLoading = moversUpLoading || moversDownLoading;
+  const moversError = moversUpError ? (moversUpError instanceof Error ? moversUpError.message : String(moversUpError)) : null;
 
-  // timeseries cache for movers
-  const [moversTs, setMoversTs] = useState<Record<string, TimeseriesPoint[] | null>>({});
+  // Movers Timeseries
+  const allMovers = useMemo(() => [...(moversUp || []), ...(moversDown || [])], [moversUp, moversDown]);
+  const moversQueries = useQueries({
+    queries: allMovers.map(m => ({
+      queryKey: ['timeseries', m.item_name, m.server, dateRange],
+      queryFn: () => fetchTimeseries(m.item_name, m.server, dateRange),
+      enabled: !!server,
+      staleTime: 1000 * 60 * 10,
+    })),
+  });
+
+  const moversTs = useMemo(() => {
+    const map: Record<string, TimeseriesPoint[] | null> = {};
+    allMovers.forEach((m, index) => {
+      map[`${m.server}::${m.item_name}`] = moversQueries[index].data || null;
+    });
+    return map;
+  }, [allMovers, moversQueries]);
 
   // Volatility rankings
-  const [volatile, setVolatile] = useState<VolatilityRanking[] | null>(null);
-  const [stable, setStable] = useState<VolatilityRanking[] | null>(null);
-  const [volatilityLoading, setVolatilityLoading] = useState(false);
+  const { data: volatile, isLoading: volatileLoading1 } = useVolatilityRankings(
+    server!, dateRange, 10, 'desc', parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems
+  );
+  const { data: stable, isLoading: volatileLoading2 } = useVolatilityRankings(
+    server!, dateRange, 10, 'asc', parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems
+  );
+  const volatilityLoading = volatileLoading1 || volatileLoading2;
+
+  // Volatility Timeseries
+  const allVolatility = useMemo(() => [...(volatile || []), ...(stable || [])], [volatile, stable]);
+  const volatilityQueries = useQueries({
+    queries: allVolatility.map(item => ({
+      queryKey: ['timeseries', item.item_name, item.server, dateRange],
+      queryFn: () => fetchTimeseries(item.item_name, item.server, dateRange),
+      enabled: !!server,
+      staleTime: 1000 * 60 * 10,
+    })),
+  });
+
+  const volatilityTs = useMemo(() => {
+    const map: Record<string, TimeseriesPoint[] | null> = {};
+    allVolatility.forEach((item, index) => {
+      map[`${item.server}::${item.item_name}`] = volatilityQueries[index].data || null;
+    });
+    return map;
+  }, [allVolatility, volatilityQueries]);
 
   // Opportunities
-  const [opportunities, setOpportunities] = useState<InvestmentOpportunity[] | null>(null);
-  const [opportunitiesLoading, setOpportunitiesLoading] = useState(false);
+  const { data: opportunities, isLoading: opportunitiesLoading } = useOpportunities(
+    server!, dateRange, 12, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems
+  );
 
   // Sell Opportunities
-  const [sellOpportunities, setSellOpportunities] = useState<SellOpportunity[] | null>(null);
-  const [sellOpportunitiesLoading, setSellOpportunitiesLoading] = useState(false);
+  const { data: sellOpportunities, isLoading: sellOpportunitiesLoading } = useSellOpportunities(
+    server!, dateRange, 12, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems
+  );
+
+  // Market Index
+  const { data: marketIndex, isLoading: indexLoading } = useMarketIndex(server!, dateRange, filterItems);
 
   // Sort states for other sections
   type PriceSortType = 'price-asc' | 'price-desc' | null;
@@ -260,176 +288,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
         return b.last_price - a.last_price;
     });
   }, [stable, stableSort]);
-
-  const loadMovers = async () => {
-    if (!server) return;
-
-    // If filtering by favorites but no favorites, return empty results immediately
-    if (onlyFavorites && favorites.size === 0) {
-      setMoversUp([]);
-      setMoversDown([]);
-      setMoversTs({});
-      return;
-    }
-
-    const filterItems = onlyFavorites ? Array.from(favorites) : undefined;
-
-    setMoversLoading(true);
-    setMoversError(null);
-    try {
-      // On récupère 20 items avec le filtre de prix appliqué côté serveur
-      // Si le mode focus est activé, on passe la liste des favoris
-      
-      // Fetch Top Gainers (desc) and Top Losers (asc) separately
-      const [up, down] = await Promise.all([
-        fetchMovers(server, dateRange, 10, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems, 'desc'),
-        fetchMovers(server, dateRange, 10, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems, 'asc')
-      ]);
-
-      setMoversUp(up);
-      setMoversDown(down);
-
-      // Load timeseries for movers in parallel
-      const allMovers = [...up, ...down];
-      setMoversTs({}); // Reset first
-      
-      const results: Record<string, TimeseriesPoint[] | null> = {};
-      await Promise.all(allMovers.map(async (m) => {
-        const key = `${m.server}::${m.item_name}`;
-        try {
-          const data = await fetchTimeseries(m.item_name, m.server, dateRange);
-          results[key] = data;
-        } catch {
-          results[key] = null;
-        }
-      }));
-      
-      setMoversTs(results);
-    } catch (err: unknown) {
-      console.error(err);
-      const errMessage = err instanceof Error ? err.message : 'Erreur inconnue';
-      setMoversError(errMessage || 'Erreur lors du chargement des movers. Le backend pourrait ne pas exposer /api/market?type=movers.');
-      setMoversUp(null);
-      setMoversDown(null);
-    } finally {
-      setMoversLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (server) {
-      loadMovers();
-    } else {
-      setMoversUp(null);
-      setMoversDown(null);
-      setMoversError(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [server, dateRange, parsedMinPrice, parsedMaxPrice, onlyFavorites, favorites]);
-
-  // Market index (HDV)
-  const [marketIndex, setMarketIndex] = useState<MarketIndex | null>(null);
-  const [indexLoading, setIndexLoading] = useState(false);
-
-  // Timeseries for volatility items
-  const [volatilityTs, setVolatilityTs] = useState<Record<string, TimeseriesPoint[] | null>>({});
-
-  const loadMarketStats = () => {
-    if (!server) return;
-
-    // If filtering by favorites but no favorites, return empty results immediately
-    if (onlyFavorites && favorites.size === 0) {
-      setMarketIndex(null);
-      setVolatile([]);
-      setStable([]);
-      setVolatilityTs({});
-      setOpportunities([]);
-      setSellOpportunities([]);
-      return;
-    }
-
-    const filterItems = onlyFavorites ? Array.from(favorites) : undefined;
-
-    // 1. Market Index
-    setIndexLoading(true);
-    fetchMarketIndex(server, dateRange, filterItems)
-      .then(data => {
-        console.log('Market index data:', data);
-        setMarketIndex(data);
-      })
-      .catch(err => {
-        console.error('Error loading market index:', err);
-        setMarketIndex(null);
-      })
-      .finally(() => setIndexLoading(false));
-
-    // 2. Volatility Rankings (Moved up to match UI order)
-    setVolatilityLoading(true);
-    const loadVolatility = async () => {
-      try {
-        const [volatileData, stableData] = await Promise.all([
-          fetchVolatilityRankings(server, dateRange, 10, 'desc', parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems),
-          fetchVolatilityRankings(server, dateRange, 10, 'asc', parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems),
-        ]);
-        setVolatile(volatileData);
-        setStable(stableData);
-
-        // Load timeseries for volatility items in parallel
-        const allItems = [...volatileData, ...stableData];
-        setVolatilityTs({}); // Reset first
-        
-        const results: Record<string, TimeseriesPoint[] | null> = {};
-        await Promise.all(allItems.map(async (item) => {
-          const key = `${item.server}::${item.item_name}`;
-          try {
-            const data = await fetchTimeseries(item.item_name, item.server, dateRange);
-            results[key] = data;
-          } catch {
-            results[key] = null;
-          }
-        }));
-        setVolatilityTs(results);
-      } catch (err) {
-        console.error('Error loading volatility rankings:', err);
-        setVolatile(null);
-        setStable(null);
-      } finally {
-        setVolatilityLoading(false);
-      }
-    };
-    loadVolatility();
-
-    // 3. Opportunities
-    setOpportunitiesLoading(true);
-    fetchOpportunities(server, dateRange, 12, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems)
-      .then(opps => setOpportunities(opps))
-      .catch(err => {
-        console.error('Error loading opportunities:', err);
-        setOpportunities(null);
-      })
-      .finally(() => setOpportunitiesLoading(false));
-
-    // 4. Sell Opportunities
-    setSellOpportunitiesLoading(true);
-    fetchSellOpportunities(server, dateRange, 12, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems)
-      .then(sells => setSellOpportunities(sells))
-      .catch(err => {
-        console.error('Error loading sell opportunities:', err);
-        setSellOpportunities(null);
-      })
-      .finally(() => setSellOpportunitiesLoading(false));
-  };
-
-  useEffect(() => {
-    if (server) {
-      loadMarketStats();
-    } else {
-      setMarketIndex(null);
-      setVolatile(null);
-      setStable(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [server, dateRange, parsedMinPrice, parsedMaxPrice, onlyFavorites, favorites]);
 
   return (
     <div className="flex flex-col gap-6">

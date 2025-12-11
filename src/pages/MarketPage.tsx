@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { ItemSummary, SortType, SortOrder, Category, TimeseriesPoint, DateRangePreset } from '../types';
-import { fetchTimeseries } from '../api';
+import type { ItemSummary, SortType, SortOrder, Category, DateRangePreset } from '../types';
+import { useTimeseries } from '../hooks/useTimeseries';
 import kamaIcon from '../assets/kama.png';
 import { Star, Search, Filter, X, ChevronDown, ChevronUp, LayoutGrid, List } from 'lucide-react';
 import { SmallSparkline } from '../components/Sparkline';
@@ -32,22 +32,12 @@ const MarketGridCard: React.FC<{
   dateRange: DateRangePreset;
 }> = ({ item, favorites, onToggleFavorite, navigate, dateRange }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [ts, setTs] = useState<TimeseriesPoint[] | null>(null);
-  const [loadingTs, setLoadingTs] = useState(false);
+  const { data: ts, isLoading: loadingTs } = useTimeseries(item.item_name, item.server, dateRange, {
+    enabled: isExpanded,
+  });
 
-  const handleExpand = async (e: React.MouseEvent) => {
+  const handleExpand = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isExpanded && !ts) {
-        setLoadingTs(true);
-        try {
-            const data = await fetchTimeseries(item.item_name, item.server, dateRange);
-            setTs(data);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoadingTs(false);
-        }
-    }
     setIsExpanded(!isExpanded);
   };
 
@@ -135,7 +125,7 @@ const MarketGridCard: React.FC<{
                                 )}
                             </div>
                             <div className="h-16 w-full">
-                                <SmallSparkline data={ts} />
+                                <SmallSparkline data={ts || null} />
                             </div>
                         </div>
                     )}
@@ -153,21 +143,7 @@ const MarketTableRow: React.FC<{
   navigate: (path: string) => void;
   dateRange: DateRangePreset;
 }> = ({ item, favorites, onToggleFavorite, navigate, dateRange }) => {
-  const [ts, setTs] = useState<TimeseriesPoint[] | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const data = await fetchTimeseries(item.item_name, item.server, dateRange);
-        if (!cancelled) setTs(data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    load();
-    return () => { cancelled = true; };
-  }, [item.item_name, item.server, dateRange]);
+  const { data: ts } = useTimeseries(item.item_name, item.server, dateRange);
 
   const evolution = React.useMemo(() => {
     if (!ts || ts.length < 2) return null;
@@ -208,7 +184,7 @@ const MarketTableRow: React.FC<{
       {/* Sparkline */}
       <td className="px-4 py-3 w-32 h-12">
         <div className="h-10 w-full">
-           <SmallSparkline data={ts} />
+           <SmallSparkline data={ts || null} />
         </div>
       </td>
 
