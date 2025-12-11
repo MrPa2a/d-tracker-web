@@ -217,6 +217,7 @@ const App: React.FC = () => {
           element={
             <ListsPage 
               currentProfile={currentProfile} 
+              dateRange={dateRange}
             />
           } 
         />

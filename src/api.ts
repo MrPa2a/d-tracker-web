@@ -412,9 +412,10 @@ export async function deleteObservation(id: number): Promise<void> {
   }
 }
 
-export async function fetchLists(profileId?: string): Promise<List[]> {
+export async function fetchLists(profileId?: string, range: DateRangePreset = '30d'): Promise<List[]> {
   const params = new URLSearchParams();
   if (profileId) params.append('profileId', profileId);
+  params.append('range', range);
 
   const res = await safeFetch(`${API_BASE}/api/lists?${params.toString()}`, {
     method: 'GET',

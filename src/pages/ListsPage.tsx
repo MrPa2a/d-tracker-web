@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Trash2, Globe, Lock, AlertTriangle, Loader2, Edit } from 'lucide-react';
 import { useLists } from '../hooks/useLists';
-import type { Profile, List } from '../types';
+import type { Profile, List, DateRangePreset } from '../types';
 import { ManageListModal } from '../components/ManageListModal';
 
 interface ListsPageProps {
   currentProfile: Profile | null;
+  dateRange: DateRangePreset;
 }
 
 const ListCard: React.FC<{
@@ -14,8 +15,17 @@ const ListCard: React.FC<{
   onEdit: (list: List) => void;
   canDelete: boolean;
 }> = ({ list, onDelete, onEdit, canDelete }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   
   const totalValue = list.list_items.reduce((sum, item) => sum + (item.last_price || 0), 0);
+  const totalPrevious = list.list_items.reduce((sum, item) => sum + (item.previous_price || item.last_price || 0), 0);
+  
+  let indexChange = 0;
+  if (totalPrevious > 0) {
+    indexChange = ((totalValue - totalPrevious) / totalPrevious) * 100;
+  }
+
+  const visibleItems = isExpanded ? list.list_items : list.list_items.slice(0, 5);
   
   return (
     <div className="bg-bg-secondary border border-border-normal rounded-lg p-4 flex flex-col gap-4 hover:border-accent-primary transition-colors group relative">
@@ -25,7 +35,13 @@ const ListCard: React.FC<{
             {list.name}
             {list.scope === 'public' ? <Globe size={14} className="text-text-muted" /> : <Lock size={14} className="text-text-muted" />}
           </h3>
-          <p className="text-sm text-text-muted">{list.list_items.length} objets • {totalValue.toLocaleString('fr-FR')} k</p>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-text-muted">{list.list_items.length} objets</span>
+            <span className="text-text-muted">•</span>
+            <span className={`font-bold ${indexChange > 0 ? 'text-accent-danger' : indexChange < 0 ? 'text-accent-success' : 'text-text-muted'}`}>
+              {indexChange > 0 ? '+' : ''}{indexChange.toFixed(2)}%
+            </span>
+          </div>
         </div>
         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           {canDelete && (
@@ -49,17 +65,22 @@ const ListCard: React.FC<{
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden">
-        <div className="flex flex-wrap gap-2">
-            {list.list_items.slice(0, 5).map(item => (
-                <span key={item.item_id} className="text-xs bg-bg-tertiary px-2 py-1 rounded text-text-primary flex items-center gap-2 border border-border-subtle">
+      <div className="flex-1">
+        <div className="flex flex-wrap gap-2 transition-all duration-300 ease-in-out">
+            {visibleItems.map(item => (
+                <span key={item.item_id} className="text-xs bg-bg-tertiary px-2 py-1 rounded text-text-primary flex items-center gap-2 border border-border-subtle animate-[fadeIn_0.2s_ease-out]">
                     <span className="font-medium">{item.item_name}</span>
                     {item.category && <span className="text-[10px] text-text-muted bg-bg-primary px-1 rounded">{item.category}</span>}
                     <span className="text-text-muted font-mono">{(item.last_price || 0).toLocaleString('fr-FR')} k</span>
                 </span>
             ))}
             {list.list_items.length > 5 && (
-                <span className="text-xs text-text-muted self-center">+{list.list_items.length - 5} autres</span>
+                <button 
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="text-xs text-text-muted hover:text-accent-primary self-center cursor-pointer transition-colors"
+                >
+                    {isExpanded ? 'Voir moins' : `+${list.list_items.length - 5} autres`}
+                </button>
             )}
         </div>
       </div>
@@ -70,8 +91,8 @@ const ListCard: React.FC<{
   );
 };
 
-export const ListsPage: React.FC<ListsPageProps> = ({ currentProfile }) => {
-  const { lists, createList, deleteList, isLoading, isCreating, isDeleting } = useLists(currentProfile?.id);
+export const ListsPage: React.FC<ListsPageProps> = ({ currentProfile, dateRange }) => {
+  const { lists, createList, deleteList, isLoading, isCreating, isDeleting } = useLists(currentProfile?.id, dateRange);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [newListScope, setNewListScope] = useState<'public' | 'private'>('private');
@@ -131,7 +152,7 @@ export const ListsPage: React.FC<ListsPageProps> = ({ currentProfile }) => {
         {isLoading ? (
           <p className="text-text-muted">Chargement des listes...</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {globalLists.map(list => (
               <ListCard 
                   key={list.id} 
@@ -154,7 +175,7 @@ export const ListsPage: React.FC<ListsPageProps> = ({ currentProfile }) => {
             {isLoading ? (
               <p className="text-text-muted">Chargement des listes...</p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {customLists.map(list => (
                   <ListCard 
                       key={list.id} 

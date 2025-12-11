@@ -96,6 +96,7 @@ export interface List {
     item_name: string;
     server?: string;
     last_price?: number;
+    previous_price?: number;
     category?: string;
   }[];
 }

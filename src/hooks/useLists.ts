@@ -1,12 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchLists, createList, deleteList, addItemToList, removeItemFromList } from '../api';
+import type { DateRangePreset } from '../types';
 
-export function useLists(profileId?: string) {
+export function useLists(profileId?: string, range: DateRangePreset = '30d') {
   const queryClient = useQueryClient();
 
   const { data: lists = [], isLoading, error } = useQuery({
-    queryKey: ['lists', profileId],
-    queryFn: () => fetchLists(profileId),
+    queryKey: ['lists', profileId, range],
+    queryFn: () => fetchLists(profileId, range),
   });
 
   const createMutation = useMutation({
