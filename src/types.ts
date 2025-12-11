@@ -98,5 +98,8 @@ export interface List {
     last_price?: number;
     previous_price?: number;
     category?: string;
+    quantity?: number;
+    average_price?: number;
+    last_observation_at?: string;
   }[];
 }

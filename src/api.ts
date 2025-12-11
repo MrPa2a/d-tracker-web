@@ -474,15 +474,27 @@ export async function deleteList(id: string): Promise<void> {
   }
 }
 
-export async function addItemToList(listId: string, itemId: number): Promise<void> {
+export async function addItemToList(listId: string, itemId: number, quantity: number = 1): Promise<void> {
   const res = await safeFetch(`${API_BASE}/api/lists?mode=items`, {
     method: 'POST',
     headers: buildHeaders(),
-    body: JSON.stringify({ listId, itemId }),
+    body: JSON.stringify({ listId, itemId, quantity }),
   });
 
   if (!res.ok) {
     throw new Error(`Erreur API /api/lists (add item) : ${res.status} ${res.statusText}`);
+  }
+}
+
+export async function updateItemInList(listId: string, itemId: number, quantity: number): Promise<void> {
+  const res = await safeFetch(`${API_BASE}/api/lists?mode=items`, {
+    method: 'PUT',
+    headers: buildHeaders(),
+    body: JSON.stringify({ listId, itemId, quantity }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/lists (update item) : ${res.status} ${res.statusText}`);
   }
 }
 

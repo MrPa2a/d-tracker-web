@@ -2,8 +2,8 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, TrendingUp, TrendingDown, MoreVertical, Star, Trash2, Copy} from 'lucide-react';
-import { fetchListDetails, fetchTimeseries, removeItemFromList } from '../api';
-import type { DateRangePreset, TimeseriesPoint } from '../types';
+import { fetchListDetails, fetchTimeseries, removeItemFromList, updateItemInList } from '../api';
+import type { DateRangePreset, TimeseriesPoint, Profile, List } from '../types';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -18,44 +18,46 @@ import { SmallSparkline } from '../components/Sparkline';
 import { useTimeseries } from '../hooks/useTimeseries';
 import { ContextMenu } from '../components/ContextMenu';
 
+type ListItem = List['list_items'][0];
+
 interface ListDetailsPageProps {
   dateRange: DateRangePreset;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  currentProfile: any;
+  currentProfile: Profile | null;
   favorites: Set<string>;
   onToggleFavorite: (key: string) => void;
 }
 
 const ListDetailsTableRow: React.FC<{
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  item: any; // Using any because list item structure is slightly different from ItemSummary but compatible for display
+  item: ListItem;
   favorites: Set<string>;
   onToggleFavorite: (key: string) => void;
   dateRange: DateRangePreset;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onContextMenu: (e: React.MouseEvent, item: any) => void;
-}> = ({ item, favorites, onToggleFavorite, dateRange, onContextMenu }) => {
-  const { data: ts } = useTimeseries(item.item_name, item.server, dateRange);
+  onContextMenu: (e: React.MouseEvent, item: ListItem) => void;
+  onUpdateQuantity: (itemId: number, quantity: number) => void;
+}> = ({ item, favorites, onToggleFavorite, dateRange, onContextMenu, onUpdateQuantity }) => {
+  const { data: ts } = useTimeseries(item.item_name, item.server || 'Hell Mina', dateRange);
+  const [localQuantity, setLocalQuantity] = useState(item.quantity || 1);
+  const [prevQuantity, setPrevQuantity] = useState(item.quantity || 1);
 
-  const stats = useMemo(() => {
-    if (!ts || ts.length === 0) return { avg: null, lastDate: null, evolution: null };
-    
-    const prices = ts.map(p => p.avg_price);
-    const sum = prices.reduce((a, b) => a + b, 0);
-    const avg = sum / prices.length;
-    const lastDate = ts[ts.length - 1].date;
-    
-    let evolution = 0;
-    if (ts.length >= 2) {
-        const first = ts[0].avg_price;
-        const last = ts[ts.length - 1].avg_price;
-        if (first !== 0) {
-            evolution = ((last - first) / first) * 100;
-        }
+  if ((item.quantity || 1) !== prevQuantity) {
+    setPrevQuantity(item.quantity || 1);
+    setLocalQuantity(item.quantity || 1);
+  }
+
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value);
+    if (!isNaN(val) && val > 0) {
+      setLocalQuantity(val);
+      onUpdateQuantity(item.item_id, val);
     }
-    
-    return { avg, lastDate, evolution };
-  }, [ts]);
+  };
+
+  const evolution = useMemo(() => {
+    if (item.previous_price && item.last_price) {
+      return ((item.last_price - item.previous_price) / item.previous_price) * 100;
+    }
+    return null;
+  }, [item.last_price, item.previous_price]);
 
   return (
     <tr 
@@ -84,6 +86,16 @@ const ListDetailsTableRow: React.FC<{
           <Star size={16} fill={favorites.has(item.item_name) ? "currentColor" : "none"} />
         </button>
       </td>
+      <td className="px-4 py-3 w-32">
+        <input 
+            type="number" 
+            min="1"
+            value={localQuantity}
+            onChange={handleQuantityChange}
+            className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-center text-sm text-gray-200 focus:outline-none focus:border-blue-500"
+            onClick={(e) => e.stopPropagation()}
+        />
+      </td>
       <td className="px-4 py-3 font-medium text-gray-200">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-xs font-bold text-gray-600">
@@ -109,9 +121,9 @@ const ListDetailsTableRow: React.FC<{
 
       {/* Evolution */}
       <td className="px-4 py-3 text-right">
-        {stats.evolution !== null ? (
-          <span className={`font-medium ${stats.evolution > 0 ? 'text-rose-400' : stats.evolution < 0 ? 'text-emerald-400' : 'text-gray-400'}`}>
-            {stats.evolution > 0 ? '+' : ''}{stats.evolution.toFixed(2)}%
+        {evolution !== null ? (
+          <span className={`font-medium ${evolution > 0 ? 'text-rose-400' : evolution < 0 ? 'text-emerald-400' : 'text-gray-400'}`}>
+            {evolution > 0 ? '+' : ''}{evolution.toFixed(2)}%
           </span>
         ) : (
           <span className="text-gray-600">-</span>
@@ -126,12 +138,12 @@ const ListDetailsTableRow: React.FC<{
       </td>
       <td className="px-4 py-3 text-right text-gray-400">
         <div className="flex items-center justify-end gap-1">
-          {stats.avg ? Math.round(stats.avg).toLocaleString('fr-FR') : '-'}
+          {item.average_price ? Math.round(item.average_price).toLocaleString('fr-FR') : '-'}
           <img src={kamaIcon} alt="kamas" className="w-3 h-3 opacity-50" />
         </div>
       </td>
       <td className="px-4 py-3 text-right text-xs text-gray-500">
-        {stats.lastDate ? new Date(stats.lastDate).toLocaleDateString('fr-FR', {
+        {item.last_observation_at ? new Date(item.last_observation_at).toLocaleDateString('fr-FR', {
           day: '2-digit',
           month: '2-digit',
           hour: '2-digit',
@@ -145,8 +157,7 @@ const ListDetailsTableRow: React.FC<{
 const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites, onToggleFavorite }) => {
   const { listId } = useParams<{ listId: string }>();
   const navigate = useNavigate();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: any } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ListItem } | null>(null);
 
   // Ref and state for dynamic chart height
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -167,9 +178,9 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
       
       // Fetch timeseries for all items in parallel
       const promises = list.list_items.map(item => 
-        fetchTimeseries(item.item_name, item.server || 'Draconiros', dateRange)
-          .then(ts => ({ itemId: item.item_id, ts }))
-          .catch(() => ({ itemId: item.item_id, ts: [] as TimeseriesPoint[] }))
+        fetchTimeseries(item.item_name, item.server || 'Hell Mina', dateRange)
+          .then(ts => ({ itemId: item.item_id, ts, quantity: item.quantity || 1 }))
+          .catch(() => ({ itemId: item.item_id, ts: [] as TimeseriesPoint[], quantity: item.quantity || 1 }))
       );
       
       const results = await Promise.all(promises);
@@ -196,12 +207,12 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
       
       sortedDates.forEach(date => {
         let total = 0;
-        results.forEach(({ itemId }) => {
+        results.forEach(({ itemId, quantity }) => {
           const prices = itemPrices.get(itemId);
           if (prices && prices.has(date)) {
             lastKnownPrices.set(itemId, prices.get(date)!);
           }
-          total += lastKnownPrices.get(itemId) || 0;
+          total += (lastKnownPrices.get(itemId) || 0) * quantity;
         });
         aggregated.push({ date, value: total });
       });
@@ -249,14 +260,17 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
     let topLoser = { name: '', pct: Infinity };
     
     list.list_items.forEach(item => {
-      const price = item.last_price || 0;
-      const prev = item.previous_price || price; // fallback to price if no prev
+      const qty = item.quantity || 1;
+      const price = (item.last_price || 0) * qty;
+      const prevUnit = item.previous_price || item.last_price || 0;
+      const prev = prevUnit * qty; // fallback to price if no prev
       
       totalValue += price;
       totalPrevValue += prev;
       
-      if (prev > 0) {
-        const pct = ((price - prev) / prev) * 100;
+      if (prevUnit > 0) {
+        const currentPrice = item.last_price || 0;
+        const pct = ((currentPrice - prevUnit) / prevUnit) * 100;
         if (pct > topGainer.pct) topGainer = { name: item.item_name, pct };
         if (pct < topLoser.pct) topLoser = { name: item.item_name, pct };
       }
@@ -284,8 +298,17 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleContextMenu = (e: React.MouseEvent, item: any) => {
+  const handleUpdateQuantity = async (itemId: number, quantity: number) => {
+    if (!listId) return;
+    try {
+      await updateItemInList(listId, itemId, quantity);
+      refetch();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, item: ListItem) => {
     e.preventDefault();
     setContextMenu({ x: e.clientX, y: e.clientY, item });
   };
@@ -326,7 +349,7 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
           </div>
           
           <div className="bg-[#1a1b1e] p-4 rounded-xl border border-white/5">
-            <div className="text-gray-500 text-sm mb-1">Variation ({dateRange})</div>
+            <div className="text-gray-500 text-sm mb-1">Variation cumulée ({dateRange})</div>
             <div className={`text-2xl font-bold flex items-center gap-2 ${kpis.totalChange >= 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
               {kpis.totalChange >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
               {Math.abs(kpis.totalChange).toFixed(2)}%
@@ -427,6 +450,7 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
             <thead>
               <tr className="text-gray-500 text-sm border-b border-white/5">
                 <th className="p-4 font-medium w-16"></th>
+                <th className="p-4 font-medium w-32">Qté</th>
                 <th className="p-4 font-medium">Nom</th>
                 <th className="p-4 font-medium">Catégorie</th>
                 <th className="p-4 font-medium">Tendances</th>
@@ -445,6 +469,7 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
                   onToggleFavorite={onToggleFavorite}
                   dateRange={dateRange}
                   onContextMenu={handleContextMenu}
+                  onUpdateQuantity={handleUpdateQuantity}
                 />
               ))}
             </tbody>
