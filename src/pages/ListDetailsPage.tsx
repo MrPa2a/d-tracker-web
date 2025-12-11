@@ -52,12 +52,23 @@ const ListDetailsTableRow: React.FC<{
     }
   };
 
-  const evolution = useMemo(() => {
+  const stats = useMemo(() => {
+    // Evolution based on item data (consistent with KPIs)
+    let evolution = null;
     if (item.previous_price && item.last_price) {
-      return ((item.last_price - item.previous_price) / item.previous_price) * 100;
+      evolution = ((item.last_price - item.previous_price) / item.previous_price) * 100;
     }
-    return null;
-  }, [item.last_price, item.previous_price]);
+
+    // Avg and Date based on timeseries data (consistent with Sparkline)
+    if (!ts || ts.length === 0) return { avg: null, lastDate: null, evolution };
+    
+    const prices = ts.map(p => p.avg_price);
+    const sum = prices.reduce((a, b) => a + b, 0);
+    const avg = sum / prices.length;
+    const lastDate = ts[ts.length - 1].date;
+    
+    return { avg, lastDate, evolution };
+  }, [ts, item.last_price, item.previous_price]);
 
   return (
     <tr 
@@ -121,9 +132,9 @@ const ListDetailsTableRow: React.FC<{
 
       {/* Evolution */}
       <td className="px-4 py-3 text-right">
-        {evolution !== null ? (
-          <span className={`font-medium ${evolution > 0 ? 'text-rose-400' : evolution < 0 ? 'text-emerald-400' : 'text-gray-400'}`}>
-            {evolution > 0 ? '+' : ''}{evolution.toFixed(2)}%
+        {stats.evolution !== null ? (
+          <span className={`font-medium ${stats.evolution > 0 ? 'text-rose-400' : stats.evolution < 0 ? 'text-emerald-400' : 'text-gray-400'}`}>
+            {stats.evolution > 0 ? '+' : ''}{stats.evolution.toFixed(2)}%
           </span>
         ) : (
           <span className="text-gray-600">-</span>
@@ -138,12 +149,12 @@ const ListDetailsTableRow: React.FC<{
       </td>
       <td className="px-4 py-3 text-right text-gray-400">
         <div className="flex items-center justify-end gap-1">
-          {item.average_price ? Math.round(item.average_price).toLocaleString('fr-FR') : '-'}
+          {stats.avg ? Math.round(stats.avg).toLocaleString('fr-FR') : '-'}
           <img src={kamaIcon} alt="kamas" className="w-3 h-3 opacity-50" />
         </div>
       </td>
       <td className="px-4 py-3 text-right text-xs text-gray-500">
-        {item.last_observation_at ? new Date(item.last_observation_at).toLocaleDateString('fr-FR', {
+        {stats.lastDate ? new Date(stats.lastDate).toLocaleDateString('fr-FR', {
           day: '2-digit',
           month: '2-digit',
           hour: '2-digit',
