@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { Plus, Trash2, Globe, Lock, AlertTriangle, Loader2, Edit } from 'lucide-react';
 import { useLists } from '../hooks/useLists';
 import type { Profile, List, DateRangePreset } from '../types';
@@ -16,6 +17,7 @@ const ListCard: React.FC<{
   canDelete: boolean;
 }> = ({ list, onDelete, onEdit, canDelete }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const navigate = useNavigate();
   
   const totalValue = list.list_items.reduce((sum, item) => sum + (item.last_price || 0), 0);
   const totalPrevious = list.list_items.reduce((sum, item) => sum + (item.previous_price || item.last_price || 0), 0);
@@ -28,17 +30,26 @@ const ListCard: React.FC<{
   const visibleItems = isExpanded ? list.list_items : list.list_items.slice(0, 5);
   
   return (
-    <div className="bg-bg-secondary border border-border-normal rounded-lg p-4 flex flex-col gap-4 hover:border-accent-primary transition-colors group relative">
+    <div 
+      className="bg-bg-secondary border border-border-normal rounded-lg p-4 flex flex-col gap-4 hover:border-accent-primary transition-colors group relative cursor-pointer"
+      onClick={() => navigate(`/lists/${list.id}`)}
+    >
       <div className="flex justify-between items-start">
-        <div>
-          <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
-            {list.name}
+        <div className="group/title">
+          <h3 className="text-lg font-bold text-text-primary flex items-center gap-2 group-hover/title:text-accent-primary transition-colors">
+            <Link 
+              to={`/lists/${list.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-inherit hover:text-inherit"
+            >
+              {list.name}
+            </Link>
             {list.scope === 'public' ? <Globe size={14} className="text-text-muted" /> : <Lock size={14} className="text-text-muted" />}
           </h3>
           <div className="flex items-center gap-2 text-sm">
             <span className="text-text-muted">{list.list_items.length} objets</span>
             <span className="text-text-muted">•</span>
-            <span className={`font-bold ${indexChange > 0 ? 'text-accent-danger' : indexChange < 0 ? 'text-accent-success' : 'text-text-muted'}`}>
+            <span className={`font-bold ${indexChange >= 0 ? 'text-accent-danger' : 'text-accent-success'}`}>
               {indexChange > 0 ? '+' : ''}{indexChange.toFixed(2)}%
             </span>
           </div>
@@ -47,14 +58,14 @@ const ListCard: React.FC<{
           {canDelete && (
             <>
               <button 
-                onClick={() => onEdit(list)}
+                onClick={(e) => { e.stopPropagation(); onEdit(list); }}
                 className="text-text-muted hover:text-accent-primary transition-colors"
                 title="Gérer la liste"
               >
                 <Edit size={18} />
               </button>
               <button 
-                onClick={() => onDelete(list.id)}
+                onClick={(e) => { e.stopPropagation(); onDelete(list.id); }}
                 className="text-text-muted hover:text-accent-danger transition-colors"
                 title="Supprimer la liste"
               >
@@ -76,7 +87,7 @@ const ListCard: React.FC<{
             ))}
             {list.list_items.length > 5 && (
                 <button 
-                    onClick={() => setIsExpanded(!isExpanded)}
+                    onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
                     className="text-xs text-text-muted hover:text-accent-primary self-center cursor-pointer transition-colors"
                 >
                     {isExpanded ? 'Voir moins' : `+${list.list_items.length - 5} autres`}
@@ -84,9 +95,6 @@ const ListCard: React.FC<{
             )}
         </div>
       </div>
-      
-      {/* Placeholder for variation if we had it */}
-      {/* <div className="text-right text-sm font-mono text-accent-success">+5.2%</div> */}
     </div>
   );
 };

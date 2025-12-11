@@ -428,6 +428,28 @@ export async function fetchLists(profileId?: string, range: DateRangePreset = '3
   return res.json();
 }
 
+export async function fetchListDetails(listId: string, range?: string, server?: string): Promise<List> {
+  const params = new URLSearchParams();
+  params.append('id', listId);
+  if (range) params.append('range', range);
+  if (server) params.append('server', server);
+
+  const res = await safeFetch(`${API_BASE}/api/lists?${params.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/lists details : ${res.status} ${res.statusText}`);
+  }
+  
+  const data = await res.json();
+  if (Array.isArray(data) && data.length > 0) {
+    return data[0];
+  }
+  throw new Error('Liste introuvable');
+}
+
 export async function createList(name: string, scope: 'public' | 'private', profileId?: string): Promise<List> {
   const res = await safeFetch(`${API_BASE}/api/lists`, {
     method: 'POST',

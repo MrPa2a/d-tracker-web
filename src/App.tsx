@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import ItemDetailsPage from './pages/ItemDetailsPage';
 import MarketPage from './pages/MarketPage';
 import ListsPage from './pages/ListsPage';
+import ListDetailsPage from './pages/ListDetailsPage';
 import { useItems, useUpdateItem } from './hooks/useItems';
 import { useCategories } from './hooks/useCategories';
 import { useFavorites } from './hooks/useFavorites';
@@ -218,6 +219,17 @@ const App: React.FC = () => {
             <ListsPage 
               currentProfile={currentProfile} 
               dateRange={dateRange}
+            />
+          } 
+        />
+        <Route 
+          path="/lists/:listId" 
+          element={
+            <ListDetailsPage 
+              dateRange={dateRange}
+              currentProfile={currentProfile}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
             />
           } 
         />
