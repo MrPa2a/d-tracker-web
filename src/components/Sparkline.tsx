@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  ResponsiveContainer,
   LineChart,
   Line,
   XAxis,
@@ -69,20 +68,45 @@ export const SmallSparklineTooltip: React.FC<{ active?: boolean; payload?: any[]
 
 export const SmallSparkline: React.FC<{ data: TimeseriesPoint[] | null }> = ({ data }) => {
   const [containerNode, setContainerNode] = useState<HTMLDivElement | null>(null);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    if (!containerNode) return;
+
+    const updateSize = () => {
+      // Only update if dimensions actually changed to avoid loops
+      if (containerNode.clientWidth !== dimensions.width || containerNode.clientHeight !== dimensions.height) {
+        setDimensions({
+          width: containerNode.clientWidth,
+          height: containerNode.clientHeight
+        });
+      }
+    };
+
+    // Initial check
+    updateSize();
+
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(containerNode);
+
+    return () => observer.disconnect();
+  }, [containerNode, dimensions.width, dimensions.height]);
+
   if (!data || data.length === 0) return <div className="text-center text-gray-500 text-xs leading-10">—</div>;
+  
   return (
-    <div className="w-full h-full" ref={setContainerNode}>
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data}>
+    <div className="w-full h-full relative overflow-hidden" ref={setContainerNode}>
+      {dimensions.width > 0 && dimensions.height > 0 && (
+        <LineChart width={dimensions.width} height={dimensions.height} data={data}>
           <XAxis dataKey="date" hide />
           <Tooltip
             content={<SmallSparklineTooltip containerNode={containerNode} />}
             cursor={{ strokeDasharray: '3 3' }}
             isAnimationActive={false}
           />
-          <Line type="monotone" dataKey="avg_price" stroke="#60a5fa" dot={false} strokeWidth={2} />
+          <Line type="monotone" dataKey="avg_price" stroke="#60a5fa" dot={false} strokeWidth={2} isAnimationActive={false} />
         </LineChart>
-      </ResponsiveContainer>
+      )}
     </div>
   );
 };

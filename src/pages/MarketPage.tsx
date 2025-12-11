@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { ItemSummary, SortType, SortOrder, Category, TimeseriesPoint, DateRangePreset } from '../types';
 import { fetchTimeseries } from '../api';
 import kamaIcon from '../assets/kama.png';
-import { Star, Search, Filter, X, ChevronDown, LayoutGrid, List } from 'lucide-react';
+import { Star, Search, Filter, X, ChevronDown, ChevronUp, LayoutGrid, List } from 'lucide-react';
 import { SmallSparkline } from '../components/Sparkline';
 
 interface MarketPageProps {
@@ -23,6 +23,128 @@ interface MarketPageProps {
   onlyFavorites: boolean;
   dateRange: DateRangePreset;
 }
+
+const MarketGridCard: React.FC<{
+  item: ItemSummary;
+  favorites: Set<string>;
+  onToggleFavorite: (key: string) => void;
+  navigate: (path: string) => void;
+  dateRange: DateRangePreset;
+}> = ({ item, favorites, onToggleFavorite, navigate, dateRange }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [ts, setTs] = useState<TimeseriesPoint[] | null>(null);
+  const [loadingTs, setLoadingTs] = useState(false);
+
+  const handleExpand = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isExpanded && !ts) {
+        setLoadingTs(true);
+        try {
+            const data = await fetchTimeseries(item.item_name, item.server, dateRange);
+            setTs(data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoadingTs(false);
+        }
+    }
+    setIsExpanded(!isExpanded);
+  };
+
+  const evolution = React.useMemo(() => {
+    if (!ts || ts.length < 2) return null;
+    const first = ts[0].avg_price;
+    const last = ts[ts.length - 1].avg_price;
+    if (first === 0) return 0;
+    return ((last - first) / first) * 100;
+  }, [ts]);
+
+  return (
+    <div 
+      onClick={() => navigate(`/item/${item.server}/${encodeURIComponent(item.item_name)}`)}
+      className="bg-[#1a1b1e] border border-white/5 rounded-xl p-4 hover:border-blue-500/30 hover:bg-[#25262b] transition-all cursor-pointer group relative flex flex-col"
+    >
+        <div className={`absolute top-3 right-3 transition-opacity ${
+        favorites.has(item.item_name) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        } z-10`}>
+        <button
+            onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite(item.item_name);
+            }}
+            className={`p-1.5 rounded-full hover:bg-white/10 ${
+            favorites.has(item.item_name) ? 'text-yellow-400' : 'text-gray-400'
+            }`}
+        >
+            <Star size={16} fill={favorites.has(item.item_name) ? "currentColor" : "none"} />
+        </button>
+        </div>
+
+        <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-lg font-bold text-gray-600 shrink-0">
+                {item.item_name.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+                <h3 className="font-medium text-gray-200 truncate pr-6" title={item.item_name}>
+                {item.item_name}
+                </h3>
+                {item.category && (
+                <div className="text-xs text-gray-500 truncate">{item.category}</div>
+                )}
+            </div>
+        </div>
+
+        <div className="flex items-center justify-between mt-auto">
+            <div className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded text-sm font-medium text-gray-300">
+                <img src={kamaIcon} alt="kamas" className="w-3 h-3" />
+                {item.last_price?.toLocaleString('fr-FR') ?? '-'}
+            </div>
+            <button
+                onClick={handleExpand}
+                className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded text-xs font-medium text-gray-400 hover:bg-white/10 hover:text-gray-200 transition-all border border-transparent hover:border-white/10"
+                title={isExpanded ? "Masquer l'historique" : "Voir l'historique"}
+            >
+                <span className="text-[10px] text-gray-500">Moy.</span>
+                {item.average_price?.toLocaleString('fr-FR') ?? '-'}
+                <div className="ml-1 text-gray-500">
+                     {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </div>
+            </button>
+        </div>
+
+        <div 
+            className={`grid transition-all duration-300 ease-in-out ${
+                isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+        >
+            <div className="overflow-hidden">
+                <div className="pt-4 mt-4 border-t border-white/5">
+                    {loadingTs ? (
+                        <div className="h-20 flex items-center justify-center text-xs text-gray-500">Chargement...</div>
+                    ) : (
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center text-xs">
+                                <span className="text-gray-500">Évolution ({dateRange})</span>
+                                {evolution !== null ? (
+                                    <span className={`font-medium ${evolution > 0 ? 'text-green-400' : evolution < 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                                        {evolution > 0 ? '+' : ''}{evolution.toFixed(2)}%
+                                    </span>
+                                ) : (
+                                    <span className="text-gray-500">-</span>
+                                )}
+                            </div>
+                            <div className="h-16 w-full">
+                                <SmallSparkline data={ts} />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    </div>
+  );
+};
 
 const MarketTableRow: React.FC<{
   item: ItemSummary;
@@ -361,54 +483,16 @@ const MarketPage: React.FC<MarketPageProps> = ({
       ) : displayedItems.length === 0 ? (
         <div className="text-center py-12 text-gray-500">Aucun item trouvé.</div>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start">
           {displayedItems.map((item) => (
-            <div 
+            <MarketGridCard
               key={`${item.server}-${item.item_name}`}
-              onClick={() => navigate(`/item/${item.server}/${encodeURIComponent(item.item_name)}`)}
-              className="bg-[#1a1b1e] border border-white/5 rounded-xl p-4 hover:border-blue-500/30 hover:bg-[#25262b] transition-all cursor-pointer group relative"
-            >
-              <div className={`absolute top-3 right-3 transition-opacity ${
-                favorites.has(item.item_name) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-              }`}>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleFavorite(item.item_name);
-                  }}
-                  className={`p-1.5 rounded-full hover:bg-white/10 ${
-                    favorites.has(item.item_name) ? 'text-yellow-400' : 'text-gray-400'
-                  }`}
-                >
-                  <Star size={16} fill={favorites.has(item.item_name) ? "currentColor" : "none"} />
-                </button>
-              </div>
-
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-lg font-bold text-gray-600">
-                  {item.item_name.charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-medium text-gray-200 truncate pr-6" title={item.item_name}>
-                    {item.item_name}
-                  </h3>
-                  {item.category && (
-                    <div className="text-xs text-gray-500 truncate">{item.category}</div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between mt-2">
-                <div className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded text-sm font-medium text-gray-300">
-                  <img src={kamaIcon} alt="kamas" className="w-3 h-3" />
-                  {item.last_price?.toLocaleString('fr-FR') ?? '-'}
-                </div>
-                <div className="text-xs font-medium flex items-center gap-1 text-gray-400">
-                  <span className="text-[10px] text-gray-500">Moy.</span>
-                  {item.average_price?.toLocaleString('fr-FR') ?? '-'}
-                </div>
-              </div>
-            </div>
+              item={item}
+              favorites={favorites}
+              onToggleFavorite={onToggleFavorite}
+              navigate={navigate}
+              dateRange={dateRange}
+            />
           ))}
         </div>
       ) : (
