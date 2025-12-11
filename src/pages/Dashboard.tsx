@@ -7,6 +7,8 @@ import { fetchTimeseries } from '../api';
 import { useMovers, useVolatilityRankings, useOpportunities, useSellOpportunities, useMarketIndex } from '../hooks/useMarketData';
 import kamaIcon from '../assets/kama.png';
 import { SmallSparkline } from '../components/Sparkline';
+import { MoreVertical, Star, StarOff, Copy } from 'lucide-react';
+import { ContextMenu } from '../components/ContextMenu';
 
 interface DashboardProps {
   items: ItemSummary[];
@@ -28,7 +30,8 @@ const DashboardRow: React.FC<{
   isFavorite: boolean;
   onToggleFavorite: (itemName: string) => void;
   metric: React.ReactNode;
-}> = ({ item, ts, onNavigate, isFavorite, onToggleFavorite, metric }) => {
+  onContextMenu: (e: React.MouseEvent, item: { item_name: string; server: string; last_price: number }) => void;
+}> = ({ item, ts, onNavigate, isFavorite, onToggleFavorite, metric, onContextMenu }) => {
   return (
     <li className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_6rem_7rem] gap-4 items-center p-2 rounded-lg bg-bg-tertiary/10 border border-transparent hover:border-border-normal hover:bg-bg-tertiary/30 transition-all duration-200">
       <div className="flex items-center gap-2 min-w-0 relative group">
@@ -44,22 +47,34 @@ const DashboardRow: React.FC<{
          >
             {item.item_name}
          </Link>
-         <button
-            className={`
-              text-lg leading-none bg-transparent border-none cursor-pointer transition-all duration-200
-              ${isFavorite 
-                 ? 'text-accent-warning opacity-30 group-hover:opacity-100' 
-                 : 'text-text-muted opacity-0 group-hover:opacity-100 hover:text-accent-warning'
-              }
-            `}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorite(item.item_name);
-            }}
-            title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-         >
-            ★
-         </button>
+         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+                className={`
+                text-lg leading-none bg-transparent border-none cursor-pointer transition-all duration-200
+                ${isFavorite 
+                    ? 'text-accent-warning opacity-100' 
+                    : 'text-text-muted hover:text-accent-warning'
+                }
+                `}
+                onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(item.item_name);
+                }}
+                title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            >
+                {isFavorite ? <Star size={14} fill="currentColor" /> : <Star size={14} />}
+            </button>
+            <button
+                className="text-text-muted hover:text-text-primary p-0.5 rounded hover:bg-bg-tertiary"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onContextMenu(e, item);
+                }}
+            >
+                <MoreVertical size={14} />
+            </button>
+         </div>
       </div>
       
       <div className="h-10 hidden sm:block w-full">
@@ -295,6 +310,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
     });
   }, [stable, stableSort]);
 
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ItemSummary } | null>(null);
+
+  const handleContextMenu = (e: React.MouseEvent, item: { item_name: string; server: string; last_price: number }) => {
+    e.preventDefault();
+    // Reconstruct ItemSummary from partial item if needed, or just pass what we have
+    // The context menu only needs item_name for now.
+    // But to be safe let's cast or ensure we have enough info.
+    // The item passed from DashboardRow has item_name, server, last_price.
+    // We might need to fake other fields if ItemSummary requires them, but for now it seems fine.
+    // Actually ItemSummary has more fields. Let's just cast it for now as we only use item_name in the menu.
+    setContextMenu({ x: e.clientX, y: e.clientY, item: item as ItemSummary });
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 mb-6">
@@ -390,6 +418,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   onNavigate={() => onNavigateToItem(it)}
                   isFavorite={favorites.has(it.item_name)}
                   onToggleFavorite={onToggleFavorite}
+                  onContextMenu={handleContextMenu}
                   metric={hasEvolution ? (
                     <div className={`text-sm font-bold ${pct > 0 ? 'text-accent-danger' : pct < 0 ? 'text-accent-success' : ''}`}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</div>
                   ) : (
@@ -443,6 +472,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   }}
                   isFavorite={favorites.has(m.item_name)}
                   onToggleFavorite={onToggleFavorite}
+                  onContextMenu={handleContextMenu}
                   metric={<div className="text-sm font-bold text-accent-danger">+{m.pct_change.toFixed(1)}%</div>}
                 />
               );
@@ -492,6 +522,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   }}
                   isFavorite={favorites.has(m.item_name)}
                   onToggleFavorite={onToggleFavorite}
+                  onContextMenu={handleContextMenu}
                   metric={<div className="text-sm font-bold text-accent-success">{m.pct_change.toFixed(1)}%</div>}
                 />
               );
@@ -545,6 +576,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   }}
                   isFavorite={favorites.has(v.item_name)}
                   onToggleFavorite={onToggleFavorite}
+                  onContextMenu={handleContextMenu}
                   metric={<div className="text-sm font-bold text-accent-warning">{(v.volatility).toFixed(1)}%</div>}
                 />
               );
@@ -595,6 +627,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   }}
                   isFavorite={favorites.has(v.item_name)}
                   onToggleFavorite={onToggleFavorite}
+                  onContextMenu={handleContextMenu}
                   metric={<div className="text-sm font-bold text-accent-success">{(v.volatility).toFixed(1)}%</div>}
                 />
               );
@@ -717,6 +750,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
           )}
         </div>
       </section>
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          actions={[
+            {
+              label: favorites.has(contextMenu.item.item_name) ? 'Retirer des favoris' : 'Ajouter aux favoris',
+              icon: favorites.has(contextMenu.item.item_name) ? <StarOff size={16} /> : <Star size={16} />,
+              onClick: () => onToggleFavorite && onToggleFavorite(contextMenu.item.item_name),
+            },
+            {
+              label: 'Copier le nom',
+              icon: <Copy size={16} />,
+              onClick: () => navigator.clipboard.writeText(contextMenu.item.item_name),
+            },
+          ]}
+        />
+      )}
     </div>
   );
 };

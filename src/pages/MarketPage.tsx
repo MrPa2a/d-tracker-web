@@ -3,8 +3,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import type { ItemSummary, SortType, SortOrder, Category, DateRangePreset } from '../types';
 import { useTimeseries } from '../hooks/useTimeseries';
 import kamaIcon from '../assets/kama.png';
-import { Star, Search, Filter, X, ChevronDown, ChevronUp, LayoutGrid, List } from 'lucide-react';
+import { Star, StarOff, Search, Filter, X, ChevronDown, ChevronUp, LayoutGrid, List, MoreVertical, Copy } from 'lucide-react';
 import { SmallSparkline } from '../components/Sparkline';
+import { ContextMenu } from '../components/ContextMenu';
 
 interface MarketPageProps {
   items: ItemSummary[];
@@ -31,7 +32,8 @@ const MarketGridCard: React.FC<{
   favorites: Set<string>;
   onToggleFavorite: (key: string) => void;
   dateRange: DateRangePreset;
-}> = ({ item, favorites, onToggleFavorite, dateRange }) => {
+  onContextMenu: (e: React.MouseEvent, item: ItemSummary) => void;
+}> = ({ item, favorites, onToggleFavorite, dateRange, onContextMenu }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { data: ts, isLoading: loadingTs } = useTimeseries(item.item_name, item.server, dateRange, {
     enabled: isExpanded,
@@ -58,20 +60,29 @@ const MarketGridCard: React.FC<{
             to={`/item/${item.server}/${encodeURIComponent(item.item_name)}`}
             className="absolute inset-0 z-10 rounded-xl"
         />
-        <div className={`absolute top-3 right-3 transition-opacity ${
-        favorites.has(item.item_name) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-        } z-20`}>
-        <button
-            onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite(item.item_name);
-            }}
-            className={`p-1.5 rounded-full hover:bg-white/10 ${
-            favorites.has(item.item_name) ? 'text-yellow-400' : 'text-gray-400'
-            }`}
-        >
-            <Star size={16} fill={favorites.has(item.item_name) ? "currentColor" : "none"} />
-        </button>
+        
+        <div className="absolute top-3 right-3 z-20 flex items-center gap-1">
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onContextMenu(e, item);
+                }}
+                className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+                <MoreVertical size={16} />
+            </button>
+            <button
+                onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(item.item_name);
+                }}
+                className={`p-1.5 rounded-full hover:bg-white/10 transition-opacity ${
+                favorites.has(item.item_name) ? 'text-yellow-400 opacity-100' : 'text-gray-400 opacity-0 group-hover:opacity-100'
+                }`}
+            >
+                <Star size={16} fill={favorites.has(item.item_name) ? "currentColor" : "none"} />
+            </button>
         </div>
 
         <div className="flex items-center gap-3 mb-3">
@@ -146,7 +157,8 @@ const MarketTableRow: React.FC<{
   onToggleFavorite: (key: string) => void;
   navigate: (path: string) => void;
   dateRange: DateRangePreset;
-}> = ({ item, favorites, onToggleFavorite, navigate, dateRange }) => {
+  onContextMenu: (e: React.MouseEvent, item: ItemSummary) => void;
+}> = ({ item, favorites, onToggleFavorite, navigate, dateRange, onContextMenu }) => {
   const { data: ts } = useTimeseries(item.item_name, item.server, dateRange);
 
   const evolution = React.useMemo(() => {
@@ -167,7 +179,17 @@ const MarketTableRow: React.FC<{
       }}
       className="hover:bg-white/5 transition-colors cursor-pointer group"
     >
-      <td className="px-4 py-3">
+      <td className="px-4 py-3 flex items-center gap-2">
+        <button
+            onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onContextMenu(e, item);
+            }}
+            className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+            <MoreVertical size={16} />
+        </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -265,6 +287,12 @@ const MarketPage: React.FC<MarketPageProps> = ({
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('marketViewMode') as 'grid' | 'table') || 'grid';
   });
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ItemSummary } | null>(null);
+
+  const handleContextMenu = (e: React.MouseEvent, item: ItemSummary) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, item });
+  };
 
   // Filter items based on local filters (Category, Price, Favorites)
   // Note: items are already filtered by Server and Search and Sorted by App.tsx
@@ -478,6 +506,7 @@ const MarketPage: React.FC<MarketPageProps> = ({
               favorites={favorites}
               onToggleFavorite={onToggleFavorite}
               dateRange={dateRange}
+              onContextMenu={handleContextMenu}
             />
           ))}
         </div>
@@ -506,12 +535,33 @@ const MarketPage: React.FC<MarketPageProps> = ({
                     onToggleFavorite={onToggleFavorite}
                     navigate={navigate}
                     dateRange={dateRange}
+                    onContextMenu={handleContextMenu}
                   />
                 ))}
               </tbody>
             </table>
           </div>
         </div>
+      )}
+      
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          actions={[
+            {
+              label: favorites.has(contextMenu.item.item_name) ? 'Retirer des favoris' : 'Ajouter aux favoris',
+              icon: favorites.has(contextMenu.item.item_name) ? <StarOff size={16} /> : <Star size={16} />,
+              onClick: () => onToggleFavorite && onToggleFavorite(contextMenu.item.item_name),
+            },
+            {
+              label: 'Copier le nom',
+              icon: <Copy size={16} />,
+              onClick: () => navigator.clipboard.writeText(contextMenu.item.item_name),
+            },
+          ]}
+        />
       )}
     </div>
   );

@@ -3,6 +3,8 @@ import React, { useMemo, useEffect, useState, useRef } from 'react';
 import type { DateRangePreset, ItemSummary, TimeseriesPoint, ItemStats } from '../types';
 import { fetchItemStats } from '../api';
 import { EditItemModal } from './EditItemModal';
+import { ContextMenu } from './ContextMenu';
+import { MoreVertical, Star, Copy } from 'lucide-react';
 import kamaIcon from '../assets/kama.png';
 import {
   ResponsiveContainer,
@@ -92,6 +94,18 @@ export const PriceChart: React.FC<PriceChartProps> = ({
   const [itemStats, setItemStats] = useState<ItemStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ItemSummary } | null>(null);
+
+  const handleContextMenu = (e: React.MouseEvent, item: ItemSummary) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setContextMenu({
+      x: rect.left + window.scrollX,
+      y: rect.bottom + window.scrollY,
+      item,
+    });
+  };
 
   // Ref et state pour la hauteur dynamique du graphique
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -243,6 +257,13 @@ export const PriceChart: React.FC<PriceChartProps> = ({
                 {favorites.has(selectedItem.item_name) ? '★' : '☆'}
               </button>
             )}
+            <button
+              className="p-1 hover:bg-bg-tertiary rounded-md transition-colors cursor-pointer text-text-muted hover:text-text-primary"
+              onClick={(e) => handleContextMenu(e, selectedItem)}
+              title="Plus d'options"
+            >
+              <MoreVertical size={20} />
+            </button>
             <button
               className="text-xl leading-none bg-transparent border-none cursor-pointer transition-colors text-text-muted hover:text-accent-primary ml-1"
               onClick={() => setIsEditModalOpen(true)}
@@ -442,6 +463,26 @@ export const PriceChart: React.FC<PriceChartProps> = ({
           timeseries={timeseries.filter((p): p is TimeseriesPoint => p !== null)}
           onRefresh={onRefresh}
           onItemUpdate={onItemUpdate}
+        />
+      )}
+
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          actions={[
+            ...(onToggleFavorite ? [{
+              label: favorites?.has(contextMenu.item.item_name) ? 'Retirer des favoris' : 'Ajouter aux favoris',
+              icon: <Star size={16} className={favorites?.has(contextMenu.item.item_name) ? "fill-accent-warning text-accent-warning" : ""} />,
+              onClick: () => onToggleFavorite(contextMenu.item.item_name),
+            }] : []),
+            {
+              label: 'Copier le nom',
+              icon: <Copy size={16} />,
+              onClick: () => navigator.clipboard.writeText(contextMenu.item.item_name),
+            },
+          ]}
         />
       )}
     </div>
