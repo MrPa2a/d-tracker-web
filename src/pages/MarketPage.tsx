@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import type { ItemSummary, SortType, SortOrder, Category, DateRangePreset } from '../types';
 import { useTimeseries } from '../hooks/useTimeseries';
 import kamaIcon from '../assets/kama.png';
@@ -22,15 +22,16 @@ interface MarketPageProps {
   maxPrice: string;
   onlyFavorites: boolean;
   dateRange: DateRangePreset;
+  search: string;
+  onSearchChange: (value: string) => void;
 }
 
 const MarketGridCard: React.FC<{
   item: ItemSummary;
   favorites: Set<string>;
   onToggleFavorite: (key: string) => void;
-  navigate: (path: string) => void;
   dateRange: DateRangePreset;
-}> = ({ item, favorites, onToggleFavorite, navigate, dateRange }) => {
+}> = ({ item, favorites, onToggleFavorite, dateRange }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { data: ts, isLoading: loadingTs } = useTimeseries(item.item_name, item.server, dateRange, {
     enabled: isExpanded,
@@ -51,12 +52,15 @@ const MarketGridCard: React.FC<{
 
   return (
     <div 
-      onClick={() => navigate(`/item/${item.server}/${encodeURIComponent(item.item_name)}`)}
       className="bg-[#1a1b1e] border border-white/5 rounded-xl p-4 hover:border-blue-500/30 hover:bg-[#25262b] transition-all cursor-pointer group relative flex flex-col"
     >
+        <Link 
+            to={`/item/${item.server}/${encodeURIComponent(item.item_name)}`}
+            className="absolute inset-0 z-10 rounded-xl"
+        />
         <div className={`absolute top-3 right-3 transition-opacity ${
         favorites.has(item.item_name) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-        } z-10`}>
+        } z-20`}>
         <button
             onClick={(e) => {
             e.stopPropagation();
@@ -91,7 +95,7 @@ const MarketGridCard: React.FC<{
             </div>
             <button
                 onClick={handleExpand}
-                className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded text-xs font-medium text-gray-400 hover:bg-white/10 hover:text-gray-200 transition-all border border-transparent hover:border-white/10"
+                className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded text-xs font-medium text-gray-400 hover:bg-white/10 hover:text-gray-200 transition-all border border-transparent hover:border-white/10 relative z-20"
                 title={isExpanded ? "Masquer l'historique" : "Voir l'historique"}
             >
                 <span className="text-[10px] text-gray-500">Moy.</span>
@@ -103,7 +107,7 @@ const MarketGridCard: React.FC<{
         </div>
 
         <div 
-            className={`grid transition-all duration-300 ease-in-out ${
+            className={`grid transition-all duration-300 ease-in-out relative z-20 ${
                 isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
             }`}
             onClick={(e) => e.stopPropagation()}
@@ -156,6 +160,11 @@ const MarketTableRow: React.FC<{
   return (
     <tr 
       onClick={() => navigate(`/item/${item.server}/${encodeURIComponent(item.item_name)}`)}
+      onAuxClick={(e) => {
+        if (e.button === 1) {
+          window.open(`/item/${item.server}/${encodeURIComponent(item.item_name)}`, '_blank');
+        }
+      }}
       className="hover:bg-white/5 transition-colors cursor-pointer group"
     >
       <td className="px-4 py-3">
@@ -164,6 +173,7 @@ const MarketTableRow: React.FC<{
             e.stopPropagation();
             onToggleFavorite(item.item_name);
           }}
+          onAuxClick={(e) => e.stopPropagation()}
           className={`p-1.5 rounded-full hover:bg-white/10 transition-colors ${
             favorites.has(item.item_name) ? 'text-yellow-400 opacity-100' : 'text-gray-600 opacity-0 group-hover:opacity-100'
           }`}
@@ -176,7 +186,14 @@ const MarketTableRow: React.FC<{
           <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-xs font-bold text-gray-600">
             {item.item_name.charAt(0).toUpperCase()}
           </div>
-          {item.item_name}
+          <Link 
+            to={`/item/${item.server}/${encodeURIComponent(item.item_name)}`}
+            onClick={(e) => e.stopPropagation()}
+            onAuxClick={(e) => e.stopPropagation()}
+            className="text-gray-200 hover:text-blue-400 no-underline"
+          >
+            {item.item_name}
+          </Link>
         </div>
       </td>
       <td className="px-4 py-3">{item.category || '-'}</td>
@@ -239,6 +256,8 @@ const MarketPage: React.FC<MarketPageProps> = ({
   maxPrice,
   onlyFavorites,
   dateRange,
+  search,
+  onSearchChange,
 }) => {
   const navigate = useNavigate();
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
@@ -246,11 +265,10 @@ const MarketPage: React.FC<MarketPageProps> = ({
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('marketViewMode') as 'grid' | 'table') || 'grid';
   });
-  const [localSearch, setLocalSearch] = useState('');
 
   // Filter items based on local filters (Category, Price, Favorites)
   // Note: items are already filtered by Server and Search and Sorted by App.tsx
-  const filteredItems = React.useMemo(() => {
+  const displayedItems = React.useMemo(() => {
     let res = items;
 
     // Category
@@ -280,13 +298,6 @@ const MarketPage: React.FC<MarketPageProps> = ({
     return res;
   }, [items, selectedCategory, onlyFavorites, favorites, minPrice, maxPrice]);
 
-  // Filtered items by local search
-  const displayedItems = React.useMemo(() => {
-    if (!localSearch.trim()) return filteredItems;
-    const query = localSearch.trim().toLowerCase();
-    return filteredItems.filter(item => item.item_name.toLowerCase().includes(query));
-  }, [filteredItems, localSearch]);
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (categoryRef.current && !categoryRef.current.contains(event.target as Node)) {
@@ -314,15 +325,15 @@ const MarketPage: React.FC<MarketPageProps> = ({
           <div className="relative">
             <input
               type="text"
-              value={localSearch}
-              onChange={e => setLocalSearch(e.target.value)}
+              value={search}
+              onChange={e => onSearchChange(e.target.value)}
               placeholder="Rechercher un item..."
               className="bg-[#1a1b1e] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500 w-48"
             />
-            {localSearch ? (
+            {search ? (
               <button
                 type="button"
-                onClick={() => setLocalSearch('')}
+                onClick={() => onSearchChange('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200"
                 tabIndex={-1}
                 title="Effacer la recherche"
@@ -466,7 +477,6 @@ const MarketPage: React.FC<MarketPageProps> = ({
               item={item}
               favorites={favorites}
               onToggleFavorite={onToggleFavorite}
-              navigate={navigate}
               dateRange={dateRange}
             />
           ))}

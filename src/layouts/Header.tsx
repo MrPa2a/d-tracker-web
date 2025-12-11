@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Menu, Search, Bell, Server, ChevronDown, Star, X } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import type { ItemSummary, DateRangePreset } from '../types';
 import { fetchItems } from '../api';
 
@@ -40,7 +40,6 @@ export const Header: React.FC<HeaderProps> = ({
   onlyFavorites,
   onToggleOnlyFavorites
 }) => {
-  const navigate = useNavigate();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
@@ -93,12 +92,6 @@ export const Header: React.FC<HeaderProps> = ({
 
     return () => clearTimeout(timer);
   }, [searchQuery, selectedServer]);
-
-  const handleSearchSelect = (item: ItemSummary) => {
-    navigate(`/item/${item.server}/${encodeURIComponent(item.item_name)}`);
-    setSearchQuery('');
-    setShowResults(false);
-  };
 
   // Helper for number formatting
   const formatNumber = (val: string) => {
@@ -208,10 +201,14 @@ export const Header: React.FC<HeaderProps> = ({
             ) : searchResults.length > 0 ? (
               <div className="py-2">
                 {searchResults.map((item) => (
-                  <div 
+                  <Link 
                     key={`${item.server}-${item.item_name}`}
-                    onClick={() => handleSearchSelect(item)}
-                    className="px-4 py-3 hover:bg-white/5 cursor-pointer flex items-center justify-between group transition-colors border-b border-white/5 last:border-0"
+                    to={`/item/${item.server}/${encodeURIComponent(item.item_name)}`}
+                    onClick={() => {
+                      setSearchQuery('');
+                      setShowResults(false);
+                    }}
+                    className="px-4 py-3 hover:bg-white/5 cursor-pointer flex items-center justify-between group transition-colors border-b border-white/5 last:border-0 no-underline"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-xs font-bold text-gray-500 group-hover:text-gray-300 transition-colors">
@@ -232,7 +229,7 @@ export const Header: React.FC<HeaderProps> = ({
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             ) : (

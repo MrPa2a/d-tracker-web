@@ -14,7 +14,21 @@ const DEFAULT_RANGE: DateRangePreset = '30d';
 
 const App: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const { data: items = [], isLoading: itemsLoading, error: itemsError } = useItems(undefined, undefined, selectedCategory || undefined);
+  
+  const [marketSearch, setMarketSearch] = useState('');
+  // Debounce search for API calls
+  const [debouncedSearch, setDebouncedSearch] = useState(marketSearch);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(marketSearch), 300);
+    return () => clearTimeout(timer);
+  }, [marketSearch]);
+
+  // Hybrid search logic:
+  // If no category selected, use debouncedSearch for API.
+  // If category selected, API search is undefined (we fetch all in category), and we filter client side.
+  const searchParam = !selectedCategory ? debouncedSearch : undefined;
+
+  const { data: items = [], isLoading: itemsLoading, error: itemsError } = useItems(searchParam, undefined, selectedCategory || undefined);
   const { data: categories = [] } = useCategories();
   const updateItemMutation = useUpdateItem();
 
@@ -31,7 +45,6 @@ const App: React.FC = () => {
     }
   }, [dashboardServer]);
   
-  const search = '';
   const [sortType, setSortType] = useState<SortType>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
@@ -76,9 +89,9 @@ const App: React.FC = () => {
     if (currentServer) {
       res = res.filter(i => i.server === currentServer);
     }
-    if (search.trim()) {
+    if (marketSearch.trim()) {
       const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const q = normalize(search);
+      const q = normalize(marketSearch);
       res = res.filter(i => normalize(i.item_name).includes(q));
     }
     
@@ -99,7 +112,7 @@ const App: React.FC = () => {
     });
 
     return res;
-  }, [items, currentServer, search, sortType, sortOrder]);
+  }, [items, currentServer, marketSearch, sortType, sortOrder]);
 
   const navigate = useNavigate();
   const handleNavigateToItem = (item: ItemSummary) => {
@@ -174,6 +187,8 @@ const App: React.FC = () => {
               categories={categories}
               selectedCategory={selectedCategory}
               onSelectCategory={setSelectedCategory}
+              search={marketSearch}
+              onSearchChange={setMarketSearch}
               minPrice={minPrice}
               maxPrice={maxPrice}
               onlyFavorites={onlyFavorites}
