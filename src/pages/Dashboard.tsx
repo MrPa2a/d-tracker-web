@@ -179,12 +179,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const { data: moversUp, isLoading: moversUpLoading, error: moversUpError } = useMovers(
     server!, dateRange, 10, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems, 'desc'
   );
-  const { data: moversDown, isLoading: moversDownLoading } = useMovers(
+  const { data: moversDown, isLoading: moversDownLoading, error: moversDownError } = useMovers(
     server!, dateRange, 10, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems, 'asc'
   );
 
   const moversLoading = moversUpLoading || moversDownLoading;
-  const moversError = moversUpError ? (moversUpError instanceof Error ? moversUpError.message : String(moversUpError)) : null;
+  const moversUpErrorMsg = moversUpError ? (moversUpError instanceof Error ? moversUpError.message : String(moversUpError)) : null;
+  const moversDownErrorMsg = moversDownError ? (moversDownError instanceof Error ? moversDownError.message : String(moversDownError)) : null;
 
   // Movers Timeseries
   const allMovers = useMemo(() => [...(moversUp || []), ...(moversDown || [])], [moversUp, moversDown]);
@@ -206,13 +207,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, [allMovers, moversQueries]);
 
   // Volatility rankings
-  const { data: volatile, isLoading: volatileLoading1 } = useVolatilityRankings(
+  const { data: volatile, isLoading: volatileLoading1, error: volatileError1 } = useVolatilityRankings(
     server!, dateRange, 10, 'desc', parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems
   );
-  const { data: stable, isLoading: volatileLoading2 } = useVolatilityRankings(
+  const { data: stable, isLoading: volatileLoading2, error: volatileError2 } = useVolatilityRankings(
     server!, dateRange, 10, 'asc', parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems
   );
   const volatilityLoading = volatileLoading1 || volatileLoading2;
+  const volatileErrorMsg = volatileError1 ? (volatileError1 instanceof Error ? volatileError1.message : String(volatileError1)) : null;
+  const stableErrorMsg = volatileError2 ? (volatileError2 instanceof Error ? volatileError2.message : String(volatileError2)) : null;
 
   // Volatility Timeseries
   const allVolatility = useMemo(() => [...(volatile || []), ...(stable || [])], [volatile, stable]);
@@ -234,17 +237,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, [allVolatility, volatilityQueries]);
 
   // Opportunities
-  const { data: opportunities, isLoading: opportunitiesLoading } = useOpportunities(
+  const { data: opportunities, isLoading: opportunitiesLoading, error: opportunitiesError } = useOpportunities(
     server!, dateRange, 12, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems
   );
+  const opportunitiesErrorMsg = opportunitiesError ? (opportunitiesError instanceof Error ? opportunitiesError.message : String(opportunitiesError)) : null;
 
   // Sell Opportunities
-  const { data: sellOpportunities, isLoading: sellOpportunitiesLoading } = useSellOpportunities(
+  const { data: sellOpportunities, isLoading: sellOpportunitiesLoading, error: sellOpportunitiesError } = useSellOpportunities(
     server!, dateRange, 12, parsedMinPrice ?? undefined, parsedMaxPrice ?? undefined, filterItems
   );
+  const sellOpportunitiesErrorMsg = sellOpportunitiesError ? (sellOpportunitiesError instanceof Error ? sellOpportunitiesError.message : String(sellOpportunitiesError)) : null;
 
   // Market Index
-  const { data: marketIndex, isLoading: indexLoading } = useMarketIndex(server!, dateRange, filterItems);
+  const { data: marketIndex, isLoading: indexLoading, error: indexError } = useMarketIndex(server!, dateRange, filterItems);
+  const indexErrorMsg = indexError ? (indexError instanceof Error ? indexError.message : String(indexError)) : null;
 
   // Sort states for other sections
   type PriceSortType = 'price-asc' | 'price-desc' | null;
@@ -310,6 +316,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Market Index Section */}
       {indexLoading && <p className="text-text-muted text-sm text-center py-4">Chargement de l'indice HDV…</p>}
+      {indexErrorMsg && <p className="text-accent-danger text-sm text-center py-4">{indexErrorMsg}</p>}
       {marketIndex && !indexLoading && marketIndex.index_change != null && (
         <div className="bg-linear-to-r from-bg-secondary/50 to-bg-secondary/10 p-4 rounded-xl border border-border-normal flex flex-col items-center justify-center shadow-lg relative overflow-hidden">
           <div className="text-sm text-text-muted uppercase tracking-wider font-semibold mb-1 relative z-10">Indice HDV ({marketIndex.total_items ?? 0} items)</div>
@@ -322,7 +329,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
       )}
-      {!indexLoading && !marketIndex && server && (
+      {!indexLoading && !marketIndex && !indexErrorMsg && server && (
         <p className="text-text-muted text-sm text-center py-4">Aucune donnée d'indice disponible pour cette période.</p>
       )}
 
@@ -410,7 +417,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </button>
           </div>
           {moversLoading && <p className="text-text-muted text-sm text-center py-4">Chargement…</p>}
-          {moversError && <p className="text-accent-danger text-sm text-center py-4">{moversError}</p>}
+          {moversUpErrorMsg && <p className="text-accent-danger text-sm text-center py-4">{moversUpErrorMsg}</p>}
           <ul className="list-none p-0 m-0 flex flex-col gap-2">
             {!moversLoading && moversUp && moversUp.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
             {sortedMoversUp && sortedMoversUp.slice(0, 5).map((m) => {
@@ -459,6 +466,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </button>
           </div>
           {moversLoading && <p className="text-text-muted text-sm text-center py-4">Chargement…</p>}
+          {moversDownErrorMsg && <p className="text-accent-danger text-sm text-center py-4">{moversDownErrorMsg}</p>}
           <ul className="list-none p-0 m-0 flex flex-col gap-2">
             {!moversLoading && moversDown && moversDown.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
             {sortedMoversDown && sortedMoversDown.slice(0, 5).map((m) => {
@@ -511,6 +519,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </button>
           </div>
           {volatilityLoading && <p className="text-text-muted text-sm text-center py-4">Chargement…</p>}
+          {volatileErrorMsg && <p className="text-accent-danger text-sm text-center py-4">{volatileErrorMsg}</p>}
           <ul className="list-none p-0 m-0 flex flex-col gap-2">
             {!volatilityLoading && sortedVolatile && sortedVolatile.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
             {sortedVolatile && sortedVolatile.slice(0, 5).map((v) => {
@@ -560,6 +569,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </button>
           </div>
           {volatilityLoading && <p className="text-text-muted text-sm text-center py-4">Chargement…</p>}
+          {stableErrorMsg && <p className="text-accent-danger text-sm text-center py-4">{stableErrorMsg}</p>}
           <ul className="list-none p-0 m-0 flex flex-col gap-2">
             {!volatilityLoading && sortedStable && sortedStable.length === 0 && <li className="text-text-muted text-sm text-center py-4">Aucun résultat.</li>}
             {sortedStable && sortedStable.slice(0, 5).map((v) => {
@@ -600,6 +610,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <h3 className="text-lg font-bold text-text-primary m-0 border-none pb-0 flex items-center gap-2">💰 Opportunités d'Achat (Sous-évalués)</h3>
           </div>
           {opportunitiesLoading && <p className="text-text-muted text-sm text-center py-4">Recherche d'opportunités…</p>}
+          {opportunitiesErrorMsg && <p className="text-accent-danger text-sm text-center py-4">{opportunitiesErrorMsg}</p>}
           {!opportunitiesLoading && opportunities && opportunities.length === 0 && <p className="text-text-muted text-sm text-center py-4">Aucune opportunité d'achat détectée pour le moment.</p>}
           
           {opportunities && opportunities.length > 0 && (
@@ -655,6 +666,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <h3 className="text-lg font-bold text-text-primary m-0 border-none pb-0 flex items-center gap-2">💎 Opportunités de Vente (Sur-évalués)</h3>
           </div>
           {sellOpportunitiesLoading && <p className="text-text-muted text-sm text-center py-4">Recherche d'opportunités de vente…</p>}
+          {sellOpportunitiesErrorMsg && <p className="text-accent-danger text-sm text-center py-4">{sellOpportunitiesErrorMsg}</p>}
           {!sellOpportunitiesLoading && sellOpportunities && sellOpportunities.length === 0 && <p className="text-text-muted text-sm text-center py-4">Aucune opportunité de vente détectée pour le moment.</p>}
           
           {sellOpportunities && sellOpportunities.length > 0 && (

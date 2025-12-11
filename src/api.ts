@@ -17,13 +17,24 @@ function buildHeaders(): HeadersInit {
   return headers;
 }
 
+async function safeFetch(url: string, options?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, options);
+  } catch (err) {
+    if (err instanceof TypeError && err.message === 'Failed to fetch') {
+      throw new Error('Le serveur est inaccessible. Veuillez vérifier votre connexion internet.');
+    }
+    throw err;
+  }
+}
+
 export async function fetchItems(search?: string, server?: string, category?: string): Promise<ItemSummary[]> {
   const params = new URLSearchParams();
   if (search) params.append('search', search);
   if (server) params.append('server', server);
   if (category) params.append('category', category);
 
-  const res = await fetch(`${API_BASE}/api/items?${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/items?${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
@@ -35,7 +46,7 @@ export async function fetchItems(search?: string, server?: string, category?: st
 }
 
 export async function fetchCategories(): Promise<Category[]> {
-  const res = await fetch(`${API_BASE}/api/categories`, {
+  const res = await safeFetch(`${API_BASE}/api/categories`, {
     method: 'GET',
     headers: buildHeaders(),
   });
@@ -47,7 +58,7 @@ export async function fetchCategories(): Promise<Category[]> {
 }
 
 export async function fetchProfiles(): Promise<Profile[]> {
-  const res = await fetch(`${API_BASE}/api/profiles`, {
+  const res = await safeFetch(`${API_BASE}/api/profiles`, {
     method: 'GET',
     headers: buildHeaders(),
   });
@@ -59,7 +70,7 @@ export async function fetchProfiles(): Promise<Profile[]> {
 }
 
 export async function createProfile(name: string): Promise<Profile> {
-  const res = await fetch(`${API_BASE}/api/profiles`, {
+  const res = await safeFetch(`${API_BASE}/api/profiles`, {
     method: 'POST',
     headers: buildHeaders(),
     body: JSON.stringify({ name }),
@@ -75,7 +86,7 @@ export async function createProfile(name: string): Promise<Profile> {
 }
 
 export async function fetchProfileFavorites(profileId: string): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/api/profiles?mode=favorites&profileId=${profileId}`, {
+  const res = await safeFetch(`${API_BASE}/api/profiles?mode=favorites&profileId=${profileId}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
@@ -87,7 +98,7 @@ export async function fetchProfileFavorites(profileId: string): Promise<string[]
 }
 
 export async function addProfileFavorite(profileId: string, itemName: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/profiles?mode=favorites`, {
+  const res = await safeFetch(`${API_BASE}/api/profiles?mode=favorites`, {
     method: 'POST',
     headers: buildHeaders(),
     body: JSON.stringify({ profileId, itemName }),
@@ -99,7 +110,7 @@ export async function addProfileFavorite(profileId: string, itemName: string): P
 }
 
 export async function removeProfileFavorite(profileId: string, itemName: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/profiles?mode=favorites`, {
+  const res = await safeFetch(`${API_BASE}/api/profiles?mode=favorites`, {
     method: 'DELETE',
     headers: buildHeaders(),
     body: JSON.stringify({ profileId, itemName }),
@@ -111,7 +122,7 @@ export async function removeProfileFavorite(profileId: string, itemName: string)
 }
 
 export async function updateItem(oldName: string, newName: string, server: string, category?: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/items`, {
+  const res = await safeFetch(`${API_BASE}/api/items`, {
     method: 'PUT',
     headers: buildHeaders(),
     body: JSON.stringify({ old_item_name: oldName, new_item_name: newName, server, category }),
@@ -123,7 +134,7 @@ export async function updateItem(oldName: string, newName: string, server: strin
 }
 
 export async function updateObservation(id: number, price: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/observations`, {
+  const res = await safeFetch(`${API_BASE}/api/observations`, {
     method: 'PUT',
     headers: buildHeaders(),
     body: JSON.stringify({ id, price_unit_avg: price }),
@@ -166,7 +177,7 @@ export async function fetchTimeseries(
     to,
   });
 
-  const res = await fetch(
+  const res = await safeFetch(
     `${API_BASE}/api/timeseries?${params.toString()}`,
     {
       method: 'GET',
@@ -202,7 +213,7 @@ export async function fetchMovers(
   if (maxPrice !== undefined) params.append('max_price', String(maxPrice));
   if (filterItems && filterItems.length > 0) params.append('filterItems', filterItems.join(','));
 
-  const res = await fetch(`${API_BASE}/api/market?type=movers&${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/market?type=movers&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
@@ -227,7 +238,7 @@ export async function fetchItemStats(
 
   const params = new URLSearchParams({ item: itemName, server, from, to });
 
-  const res = await fetch(`${API_BASE}/api/market?type=stats&${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/market?type=stats&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
@@ -253,7 +264,7 @@ export async function fetchMarketIndex(
   const params = new URLSearchParams({ server, from, to });
   if (filterItems && filterItems.length > 0) params.append('filterItems', filterItems.join(','));
 
-  const res = await fetch(`${API_BASE}/api/market?type=index&${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/market?type=index&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
@@ -291,7 +302,7 @@ export async function fetchVolatilityRankings(
   if (maxPrice !== undefined) params.append('max_price', String(maxPrice));
   if (filterItems && filterItems.length > 0) params.append('filterItems', filterItems.join(','));
 
-  const res = await fetch(`${API_BASE}/api/market?type=volatility&${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/market?type=volatility&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
@@ -322,7 +333,7 @@ export async function fetchOpportunities(
   if (maxPrice !== undefined) params.append('max_price', String(maxPrice));
   if (filterItems && filterItems.length > 0) params.append('filterItems', filterItems.join(','));
 
-  const res = await fetch(`${API_BASE}/api/market?type=opportunities&${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/market?type=opportunities&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
@@ -353,7 +364,7 @@ export async function fetchSellOpportunities(
   if (maxPrice !== undefined) params.append('max_price', String(maxPrice));
   if (filterItems && filterItems.length > 0) params.append('filterItems', filterItems.join(','));
 
-  const res = await fetch(`${API_BASE}/api/market?type=sell-opportunities&${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/market?type=sell-opportunities&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
@@ -366,7 +377,7 @@ export async function fetchSellOpportunities(
 }
 
 export async function createObservation(itemName: string, server: string, price: number, date: string): Promise<TimeseriesPoint> {
-  const res = await fetch(`${API_BASE}/api/observations`, {
+  const res = await safeFetch(`${API_BASE}/api/observations`, {
     method: 'POST',
     headers: buildHeaders(),
     body: JSON.stringify({ 
@@ -390,7 +401,7 @@ export async function createObservation(itemName: string, server: string, price:
 }
 
 export async function deleteObservation(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/observations`, {
+  const res = await safeFetch(`${API_BASE}/api/observations`, {
     method: 'DELETE',
     headers: buildHeaders(),
     body: JSON.stringify({ id }),
