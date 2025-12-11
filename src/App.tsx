@@ -230,6 +230,7 @@ const App: React.FC = () => {
               currentProfile={currentProfile}
               favorites={favorites}
               onToggleFavorite={toggleFavorite}
+              onlyFavorites={onlyFavorites}
             />
           } 
         />

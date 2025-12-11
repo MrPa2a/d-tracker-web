@@ -25,6 +25,7 @@ interface ListDetailsPageProps {
   currentProfile: Profile | null;
   favorites: Set<string>;
   onToggleFavorite: (key: string) => void;
+  onlyFavorites: boolean;
 }
 
 const ListDetailsTableRow: React.FC<{
@@ -165,7 +166,7 @@ const ListDetailsTableRow: React.FC<{
   );
 };
 
-const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites, onToggleFavorite }) => {
+const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites, onToggleFavorite, onlyFavorites }) => {
   const { listId } = useParams<{ listId: string }>();
   const navigate = useNavigate();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ListItem } | null>(null);
@@ -182,57 +183,65 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
   });
 
   // 2. Fetch Timeseries for all items to build the portfolio chart
-  const { data: portfolioHistory, isLoading: historyLoading } = useQuery({
-    queryKey: ['list-history', listId, dateRange, list?.list_items],
+  const { data: rawPortfolioData, isLoading: historyLoading } = useQuery({
+    queryKey: ['list-history-raw', listId, dateRange, list?.list_items],
     queryFn: async () => {
       if (!list?.list_items || list.list_items.length === 0) return [];
       
       // Fetch timeseries for all items in parallel
       const promises = list.list_items.map(item => 
         fetchTimeseries(item.item_name, item.server || 'Hell Mina', dateRange)
-          .then(ts => ({ itemId: item.item_id, ts, quantity: item.quantity || 1 }))
-          .catch(() => ({ itemId: item.item_id, ts: [] as TimeseriesPoint[], quantity: item.quantity || 1 }))
+          .then(ts => ({ itemId: item.item_id, ts, quantity: item.quantity || 1, itemName: item.item_name }))
+          .catch(() => ({ itemId: item.item_id, ts: [] as TimeseriesPoint[], quantity: item.quantity || 1, itemName: item.item_name }))
       );
       
-      const results = await Promise.all(promises);
-      
-      // Aggregate
-      const allDates = new Set<string>();
-      const itemPrices = new Map<number, Map<string, number>>(); // itemId -> date -> price
-      
-      results.forEach(({ itemId, ts }) => {
-        const prices = new Map<string, number>();
-        ts.forEach(p => {
-          allDates.add(p.date);
-          prices.set(p.date, p.avg_price);
-        });
-        itemPrices.set(itemId, prices);
-      });
-      
-      const sortedDates = Array.from(allDates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-      
-      const aggregated: { date: string; value: number }[] = [];
-      
-      // We need to keep track of the last known price for each item to fill gaps (forward fill)
-      const lastKnownPrices = new Map<number, number>();
-      
-      sortedDates.forEach(date => {
-        let total = 0;
-        results.forEach(({ itemId, quantity }) => {
-          const prices = itemPrices.get(itemId);
-          if (prices && prices.has(date)) {
-            lastKnownPrices.set(itemId, prices.get(date)!);
-          }
-          total += (lastKnownPrices.get(itemId) || 0) * quantity;
-        });
-        aggregated.push({ date, value: total });
-      });
-      
-      return aggregated;
+      return await Promise.all(promises);
     },
     enabled: !!list && list.list_items.length > 0,
     staleTime: 1000 * 60 * 5,
   });
+
+  const portfolioHistory = useMemo(() => {
+    if (!rawPortfolioData || rawPortfolioData.length === 0) return [];
+
+    const filteredResults = rawPortfolioData.filter(r => !onlyFavorites || favorites.has(r.itemName));
+    
+    if (filteredResults.length === 0) return [];
+
+    // Aggregate
+    const allDates = new Set<string>();
+    const itemPrices = new Map<number, Map<string, number>>(); // itemId -> date -> price
+    
+    filteredResults.forEach(({ itemId, ts }) => {
+      const prices = new Map<string, number>();
+      ts.forEach(p => {
+        allDates.add(p.date);
+        prices.set(p.date, p.avg_price);
+      });
+      itemPrices.set(itemId, prices);
+    });
+    
+    const sortedDates = Array.from(allDates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+    
+    const aggregated: { date: string; value: number }[] = [];
+    
+    // We need to keep track of the last known price for each item to fill gaps (forward fill)
+    const lastKnownPrices = new Map<number, number>();
+    
+    sortedDates.forEach(date => {
+      let total = 0;
+      filteredResults.forEach(({ itemId, quantity }) => {
+        const prices = itemPrices.get(itemId);
+        if (prices && prices.has(date)) {
+          lastKnownPrices.set(itemId, prices.get(date)!);
+        }
+        total += (lastKnownPrices.get(itemId) || 0) * quantity;
+      });
+      aggregated.push({ date, value: total });
+    });
+    
+    return aggregated;
+  }, [rawPortfolioData, onlyFavorites, favorites]);
 
   useEffect(() => {
     const updateChartHeight = () => {
@@ -270,7 +279,9 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
     let topGainer = { name: '', pct: -Infinity };
     let topLoser = { name: '', pct: Infinity };
     
-    list.list_items.forEach(item => {
+    const filteredItems = list.list_items.filter(item => !onlyFavorites || favorites.has(item.item_name));
+
+    filteredItems.forEach(item => {
       const qty = item.quantity || 1;
       const price = (item.last_price || 0) * qty;
       const prevUnit = item.previous_price || item.last_price || 0;
@@ -297,7 +308,7 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
       topGainer: topGainer.pct !== -Infinity ? topGainer : null,
       topLoser: topLoser.pct !== Infinity ? topLoser : null,
     };
-  }, [list]);
+  }, [list, onlyFavorites, favorites]);
 
   const handleRemoveItem = async (itemId: number) => {
     if (!listId) return;
@@ -472,7 +483,9 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
               </tr>
             </thead>
             <tbody className="text-sm">
-              {list.list_items.map((item) => (
+              {list.list_items
+                .filter(item => !onlyFavorites || favorites.has(item.item_name))
+                .map((item) => (
                 <ListDetailsTableRow 
                   key={item.item_id} 
                   item={item} 
