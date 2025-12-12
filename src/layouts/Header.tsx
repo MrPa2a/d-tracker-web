@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, Search, Bell, Server, ChevronDown, Star, X } from 'lucide-react';
+import { Menu, Search, Bell, Server, ChevronDown, Star, X, MoreVertical, Copy, List, Loader2 } from 'lucide-react';
 import { useLocation, Link } from 'react-router-dom';
-import type { ItemSummary, DateRangePreset } from '../types';
+import type { ItemSummary, DateRangePreset, Profile } from '../types';
 import { fetchItems } from '../api';
+import { ContextMenu } from '../components/ContextMenu';
+import { AddToListModal } from '../components/AddToListModal';
+import { useFavorites } from '../hooks/useFavorites';
 
 interface HeaderProps {
+  currentProfile: Profile | null;
   onToggleSidebar: () => void;
   servers: string[];
   selectedServer: string | null;
@@ -27,6 +31,7 @@ const RANGE_LABELS: Record<DateRangePreset, string> = {
 };
 
 export const Header: React.FC<HeaderProps> = ({
+  currentProfile,
   onToggleSidebar,
   servers,
   selectedServer,
@@ -41,11 +46,15 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleOnlyFavorites
 }) => {
   const location = useLocation();
+  const { favorites, toggleFavorite, pendingFavorites } = useFavorites(currentProfile);
   const [searchQuery, setSearchQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [searchResults, setSearchResults] = useState<ItemSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ItemSummary } | null>(null);
+  const [itemToAddToList, setItemToAddToList] = useState<ItemSummary | null>(null);
 
   const [isServerDropdownOpen, setIsServerDropdownOpen] = useState(false);
   const serverDropdownRef = useRef<HTMLDivElement>(null);
@@ -58,10 +67,13 @@ export const Header: React.FC<HeaderProps> = ({
   // Close search results when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      const target = event.target as Element;
+      const isContextMenuClick = target.closest('[data-context-menu="true"]');
+
+      if (searchRef.current && !searchRef.current.contains(target) && !isContextMenuClick) {
         setShowResults(false);
       }
-      if (serverDropdownRef.current && !serverDropdownRef.current.contains(event.target as Node)) {
+      if (serverDropdownRef.current && !serverDropdownRef.current.contains(target)) {
         setIsServerDropdownOpen(false);
       }
     };
@@ -201,16 +213,18 @@ export const Header: React.FC<HeaderProps> = ({
             ) : searchResults.length > 0 ? (
               <div className="py-2">
                 {searchResults.map((item) => (
-                  <Link 
+                  <div 
                     key={`${item.server}-${item.item_name}`}
-                    to={`/item/${item.server}/${encodeURIComponent(item.item_name)}`}
-                    onClick={() => {
-                      setSearchQuery('');
-                      setShowResults(false);
-                    }}
-                    className="px-4 py-3 hover:bg-white/5 cursor-pointer flex items-center justify-between group transition-colors border-b border-white/5 last:border-0 no-underline"
+                    className="px-4 py-3 hover:bg-white/5 cursor-pointer flex items-center justify-between group transition-colors border-b border-white/5 last:border-0"
                   >
-                    <div className="flex items-center gap-3">
+                    <Link 
+                      to={`/item/${item.server}/${encodeURIComponent(item.item_name)}`}
+                      onClick={() => {
+                        setSearchQuery('');
+                        setShowResults(false);
+                      }}
+                      className="flex items-center gap-3 flex-1 no-underline"
+                    >
                       <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-xs font-bold text-gray-500 group-hover:text-gray-300 transition-colors">
                         {item.item_name.charAt(0).toUpperCase()}
                       </div>
@@ -219,7 +233,7 @@ export const Header: React.FC<HeaderProps> = ({
                           {item.item_name}
                         </div>
                         <div className="text-xs text-gray-500 flex items-center gap-2">
-                          <span>{item.server}</span>
+                          <span>{item.ankama_id ? `GID: ${item.ankama_id}` : item.server}</span>
                           {item.category && (
                             <>
                               <span className="w-1 h-1 rounded-full bg-gray-600"></span>
@@ -228,8 +242,18 @@ export const Header: React.FC<HeaderProps> = ({
                           )}
                         </div>
                       </div>
-                    </div>
-                  </Link>
+                    </Link>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setContextMenu({ x: e.clientX, y: e.clientY, item });
+                        }}
+                        className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                        <MoreVertical size={16} />
+                    </button>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -305,6 +329,55 @@ export const Header: React.FC<HeaderProps> = ({
           ))}
         </div>
       </div>
+
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          actions={[
+            {
+              label: favorites.has(contextMenu.item.item_name) ? 'Retirer des favoris' : 'Ajouter aux favoris',
+              icon: pendingFavorites?.has(contextMenu.item.item_name) ? (
+                <Loader2 size={16} className="animate-spin text-accent-primary" />
+              ) : (
+                <Star size={16} className={favorites.has(contextMenu.item.item_name) ? "text-yellow-400" : ""} fill={favorites.has(contextMenu.item.item_name) ? "currentColor" : "none"} />
+              ),
+              onClick: () => {
+                if (!pendingFavorites?.has(contextMenu.item.item_name)) {
+                    toggleFavorite(contextMenu.item.item_name);
+                }
+                setContextMenu(null);
+              },
+              disabled: pendingFavorites?.has(contextMenu.item.item_name)
+            },
+            {
+              label: 'Ajouter à une liste',
+              icon: <List size={16} />,
+              onClick: () => {
+                setItemToAddToList(contextMenu.item);
+                setContextMenu(null);
+              }
+            },
+            {
+              label: 'Copier le nom',
+              icon: <Copy size={16} />,
+              onClick: () => {
+                navigator.clipboard.writeText(contextMenu.item.item_name);
+                setContextMenu(null);
+              }
+            }
+          ]}
+        />
+      )}
+
+      {itemToAddToList && (
+        <AddToListModal
+          item={itemToAddToList}
+          currentProfile={currentProfile}
+          onClose={() => setItemToAddToList(null)}
+        />
+      )}
     </header>
   );
 };

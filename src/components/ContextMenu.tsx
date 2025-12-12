@@ -62,6 +62,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, actions, onClose
   return createPortal(
     <div
       ref={menuRef}
+      data-context-menu="true"
       className="fixed z-50 min-w-40 bg-bg-secondary border border-border-normal rounded-lg shadow-xl py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
       onContextMenu={(e) => e.preventDefault()}
     >

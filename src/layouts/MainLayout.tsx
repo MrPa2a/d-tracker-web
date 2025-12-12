@@ -48,6 +48,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       
       <div className="flex-1 flex flex-col min-w-0 md:pl-64 transition-all duration-200">
         <Header 
+          currentProfile={currentProfile}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           servers={servers}
           selectedServer={selectedServer}

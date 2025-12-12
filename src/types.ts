@@ -3,6 +3,7 @@
 export interface ItemSummary {
   id: number;
   item_name: string;
+  ankama_id?: number;
   server: string;
   last_observation_at: string; // ISO string
   last_price: number;

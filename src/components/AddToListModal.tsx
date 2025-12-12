@@ -20,8 +20,12 @@ export const AddToListModal: React.FC<AddToListModalProps> = ({ item, currentPro
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-bg-secondary p-6 rounded-lg w-full max-w-sm border border-border-normal" onClick={e => e.stopPropagation()}>
+    <div 
+      className="fixed inset-0 flex items-start justify-center z-50 pt-32" 
+      onClick={onClose}
+      data-context-menu="true"
+    >
+      <div className="bg-bg-secondary p-6 rounded-lg w-full max-w-sm border border-border-normal shadow-2xl" onClick={e => e.stopPropagation()}>
         <h3 className="text-lg font-bold text-text-primary mb-4">Ajouter {item.item_name} à une liste</h3>
         <div className="space-y-2 max-h-60 overflow-y-auto">
           {myLists.map(list => (
