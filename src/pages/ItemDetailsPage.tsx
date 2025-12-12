@@ -65,6 +65,15 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
     navigate('/');
   };
 
+  const handleItemUpdate = (oldName: string, newName: string, server: string, newCategory: string) => {
+    if (onItemUpdate) {
+      onItemUpdate(oldName, newName, server, newCategory);
+    }
+    if (oldName !== newName) {
+      navigate(`/item/${server}/${encodeURIComponent(newName)}`, { replace: true });
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <PriceChart
@@ -78,7 +87,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
         onToggleFavorite={onToggleFavorite}
         onRefresh={handleRefresh}
         onBackToDashboard={handleBack}
-        onItemUpdate={onItemUpdate}
+        onItemUpdate={handleItemUpdate}
         currentProfile={currentProfile}
       />
     </div>
