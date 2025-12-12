@@ -321,6 +321,11 @@ export const PriceChart: React.FC<PriceChartProps> = ({
             )}
           </div>
           <div className="flex items-center gap-2 mt-1">
+            {selectedItem.ankama_id && (
+              <span className="text-xs font-medium text-text-muted bg-bg-tertiary px-2 py-0.5 rounded-full border border-border-subtle">
+                GID: {selectedItem.ankama_id}
+              </span>
+            )}
             {statsLoading && !selectedItem.category ? (
               <span className="text-xs font-medium text-text-muted bg-bg-tertiary px-2 py-0.5 rounded-full border border-border-subtle animate-pulse">
                 -

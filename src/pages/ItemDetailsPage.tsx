@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PriceChart } from '../components/PriceChart';
 import { useTimeseries } from '../hooks/useTimeseries';
 import { fetchItems } from '../api';
@@ -27,6 +27,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
 }) => {
   const { server, itemName } = useParams<{ server: string; itemName: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
   const { data: timeseries, isLoading: loading, error: queryError, refetch } = useTimeseries(
     itemName || '',
@@ -71,7 +72,12 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
     if (onItemUpdate) {
       onItemUpdate(oldName, newName, server, newCategory);
     }
+
+    // Invalidate local item details query to ensure UI updates immediately
+    queryClient.invalidateQueries({ queryKey: ['item-details', server, oldName] });
+
     if (oldName !== newName) {
+      queryClient.invalidateQueries({ queryKey: ['item-details', server, newName] });
       navigate(`/item/${server}/${encodeURIComponent(newName)}`, { replace: true });
     }
   };
