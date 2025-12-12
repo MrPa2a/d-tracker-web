@@ -1,9 +1,9 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, TrendingUp, TrendingDown, MoreVertical, Star, Trash2, Copy} from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, MoreVertical, Star, Trash2, Copy, Loader2 } from 'lucide-react';
 import { fetchListDetails, fetchTimeseries, removeItemFromList, updateItemInList } from '../api';
-import type { DateRangePreset, TimeseriesPoint, Profile, List } from '../types';
+import type { DateRangePreset, TimeseriesPoint, List } from '../types';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -22,8 +22,8 @@ type ListItem = List['list_items'][0];
 
 interface ListDetailsPageProps {
   dateRange: DateRangePreset;
-  currentProfile: Profile | null;
   favorites: Set<string>;
+  pendingFavorites?: Set<string>;
   onToggleFavorite: (key: string) => void;
   onlyFavorites: boolean;
 }
@@ -31,11 +31,12 @@ interface ListDetailsPageProps {
 const ListDetailsTableRow: React.FC<{
   item: ListItem;
   favorites: Set<string>;
+  pendingFavorites?: Set<string>;
   onToggleFavorite: (key: string) => void;
   dateRange: DateRangePreset;
   onContextMenu: (e: React.MouseEvent, item: ListItem) => void;
   onUpdateQuantity: (itemId: number, quantity: number) => void;
-}> = ({ item, favorites, onToggleFavorite, dateRange, onContextMenu, onUpdateQuantity }) => {
+}> = ({ item, favorites, pendingFavorites, onToggleFavorite, dateRange, onContextMenu, onUpdateQuantity }) => {
   const { data: ts } = useTimeseries(item.item_name, item.server || 'Hell Mina', dateRange);
   const [localQuantity, setLocalQuantity] = useState(item.quantity || 1);
   const [prevQuantity, setPrevQuantity] = useState(item.quantity || 1);
@@ -71,6 +72,8 @@ const ListDetailsTableRow: React.FC<{
     return { avg, lastDate, evolution };
   }, [ts, item.last_price, item.previous_price]);
 
+  const isPending = pendingFavorites?.has(item.item_name);
+
   return (
     <tr 
       className="hover:bg-white/5 transition-colors cursor-pointer group border-b border-white/5 last:border-0"
@@ -89,13 +92,18 @@ const ListDetailsTableRow: React.FC<{
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onToggleFavorite(item.item_name);
+            if (!isPending) onToggleFavorite(item.item_name);
           }}
+          disabled={isPending}
           className={`p-1.5 rounded-full hover:bg-white/10 transition-colors ${
             favorites.has(item.item_name) ? 'text-yellow-400 opacity-100' : 'text-gray-600 opacity-0 group-hover:opacity-100'
           }`}
         >
-          <Star size={16} fill={favorites.has(item.item_name) ? "currentColor" : "none"} />
+          {isPending ? (
+            <Loader2 size={16} className="animate-spin text-accent-primary" />
+          ) : (
+            <Star size={16} fill={favorites.has(item.item_name) ? "currentColor" : "none"} />
+          )}
         </button>
       </td>
       <td className="px-4 py-3 w-32">
@@ -166,7 +174,7 @@ const ListDetailsTableRow: React.FC<{
   );
 };
 
-const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites, onToggleFavorite, onlyFavorites }) => {
+const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites, pendingFavorites, onToggleFavorite, onlyFavorites }) => {
   const { listId } = useParams<{ listId: string }>();
   const navigate = useNavigate();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ListItem } | null>(null);
@@ -490,6 +498,7 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
                   key={item.item_id} 
                   item={item} 
                   favorites={favorites}
+                  pendingFavorites={pendingFavorites}
                   onToggleFavorite={onToggleFavorite}
                   dateRange={dateRange}
                   onContextMenu={handleContextMenu}

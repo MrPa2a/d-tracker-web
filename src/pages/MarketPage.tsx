@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import type { ItemSummary, SortType, SortOrder, Category, DateRangePreset } from '../types';
 import { useTimeseries } from '../hooks/useTimeseries';
 import kamaIcon from '../assets/kama.png';
-import { Star, StarOff, Search, Filter, X, ChevronDown, ChevronUp, LayoutGrid, List, MoreVertical, Copy } from 'lucide-react';
+import { Star, StarOff, Search, Filter, X, ChevronDown, ChevronUp, LayoutGrid, List, MoreVertical, Copy, Loader2 } from 'lucide-react';
 import { SmallSparkline } from '../components/Sparkline';
 import { ContextMenu } from '../components/ContextMenu';
 import { useLists } from '../hooks/useLists';
@@ -14,6 +14,7 @@ interface MarketPageProps {
   loading: boolean;
   error: string | null;
   favorites: Set<string>;
+  pendingFavorites?: Set<string>;
   onToggleFavorite: (key: string) => void;
   sortType: SortType;
   sortOrder: SortOrder;
@@ -33,10 +34,11 @@ interface MarketPageProps {
 const MarketGridCard: React.FC<{
   item: ItemSummary;
   favorites: Set<string>;
+  pendingFavorites?: Set<string>;
   onToggleFavorite: (key: string) => void;
   dateRange: DateRangePreset;
   onContextMenu: (e: React.MouseEvent, item: ItemSummary) => void;
-}> = ({ item, favorites, onToggleFavorite, dateRange, onContextMenu }) => {
+}> = ({ item, favorites, pendingFavorites, onToggleFavorite, dateRange, onContextMenu }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { data: ts, isLoading: loadingTs } = useTimeseries(item.item_name, item.server, dateRange, {
     enabled: isExpanded,
@@ -54,6 +56,8 @@ const MarketGridCard: React.FC<{
     if (first === 0) return 0;
     return ((last - first) / first) * 100;
   }, [ts]);
+
+  const isPending = pendingFavorites?.has(item.item_name);
 
   return (
     <div 
@@ -78,13 +82,18 @@ const MarketGridCard: React.FC<{
             <button
                 onClick={(e) => {
                 e.stopPropagation();
-                onToggleFavorite(item.item_name);
+                if (!isPending) onToggleFavorite(item.item_name);
                 }}
+                disabled={isPending}
                 className={`p-1.5 rounded-full hover:bg-white/10 transition-opacity ${
                 favorites.has(item.item_name) ? 'text-yellow-400 opacity-100' : 'text-gray-400 opacity-0 group-hover:opacity-100'
                 }`}
             >
-                <Star size={16} fill={favorites.has(item.item_name) ? "currentColor" : "none"} />
+                {isPending ? (
+                  <Loader2 size={16} className="animate-spin text-accent-primary" />
+                ) : (
+                  <Star size={16} fill={favorites.has(item.item_name) ? "currentColor" : "none"} />
+                )}
             </button>
         </div>
 
@@ -157,11 +166,12 @@ const MarketGridCard: React.FC<{
 const MarketTableRow: React.FC<{
   item: ItemSummary;
   favorites: Set<string>;
+  pendingFavorites?: Set<string>;
   onToggleFavorite: (key: string) => void;
   navigate: (path: string) => void;
   dateRange: DateRangePreset;
   onContextMenu: (e: React.MouseEvent, item: ItemSummary) => void;
-}> = ({ item, favorites, onToggleFavorite, navigate, dateRange, onContextMenu }) => {
+}> = ({ item, favorites, pendingFavorites, onToggleFavorite, navigate, dateRange, onContextMenu }) => {
   const { data: ts } = useTimeseries(item.item_name, item.server, dateRange);
 
   const evolution = React.useMemo(() => {
@@ -171,6 +181,8 @@ const MarketTableRow: React.FC<{
     if (first === 0) return 0;
     return ((last - first) / first) * 100;
   }, [ts]);
+
+  const isPending = pendingFavorites?.has(item.item_name);
 
   return (
     <tr 
@@ -196,14 +208,19 @@ const MarketTableRow: React.FC<{
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onToggleFavorite(item.item_name);
+            if (!isPending) onToggleFavorite(item.item_name);
           }}
+          disabled={isPending}
           onAuxClick={(e) => e.stopPropagation()}
           className={`p-1.5 rounded-full hover:bg-white/10 transition-colors ${
             favorites.has(item.item_name) ? 'text-yellow-400 opacity-100' : 'text-gray-600 opacity-0 group-hover:opacity-100'
           }`}
         >
-          <Star size={16} fill={favorites.has(item.item_name) ? "currentColor" : "none"} />
+          {isPending ? (
+            <Loader2 size={16} className="animate-spin text-accent-primary" />
+          ) : (
+            <Star size={16} fill={favorites.has(item.item_name) ? "currentColor" : "none"} />
+          )}
         </button>
       </td>
       <td className="px-4 py-3 font-medium text-gray-200">
@@ -270,6 +287,7 @@ const MarketPage: React.FC<MarketPageProps> = ({
   loading,
   error,
   favorites,
+  pendingFavorites,
   onToggleFavorite,
   sortType,
   sortOrder,
@@ -510,6 +528,7 @@ const MarketPage: React.FC<MarketPageProps> = ({
               key={`${item.server}-${item.item_name}`}
               item={item}
               favorites={favorites}
+              pendingFavorites={pendingFavorites}
               onToggleFavorite={onToggleFavorite}
               dateRange={dateRange}
               onContextMenu={handleContextMenu}
@@ -538,6 +557,7 @@ const MarketPage: React.FC<MarketPageProps> = ({
                     key={`${item.server}-${item.item_name}`}
                     item={item}
                     favorites={favorites}
+                    pendingFavorites={pendingFavorites}
                     onToggleFavorite={onToggleFavorite}
                     navigate={navigate}
                     dateRange={dateRange}
@@ -558,8 +578,9 @@ const MarketPage: React.FC<MarketPageProps> = ({
           actions={[
             {
               label: favorites.has(contextMenu.item.item_name) ? 'Retirer des favoris' : 'Ajouter aux favoris',
-              icon: favorites.has(contextMenu.item.item_name) ? <StarOff size={16} /> : <Star size={16} />,
+              icon: pendingFavorites?.has(contextMenu.item.item_name) ? <Loader2 size={16} className="animate-spin" /> : (favorites.has(contextMenu.item.item_name) ? <StarOff size={16} /> : <Star size={16} />),
               onClick: () => onToggleFavorite && onToggleFavorite(contextMenu.item.item_name),
+              disabled: pendingFavorites?.has(contextMenu.item.item_name)
             },
             {
               label: 'Ajouter à une liste',

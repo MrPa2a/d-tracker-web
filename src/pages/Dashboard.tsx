@@ -7,7 +7,7 @@ import { fetchTimeseries } from '../api';
 import { useMovers, useVolatilityRankings, useOpportunities, useSellOpportunities, useMarketIndex } from '../hooks/useMarketData';
 import kamaIcon from '../assets/kama.png';
 import { SmallSparkline } from '../components/Sparkline';
-import { MoreVertical, Star, StarOff, Copy, List } from 'lucide-react';
+import { MoreVertical, Star, StarOff, Copy, List, Loader2 } from 'lucide-react';
 import { ContextMenu } from '../components/ContextMenu';
 import { AddToListModal } from '../components/AddToListModal';
 import { useLists } from '../hooks/useLists';
@@ -16,6 +16,7 @@ interface DashboardProps {
   items: ItemSummary[];
   favorites: Set<string>;
   favoritesLoading?: boolean;
+  pendingFavorites?: Set<string>;
   onNavigateToItem: (item: ItemSummary) => void;
   onToggleFavorite: (itemName: string) => void;
   server: string | null;
@@ -31,10 +32,11 @@ const DashboardRow: React.FC<{
   ts: TimeseriesPoint[] | null;
   onNavigate: () => void;
   isFavorite: boolean;
+  isPending?: boolean;
   onToggleFavorite: (itemName: string) => void;
   metric: React.ReactNode;
   onContextMenu: (e: React.MouseEvent, item: ItemSummary) => void;
-}> = ({ item, ts, onNavigate, isFavorite, onToggleFavorite, metric, onContextMenu }) => {
+}> = ({ item, ts, onNavigate, isFavorite, isPending, onToggleFavorite, metric, onContextMenu }) => {
   return (
     <li className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_6rem_7rem] gap-4 items-center p-2 rounded-lg bg-bg-tertiary/10 border border-transparent hover:border-border-normal hover:bg-bg-tertiary/30 transition-all duration-200">
       <div className="flex items-center gap-2 min-w-0 relative group">
@@ -61,11 +63,16 @@ const DashboardRow: React.FC<{
                 `}
                 onClick={(e) => {
                 e.stopPropagation();
-                onToggleFavorite(item.item_name);
+                if (!isPending) onToggleFavorite(item.item_name);
                 }}
                 title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                disabled={isPending}
             >
-                {isFavorite ? <Star size={14} fill="currentColor" /> : <Star size={14} />}
+                {isPending ? (
+                  <Loader2 size={14} className="animate-spin text-text-muted" />
+                ) : (
+                  isFavorite ? <Star size={14} fill="currentColor" /> : <Star size={14} />
+                )}
             </button>
             <button
                 className="text-text-muted hover:text-text-primary p-0.5 rounded hover:bg-bg-tertiary"
@@ -99,6 +106,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   items,
   favorites,
   favoritesLoading = false,
+  pendingFavorites,
   onNavigateToItem,
   onToggleFavorite,
   server,
@@ -426,6 +434,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   ts={ts}
                   onNavigate={() => onNavigateToItem(it)}
                   isFavorite={favorites.has(it.item_name)}
+                  isPending={pendingFavorites?.has(it.item_name)}
                   onToggleFavorite={onToggleFavorite}
                   onContextMenu={handleContextMenu}
                   metric={hasEvolution ? (
@@ -481,6 +490,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     }
                   }}
                   isFavorite={favorites.has(m.item_name)}
+                  isPending={pendingFavorites?.has(m.item_name)}
                   onToggleFavorite={onToggleFavorite}
                   onContextMenu={handleContextMenu}
                   metric={<div className="text-sm font-bold text-accent-danger">+{m.pct_change.toFixed(1)}%</div>}
@@ -532,6 +542,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     }
                   }}
                   isFavorite={favorites.has(m.item_name)}
+                  isPending={pendingFavorites?.has(m.item_name)}
                   onToggleFavorite={onToggleFavorite}
                   onContextMenu={handleContextMenu}
                   metric={<div className="text-sm font-bold text-accent-success">{m.pct_change.toFixed(1)}%</div>}
@@ -587,6 +598,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     }
                   }}
                   isFavorite={favorites.has(v.item_name)}
+                  isPending={pendingFavorites?.has(v.item_name)}
                   onToggleFavorite={onToggleFavorite}
                   onContextMenu={handleContextMenu}
                   metric={<div className="text-sm font-bold text-accent-warning">{(v.volatility).toFixed(1)}%</div>}
@@ -639,6 +651,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     }
                   }}
                   isFavorite={favorites.has(v.item_name)}
+                  isPending={pendingFavorites?.has(v.item_name)}
                   onToggleFavorite={onToggleFavorite}
                   onContextMenu={handleContextMenu}
                   metric={<div className="text-sm font-bold text-accent-success">{(v.volatility).toFixed(1)}%</div>}
@@ -773,8 +786,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
           actions={[
             {
               label: favorites.has(contextMenu.item.item_name) ? 'Retirer des favoris' : 'Ajouter aux favoris',
-              icon: favorites.has(contextMenu.item.item_name) ? <StarOff size={16} /> : <Star size={16} />,
+              icon: pendingFavorites?.has(contextMenu.item.item_name) ? <Loader2 size={16} className="animate-spin" /> : (favorites.has(contextMenu.item.item_name) ? <StarOff size={16} /> : <Star size={16} />),
               onClick: () => onToggleFavorite && onToggleFavorite(contextMenu.item.item_name),
+              disabled: pendingFavorites?.has(contextMenu.item.item_name)
             },
             {
               label: 'Ajouter à une liste',

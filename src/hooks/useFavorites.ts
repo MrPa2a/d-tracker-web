@@ -25,6 +25,7 @@ export function useFavorites(currentProfile: Profile | null) {
 
   const favorites = currentProfile ? new Set(profileFavorites || []) : localFavorites;
   const loading = currentProfile ? profileFavoritesLoading : false;
+  const [pendingFavorites, setPendingFavorites] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!currentProfile) {
@@ -35,11 +36,22 @@ export function useFavorites(currentProfile: Profile | null) {
 
   const toggleFavorite = async (itemName: string) => {
     if (currentProfile) {
+      setPendingFavorites(prev => new Set(prev).add(itemName));
       const isAdding = !favorites.has(itemName);
-      if (isAdding) {
-        addMutation.mutate({ profileId: currentProfile.id, itemName });
-      } else {
-        removeMutation.mutate({ profileId: currentProfile.id, itemName });
+      try {
+        if (isAdding) {
+          await addMutation.mutateAsync({ profileId: currentProfile.id, itemName });
+        } else {
+          await removeMutation.mutateAsync({ profileId: currentProfile.id, itemName });
+        }
+      } catch (err) {
+        console.error('Failed to toggle favorite', err);
+      } finally {
+        setPendingFavorites(prev => {
+          const next = new Set(prev);
+          next.delete(itemName);
+          return next;
+        });
       }
     } else {
       setLocalFavorites(prev => {
@@ -54,5 +66,5 @@ export function useFavorites(currentProfile: Profile | null) {
     }
   };
 
-  return { favorites, loading, toggleFavorite };
+  return { favorites, loading, toggleFavorite, pendingFavorites };
 }

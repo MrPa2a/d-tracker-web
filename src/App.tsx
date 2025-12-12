@@ -68,7 +68,7 @@ const App: React.FC = () => {
     }
   }, [currentProfile]);
 
-  const { favorites, loading: favoritesLoading, toggleFavorite } = useFavorites(currentProfile);
+  const { favorites, loading: favoritesLoading, toggleFavorite, pendingFavorites } = useFavorites(currentProfile);
 
   // Derived state
   const servers = useMemo(() => {
@@ -180,6 +180,7 @@ const App: React.FC = () => {
               loading={itemsLoading}
               error={itemsError ? (itemsError instanceof Error ? itemsError.message : String(itemsError)) : null}
               favorites={favorites}
+              pendingFavorites={pendingFavorites}
               onToggleFavorite={toggleFavorite}
               sortType={sortType}
               sortOrder={sortOrder}
@@ -207,6 +208,7 @@ const App: React.FC = () => {
               items={items}
               dateRange={dateRange}
               favorites={favorites}
+              pendingFavorites={pendingFavorites}
               onToggleFavorite={toggleFavorite}
               onItemUpdate={handleItemUpdate}
               currentProfile={currentProfile}
@@ -227,8 +229,8 @@ const App: React.FC = () => {
           element={
             <ListDetailsPage 
               dateRange={dateRange}
-              currentProfile={currentProfile}
               favorites={favorites}
+              pendingFavorites={pendingFavorites}
               onToggleFavorite={toggleFavorite}
               onlyFavorites={onlyFavorites}
             />

@@ -6,6 +6,7 @@ interface ContextMenuAction {
   icon?: React.ReactNode;
   onClick: () => void;
   danger?: boolean;
+  disabled?: boolean;
 }
 
 interface ContextMenuProps {
@@ -67,15 +68,19 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, actions, onClose
       {actions.map((action, index) => (
         <button
           key={index}
+          disabled={action.disabled}
           className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors
-            ${action.danger 
-              ? 'text-accent-danger hover:bg-accent-danger/10' 
-              : 'text-text-primary hover:bg-accent-primary/10 hover:text-accent-primary'
+            ${action.disabled ? 'opacity-50 cursor-not-allowed text-text-muted' : 
+              action.danger 
+                ? 'text-accent-danger hover:bg-accent-danger/10' 
+                : 'text-text-primary hover:bg-accent-primary/10 hover:text-accent-primary'
             }
           `}
           onClick={() => {
-            action.onClick();
-            onClose();
+            if (!action.disabled) {
+              action.onClick();
+              onClose();
+            }
           }}
         >
           {action.icon && <span className="w-4 h-4">{action.icon}</span>}

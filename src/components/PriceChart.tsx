@@ -4,7 +4,7 @@ import type { DateRangePreset, ItemSummary, TimeseriesPoint, ItemStats, Profile 
 import { fetchItemStats } from '../api';
 import { EditItemModal } from './EditItemModal';
 import { ContextMenu } from './ContextMenu';
-import { MoreVertical, Star, Copy, List } from 'lucide-react';
+import { MoreVertical, Star, Copy, List, Loader2 } from 'lucide-react';
 import { useLists } from '../hooks/useLists';
 import kamaIcon from '../assets/kama.png';
 import {
@@ -29,6 +29,7 @@ interface PriceChartProps {
   refreshTrigger?: number;
   onBackToDashboard?: () => void;
   favorites?: Set<string>;
+  pendingFavorites?: Set<string>;
   onToggleFavorite?: (key: string) => void;
   onItemUpdate?: (oldName: string, newName: string, server: string, newCategory: string) => void;
   currentProfile?: Profile | null;
@@ -87,6 +88,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
   refreshTrigger = 0,
   onBackToDashboard,
   favorites = new Set<string>(),
+  pendingFavorites,
   onToggleFavorite,
   onItemUpdate,
   currentProfile,
@@ -258,10 +260,19 @@ export const PriceChart: React.FC<PriceChartProps> = ({
             {onToggleFavorite && (
               <button
                 className={`text-2xl leading-none bg-transparent border-none cursor-pointer transition-colors ${favorites.has(selectedItem.item_name) ? 'text-accent-warning' : 'text-text-muted hover:text-accent-warning'}`}
-                onClick={() => onToggleFavorite(selectedItem.item_name)}
+                onClick={() => {
+                  if (!pendingFavorites?.has(selectedItem.item_name)) {
+                    onToggleFavorite(selectedItem.item_name);
+                  }
+                }}
+                disabled={pendingFavorites?.has(selectedItem.item_name)}
                 title={favorites.has(selectedItem.item_name) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
               >
-                {favorites.has(selectedItem.item_name) ? '★' : '☆'}
+                {pendingFavorites?.has(selectedItem.item_name) ? (
+                  <Loader2 size={24} className="animate-spin text-accent-primary" />
+                ) : (
+                  favorites.has(selectedItem.item_name) ? '★' : '☆'
+                )}
               </button>
             )}
             <button
@@ -481,8 +492,9 @@ export const PriceChart: React.FC<PriceChartProps> = ({
           actions={[
             ...(onToggleFavorite ? [{
               label: favorites?.has(contextMenu.item.item_name) ? 'Retirer des favoris' : 'Ajouter aux favoris',
-              icon: <Star size={16} className={favorites?.has(contextMenu.item.item_name) ? "fill-accent-warning text-accent-warning" : ""} />,
+              icon: pendingFavorites?.has(contextMenu.item.item_name) ? <Loader2 size={16} className="animate-spin" /> : <Star size={16} className={favorites?.has(contextMenu.item.item_name) ? "fill-accent-warning text-accent-warning" : ""} />,
               onClick: () => onToggleFavorite(contextMenu.item.item_name),
+              disabled: pendingFavorites?.has(contextMenu.item.item_name)
             }] : []),
             ...(contextMenu.item.id ? [{
               label: 'Ajouter à une liste...',

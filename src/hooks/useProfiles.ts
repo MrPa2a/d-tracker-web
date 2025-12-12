@@ -31,8 +31,8 @@ export function useAddProfileFavorite() {
   return useMutation({
     mutationFn: ({ profileId, itemName }: { profileId: string; itemName: string }) =>
       addProfileFavorite(profileId, itemName),
-    onSuccess: (_, { profileId }) => {
-      queryClient.invalidateQueries({ queryKey: ['profileFavorites', profileId] });
+    onSuccess: async (_, { profileId }) => {
+      await queryClient.invalidateQueries({ queryKey: ['profileFavorites', profileId] });
     },
   });
 }
@@ -42,8 +42,8 @@ export function useRemoveProfileFavorite() {
   return useMutation({
     mutationFn: ({ profileId, itemName }: { profileId: string; itemName: string }) =>
       removeProfileFavorite(profileId, itemName),
-    onSuccess: (_, { profileId }) => {
-      queryClient.invalidateQueries({ queryKey: ['profileFavorites', profileId] });
+    onSuccess: async (_, { profileId }) => {
+      await queryClient.invalidateQueries({ queryKey: ['profileFavorites', profileId] });
     },
   });
 }

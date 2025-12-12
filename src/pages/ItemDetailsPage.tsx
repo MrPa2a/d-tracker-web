@@ -10,6 +10,7 @@ interface ItemDetailsPageProps {
   items: ItemSummary[];
   dateRange: DateRangePreset;
   favorites: Set<string>;
+  pendingFavorites?: Set<string>;
   onToggleFavorite: (key: string) => void;
   onItemUpdate?: (oldName: string, newName: string, server: string, newCategory: string) => void;
   currentProfile: Profile | null;
@@ -19,6 +20,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
   items,
   dateRange,
   favorites,
+  pendingFavorites,
   onToggleFavorite,
   onItemUpdate,
   currentProfile,
@@ -84,6 +86,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
         error={error}
         dateRange={dateRange}
         favorites={favorites}
+        pendingFavorites={pendingFavorites}
         onToggleFavorite={onToggleFavorite}
         onRefresh={handleRefresh}
         onBackToDashboard={handleBack}
