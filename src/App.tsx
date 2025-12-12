@@ -1,6 +1,6 @@
 // src/App.tsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useSearchParams } from 'react-router-dom';
 import type { DateRangePreset, ItemSummary, SortType, SortOrder, Profile } from './types';
 import { MainLayout } from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
@@ -15,9 +15,58 @@ import { useFavorites } from './hooks/useFavorites';
 const DEFAULT_RANGE: DateRangePreset = '30d';
 
 const App: React.FC = () => {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Initialize state from URL params
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
+    return searchParams.get('category') || null;
+  });
   
-  const [marketSearch, setMarketSearch] = useState('');
+  const [marketSearch, setMarketSearch] = useState(() => {
+    return searchParams.get('search') || '';
+  });
+
+  const [sortType, setSortType] = useState<SortType>(() => {
+    return (searchParams.get('sortType') as SortType) || 'name';
+  });
+
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
+    return (searchParams.get('sortOrder') as SortOrder) || 'asc';
+  });
+
+  // Sync state to URL params
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    
+    if (selectedCategory) {
+      params.set('category', selectedCategory);
+    } else {
+      params.delete('category');
+    }
+
+    if (marketSearch) {
+      params.set('search', marketSearch);
+    } else {
+      params.delete('search');
+    }
+
+    if (sortType !== 'name') {
+      params.set('sortType', sortType);
+    } else {
+      params.delete('sortType');
+    }
+
+    if (sortOrder !== 'asc') {
+      params.set('sortOrder', sortOrder);
+    } else {
+      params.delete('sortOrder');
+    }
+
+    if (params.toString() !== searchParams.toString()) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [selectedCategory, marketSearch, sortType, sortOrder, searchParams, setSearchParams]);
+
   // Debounce search for API calls
   const [debouncedSearch, setDebouncedSearch] = useState(marketSearch);
   useEffect(() => {
@@ -47,9 +96,6 @@ const App: React.FC = () => {
     }
   }, [dashboardServer]);
   
-  const [sortType, setSortType] = useState<SortType>('name');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-
   // Profile state
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(() => {
     try {
