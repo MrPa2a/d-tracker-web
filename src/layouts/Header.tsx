@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, Search, Bell, Server, ChevronDown, Star, X, MoreVertical, Copy, List, Loader2 } from 'lucide-react';
+import { Menu, Search, Bell, Server, ChevronDown, Star, X, MoreVertical, Copy, List, Loader2, RefreshCw } from 'lucide-react';
 import { useLocation, Link } from 'react-router-dom';
+import { useQueryClient, useIsFetching } from '@tanstack/react-query';
 import type { ItemSummary, DateRangePreset, Profile } from '../types';
 import { fetchItems } from '../api';
 import { ContextMenu } from '../components/ContextMenu';
@@ -46,6 +47,8 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleOnlyFavorites
 }) => {
   const location = useLocation();
+  const queryClient = useQueryClient();
+  const isFetching = useIsFetching();
   const { favorites, toggleFavorite, pendingFavorites } = useFavorites(currentProfile);
   const [searchQuery, setSearchQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
@@ -180,87 +183,96 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
       
       {/* Center: Global Search */}
-      <div className="hidden md:flex items-center relative flex-1 max-w-xl mx-auto" ref={searchRef}>
-        <input 
-          type="text" 
-          placeholder="Rechercher un item..." 
-          value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            setShowResults(true);
-          }}
-          onFocus={() => setShowResults(true)}
-          className="w-full bg-bg-tertiary/50 border border-border-normal rounded-full py-1.5 pl-10 pr-4 text-sm text-text-primary focus:outline-none focus:border-accent-primary/50 transition-all"
-        />
-        {searchQuery && (
-          <button
-            type="button"
-            onClick={() => setSearchQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
-            tabIndex={-1}
-            title="Effacer la recherche"
-          >
-            <X size={16} />
-          </button>
-        )}
-        <Search className="absolute left-3 text-text-muted" size={18} />
-        
-        {/* Search Results Dropdown */}
-        {showResults && searchQuery.trim().length >= 2 && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1b1e] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 max-h-[400px] overflow-y-auto">
-            {loading ? (
-              <div className="p-4 text-center text-gray-500 text-sm">Recherche en cours...</div>
-            ) : searchResults.length > 0 ? (
-              <div className="py-2">
-                {searchResults.map((item) => (
-                  <div 
-                    key={`${item.server}-${item.item_name}`}
-                    className="px-4 py-3 hover:bg-white/5 cursor-pointer flex items-center justify-between group transition-colors border-b border-white/5 last:border-0"
-                  >
-                    <Link 
-                      to={`/item/${item.server}/${encodeURIComponent(item.item_name)}`}
-                      onClick={() => {
-                        setSearchQuery('');
-                        setShowResults(false);
-                      }}
-                      className="flex items-center gap-3 flex-1 no-underline"
+      <div className="hidden md:flex items-center gap-2 flex-1 max-w-xl mx-auto">
+        <div className="relative flex-1" ref={searchRef}>
+          <input 
+            type="text" 
+            placeholder="Rechercher un item..." 
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowResults(true);
+            }}
+            onFocus={() => setShowResults(true)}
+            className="w-full bg-bg-tertiary/50 border border-border-normal rounded-full py-1.5 pl-10 pr-4 text-sm text-text-primary focus:outline-none focus:border-accent-primary/50 transition-all"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
+              tabIndex={-1}
+              title="Effacer la recherche"
+            >
+              <X size={16} />
+            </button>
+          )}
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+          
+          {/* Search Results Dropdown */}
+          {showResults && searchQuery.trim().length >= 2 && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1b1e] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 max-h-[400px] overflow-y-auto">
+              {loading ? (
+                <div className="p-4 text-center text-gray-500 text-sm">Recherche en cours...</div>
+              ) : searchResults.length > 0 ? (
+                <div className="py-2">
+                  {searchResults.map((item) => (
+                    <div 
+                      key={`${item.server}-${item.item_name}`}
+                      className="px-4 py-3 hover:bg-white/5 cursor-pointer flex items-center justify-between group transition-colors border-b border-white/5 last:border-0"
                     >
-                      <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-xs font-bold text-gray-500 group-hover:text-gray-300 transition-colors">
-                        {item.item_name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors">
-                          {item.item_name}
-                        </div>
-                        <div className="text-xs text-gray-500 flex items-center gap-2">
-                          <span>{item.ankama_id ? `GID: ${item.ankama_id}` : item.server}</span>
-                          {item.category && (
-                            <>
-                              <span className="w-1 h-1 rounded-full bg-gray-600"></span>
-                              <span>{item.category}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </Link>
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            setContextMenu({ x: e.clientX, y: e.clientY, item });
+                      <Link 
+                        to={`/item/${item.server}/${encodeURIComponent(item.item_name)}`}
+                        onClick={() => {
+                          setSearchQuery('');
+                          setShowResults(false);
                         }}
-                        className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                        <MoreVertical size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 text-center text-gray-500 text-sm">Aucun résultat trouvé</div>
-            )}
-          </div>
-        )}
+                        className="flex items-center gap-3 flex-1 no-underline"
+                      >
+                        <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-xs font-bold text-gray-500 group-hover:text-gray-300 transition-colors">
+                          {item.item_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors">
+                            {item.item_name}
+                          </div>
+                          <div className="text-xs text-gray-500 flex items-center gap-2">
+                            <span>{item.ankama_id ? `GID: ${item.ankama_id}` : item.server}</span>
+                            {item.category && (
+                              <>
+                                <span className="w-1 h-1 rounded-full bg-gray-600"></span>
+                                <span>{item.category}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                      <button
+                          onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              setContextMenu({ x: e.clientX, y: e.clientY, item });
+                          }}
+                          className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                          <MoreVertical size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 text-center text-gray-500 text-sm">Aucun résultat trouvé</div>
+              )}
+            </div>
+          )}
+        </div>
+        <button
+          onClick={() => queryClient.invalidateQueries()}
+          className={`p-2 rounded-full bg-bg-tertiary/50 border border-border-normal text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-all ${isFetching ? 'animate-spin text-accent-primary' : ''}`}
+          title="Rafraîchir les données"
+        >
+          <RefreshCw size={18} />
+        </button>
       </div>
 
       {/* Right: Filters */}
