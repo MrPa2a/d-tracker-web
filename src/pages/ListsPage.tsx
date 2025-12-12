@@ -15,7 +15,8 @@ const ListCard: React.FC<{
   onDelete: (id: string) => void;
   onEdit: (list: List) => void;
   canDelete: boolean;
-}> = ({ list, onDelete, onEdit, canDelete }) => {
+  isDeleting?: boolean;
+}> = ({ list, onDelete, onEdit, canDelete, isDeleting }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const navigate = useNavigate();
   
@@ -31,9 +32,14 @@ const ListCard: React.FC<{
   
   return (
     <div 
-      className="bg-bg-secondary border border-border-normal rounded-lg p-4 flex flex-col gap-4 hover:border-accent-primary transition-colors group relative cursor-pointer"
+      className={`bg-bg-secondary border border-border-normal rounded-lg p-4 flex flex-col gap-4 hover:border-accent-primary transition-colors group relative cursor-pointer ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}
       onClick={() => navigate(`/lists/${list.id}`)}
     >
+      {isDeleting && (
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-bg-secondary/50 rounded-lg">
+            <Loader2 className="animate-spin text-accent-danger" size={32} />
+        </div>
+      )}
       <div className="flex justify-between items-start">
         <div className="group/title">
           <h3 className="text-lg font-bold text-text-primary flex items-center gap-2 group-hover/title:text-accent-primary transition-colors">
@@ -142,6 +148,9 @@ export const ListsPage: React.FC<ListsPageProps> = ({ currentProfile, dateRange 
     }
   };
 
+  // Keep track of the list being deleted to show loading state on the specific card
+  const deletingListId = isDeleting ? deleteConfirmation.listId : null;
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
@@ -167,10 +176,17 @@ export const ListsPage: React.FC<ListsPageProps> = ({ currentProfile, dateRange 
                   list={list} 
                   onDelete={handleDeleteClick}
                   onEdit={(l) => setManagingListId(l.id)}
-                  canDelete={list.profile_id === currentProfile?.id} // Only owner can delete even public lists? Or maybe admins. For now owner.
+                  canDelete={true} // Public lists are editable by everyone
+                  isDeleting={deletingListId === list.id}
               />
             ))}
-            {globalLists.length === 0 && (
+            {isCreating && newListScope === 'public' && (
+                <div className="bg-bg-secondary border border-border-normal rounded-lg p-4 flex flex-col gap-4 items-center justify-center min-h-[150px] animate-pulse">
+                    <Loader2 className="animate-spin text-accent-primary" size={32} />
+                    <span className="text-text-muted text-sm">Création de la liste...</span>
+                </div>
+            )}
+            {globalLists.length === 0 && !isCreating && (
               <p className="text-text-muted col-span-full">Aucune liste globale disponible.</p>
             )}
           </div>
@@ -191,9 +207,16 @@ export const ListsPage: React.FC<ListsPageProps> = ({ currentProfile, dateRange 
                       onDelete={handleDeleteClick}
                       onEdit={(l) => setManagingListId(l.id)}
                       canDelete={true}
+                      isDeleting={deletingListId === list.id}
                   />
               ))}
-              {customLists.length === 0 && (
+              {isCreating && newListScope === 'private' && (
+                <div className="bg-bg-secondary border border-border-normal rounded-lg p-4 flex flex-col gap-4 items-center justify-center min-h-[150px] animate-pulse">
+                    <Loader2 className="animate-spin text-accent-primary" size={32} />
+                    <span className="text-text-muted text-sm">Création de la liste...</span>
+                </div>
+              )}
+              {customLists.length === 0 && !isCreating && (
                   <p className="text-text-muted col-span-full">Vous n'avez pas encore créé de liste personnalisée.</p>
               )}
               </div>

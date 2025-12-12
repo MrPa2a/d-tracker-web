@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import type { Profile } from '../types';
-import { fetchProfiles, createProfile } from '../api';
-import { ChevronDown } from 'lucide-react';
+import { fetchProfiles, createProfile, deleteProfile } from '../api';
+import { ChevronDown, Trash2, AlertTriangle } from 'lucide-react';
 
 interface ProfileSelectorProps {
   currentProfile: Profile | null;
@@ -15,6 +16,9 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ currentProfile
   const [newProfileName, setNewProfileName] = useState('');
   const [error, setError] = useState<string | null>(null);
   
+  const [profileToDelete, setProfileToDelete] = useState<Profile | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -58,6 +62,31 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ currentProfile
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, profile: Profile) => {
+    e.stopPropagation();
+    setProfileToDelete(profile);
+    setIsDropdownOpen(false);
+  };
+
+  const confirmDelete = async () => {
+    if (!profileToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteProfile(profileToDelete.id);
+      setProfiles(profiles.filter(p => p.id !== profileToDelete.id));
+      if (currentProfile?.id === profileToDelete.id) {
+        onSelectProfile(null);
+      }
+      setProfileToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete profile', err);
+      alert('Erreur lors de la suppression du profil');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -145,20 +174,79 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ currentProfile
                 Local (Défaut)
               </button>
               {profiles.map((p) => (
-                <button
+                <div
                   key={p.id}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-white/5 transition-colors ${currentProfile?.id === p.id ? 'text-blue-400 bg-blue-500/10' : 'text-gray-200'}`}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-white/5 transition-colors group cursor-pointer ${currentProfile?.id === p.id ? 'text-blue-400 bg-blue-500/10' : 'text-gray-200'}`}
                   onClick={() => {
                     onSelectProfile(p);
                     setIsDropdownOpen(false);
                   }}
                 >
-                  {p.name}
-                </button>
+                  <span className="truncate">{p.name}</span>
+                  <button
+                    onClick={(e) => handleDeleteClick(e, p)}
+                    className="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white/10"
+                    title="Supprimer le profil"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               ))}
             </div>
           )}
         </div>
+      )}
+
+      {profileToDelete && createPortal(
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999]" onClick={() => !isDeleting && setProfileToDelete(null)}>
+          <div className="bg-bg-secondary p-6 rounded-lg w-full max-w-md border border-border-normal shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4 text-red-400">
+              <AlertTriangle size={24} />
+              <h3 className="text-lg font-bold">Supprimer le profil ?</h3>
+            </div>
+            
+            <p className="text-text-primary mb-4">
+              Vous êtes sur le point de supprimer le profil <span className="font-bold text-white">{profileToDelete.name}</span>.
+            </p>
+            
+            <div className="bg-red-500/10 border border-red-500/20 rounded p-3 mb-6">
+              <p className="text-sm text-red-200 font-medium mb-1">ATTENTION : Cette action est irréversible.</p>
+              <ul className="text-sm text-red-300 list-disc list-inside">
+                <li>Le profil sera définitivement supprimé</li>
+                <li>Toutes les listes associées seront supprimées</li>
+                <li>Tous les favoris associés seront supprimés</li>
+              </ul>
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <button 
+                onClick={() => setProfileToDelete(null)} 
+                disabled={isDeleting}
+                className="px-4 py-2 text-text-muted hover:text-text-primary disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button 
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Suppression...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} />
+                    Supprimer définitivement
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

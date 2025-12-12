@@ -85,6 +85,17 @@ export async function createProfile(name: string): Promise<Profile> {
   return res.json();
 }
 
+export async function deleteProfile(id: string): Promise<void> {
+  const res = await safeFetch(`${API_BASE}/api/profiles?id=${id}`, {
+    method: 'DELETE',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/profiles : ${res.status} ${res.statusText}`);
+  }
+}
+
 export async function fetchProfileFavorites(profileId: string): Promise<string[]> {
   const res = await safeFetch(`${API_BASE}/api/profiles?mode=favorites&profileId=${profileId}`, {
     method: 'GET',
@@ -459,6 +470,19 @@ export async function createList(name: string, scope: 'public' | 'private', prof
 
   if (!res.ok) {
     throw new Error(`Erreur API /api/lists (create) : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function updateList(id: string, updates: { name?: string, scope?: 'public' | 'private', profileId?: string }): Promise<List> {
+  const res = await safeFetch(`${API_BASE}/api/lists`, {
+    method: 'PUT',
+    headers: buildHeaders(),
+    body: JSON.stringify({ id, ...updates }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/lists (update) : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, Plus, Trash2, Search, Loader2 } from 'lucide-react';
+import { X, Plus, Trash2, Search, Loader2, Globe, AlertTriangle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import type { List, ItemSummary } from '../types';
 import { useLists } from '../hooks/useLists';
@@ -12,10 +12,11 @@ interface ManageListModalProps {
 }
 
 export const ManageListModal: React.FC<ManageListModalProps> = ({ list, onClose, currentProfileId }) => {
-  const { addItem, removeItem } = useLists(currentProfileId);
+  const { addItem, removeItem, updateList, isUpdating } = useLists(currentProfileId);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [loadingItems, setLoadingItems] = useState<Set<number>>(new Set());
+  const [showPublicConfirmation, setShowPublicConfirmation] = useState(false);
 
   // Debounce search
   useEffect(() => {
@@ -80,6 +81,14 @@ export const ManageListModal: React.FC<ManageListModalProps> = ({ list, onClose,
           return next;
         });
       }
+    });
+  };
+
+  const handleMakePublic = () => {
+    updateList({ id: list.id, updates: { scope: 'public' } }, {
+        onSuccess: () => {
+            onClose();
+        }
     });
   };
 
@@ -181,6 +190,62 @@ export const ManageListModal: React.FC<ManageListModalProps> = ({ list, onClose,
             </div>
           </div>
         </div>
+
+        {list.scope === 'private' && (
+            <div className="mt-6 pt-4 border-t border-border-normal">
+                {!showPublicConfirmation ? (
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2 text-yellow-500/80 text-sm">
+                            <AlertTriangle size={16} />
+                            <span>Liste privée liée au profil</span>
+                        </div>
+                        <button
+                            onClick={() => setShowPublicConfirmation(true)}
+                            disabled={isUpdating}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded text-sm transition-colors disabled:opacity-50"
+                        >
+                            <Globe size={16} />
+                            Rendre publique
+                        </button>
+                    </div>
+                ) : (
+                    <div className="bg-blue-500/10 border border-blue-500/20 rounded p-3 animate-[fadeIn_0.2s_ease-out]">
+                        <div className="flex items-start gap-3 mb-3">
+                            <Globe className="text-blue-400 shrink-0 mt-0.5" size={18} />
+                            <div>
+                                <h4 className="text-sm font-bold text-blue-100 mb-1">Rendre cette liste publique ?</h4>
+                                <p className="text-xs text-blue-200/80">
+                                    Cette action est <span className="font-bold text-blue-100">irréversible</span>. La liste ne sera plus liée à votre profil et deviendra visible et modifiable par tout le monde.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setShowPublicConfirmation(false)}
+                                disabled={isUpdating}
+                                className="px-3 py-1.5 text-xs text-text-muted hover:text-text-primary transition-colors disabled:opacity-50"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={handleMakePublic}
+                                disabled={isUpdating}
+                                className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {isUpdating ? (
+                                    <>
+                                        <Loader2 className="animate-spin" size={14} />
+                                        Traitement...
+                                    </>
+                                ) : (
+                                    'Confirmer et rendre publique'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        )}
       </div>
     </div>
   );
