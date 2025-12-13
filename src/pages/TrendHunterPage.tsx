@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { fetchTrendResults, fetchCategories } from '../api';
-import type { TrendResult, Category, DateRangePreset } from '../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { fetchCategories } from '../api';
+import { useTrends } from '../hooks/useAnalysis';
+import type { Category, DateRangePreset, TrendFilters as TrendFiltersType } from '../types';
 import { Search, Filter, AlertTriangle, TrendingUp, TrendingDown, Activity, Loader2, X, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import kamaIcon from '../assets/kama.png';
 import { Link } from 'react-router-dom';
@@ -121,22 +122,13 @@ const TrendHunterPage: React.FC<TrendHunterPageProps> = ({
   favorites
 }) => {
   // Filters State
-  const [server, setServer] = useState<string>(propServer || 'Hell Mina'); 
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   
-  useEffect(() => {
-    if (propServer) {
-      setServer(propServer);
-    }
-  }, [propServer]);
-
   const [trendType, setTrendType] = useState<'bullish' | 'bearish' | 'rebound'>('bullish');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [appliedCategories, setAppliedCategories] = useState<string[]>([]);
   
   // Data State
-  const [results, setResults] = useState<TrendResult[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
 
   // Load categories on mount
@@ -154,32 +146,23 @@ const TrendHunterPage: React.FC<TrendHunterPageProps> = ({
     }
   };
 
-  const handleSearch = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchTrendResults({
-        server,
-        min_price: propMinPrice ? parseFloat(propMinPrice.replace(/\s/g, '')) : undefined,
-        max_price: propMaxPrice ? parseFloat(propMaxPrice.replace(/\s/g, '')) : undefined,
-        trend_type: trendType,
-        categories: selectedCategories,
-        limit: 50,
-        period: getDaysFromRange(dateRange),
-        filter_items: onlyFavorites ? Array.from(favorites) : undefined
-      });
-      setResults(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filters = useMemo((): TrendFiltersType => ({
+    server: propServer || 'Hell Mina',
+    min_price: propMinPrice ? parseFloat(propMinPrice.replace(/\s/g, '')) : undefined,
+    max_price: propMaxPrice ? parseFloat(propMaxPrice.replace(/\s/g, '')) : undefined,
+    trend_type: trendType,
+    categories: appliedCategories,
+    limit: 50,
+    period: getDaysFromRange(dateRange),
+    filter_items: onlyFavorites ? Array.from(favorites) : undefined
+  }), [propServer, propMinPrice, propMaxPrice, trendType, appliedCategories, dateRange, onlyFavorites, favorites]);
 
-  // Trigger search when filters change
-  useEffect(() => {
-    handleSearch();
-  }, [server, dateRange, propMinPrice, propMaxPrice, onlyFavorites, favorites, trendType]);
+  const { data: results = [], isLoading: loading, error: queryError } = useTrends(filters);
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Une erreur est survenue' : null;
+
+  const handleSearch = () => {
+    setAppliedCategories(selectedCategories);
+  };
 
   const toggleCategory = (catName: string) => {
     setSelectedCategories(prev => 

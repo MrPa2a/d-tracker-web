@@ -1,5 +1,5 @@
 // src/api.ts
-import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult } from './types';
+import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult, ScannerFilters } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
@@ -536,21 +536,6 @@ export async function removeItemFromList(listId: string, itemId: number): Promis
   if (!res.ok) {
     throw new Error(`Erreur API /api/lists (remove item) : ${res.status} ${res.statusText}`);
   }
-}
-
-export interface ScannerFilters {
-  server: string;
-  min_price?: number;
-  max_price?: number;
-  min_profit?: number;
-  min_margin?: number;
-  freshness?: number;
-  min_volatility?: number;
-  max_volatility?: number;
-  categories?: string[];
-  limit?: number;
-  period?: number;
-  filter_items?: string[];
 }
 
 export async function fetchScannerResults(filters: ScannerFilters): Promise<ScannerResult[]> {

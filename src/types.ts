@@ -118,6 +118,21 @@ export interface ScannerResult {
   days_seen: number;
 }
 
+export interface ScannerFilters {
+  server: string;
+  min_price?: number;
+  max_price?: number;
+  min_profit?: number;
+  min_margin?: number;
+  freshness?: number;
+  min_volatility?: number;
+  max_volatility?: number;
+  categories?: string[];
+  limit?: number;
+  period?: number;
+  filter_items?: string[];
+}
+
 export interface TrendFilters {
   server: string;
   min_price?: number;

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { fetchScannerResults, fetchCategories } from '../api';
+import { fetchCategories } from '../api';
+import { useScanner } from '../hooks/useAnalysis';
 import type { ScannerResult, Category, DateRangePreset } from '../types';
+import type { ScannerFilters } from '../api';
 import { Search, Filter, AlertTriangle, Clock, Activity, Loader2, X } from 'lucide-react';
 import kamaIcon from '../assets/kama.png';
 import { Link } from 'react-router-dom';
@@ -161,9 +163,6 @@ const AnalysisPage: React.FC<AnalysisPageProps> = ({
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   
   // Data State
-  const [results, setResults] = useState<ScannerResult[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
 
   // Load categories on mount
@@ -189,34 +188,32 @@ const AnalysisPage: React.FC<AnalysisPageProps> = ({
     }
   };
 
-  const handleSearch = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchScannerResults({
-        server,
-        min_price: propMinPrice ? parseFloat(propMinPrice.replace(/\s/g, '')) : undefined,
-        max_price: propMaxPrice ? parseFloat(propMaxPrice.replace(/\s/g, '')) : undefined,
-        min_profit: minProfit ? parseFloat(minProfit.replace(/\s/g, '')) : undefined,
-        min_margin: minMargin ? parseFloat(minMargin) : undefined,
-        freshness: freshness ? parseInt(freshness) : undefined,
-        max_volatility: maxVolatility ? parseFloat(maxVolatility) : undefined,
-        categories: selectedCategories,
-        limit: 50,
-        period: getDaysFromRange(dateRange),
-        filter_items: onlyFavorites ? Array.from(favorites) : undefined
-      });
-      setResults(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
-    } finally {
-      setLoading(false);
-    }
+  const buildFilters = (): ScannerFilters => ({
+    server,
+    min_price: propMinPrice ? parseFloat(propMinPrice.replace(/\s/g, '')) : undefined,
+    max_price: propMaxPrice ? parseFloat(propMaxPrice.replace(/\s/g, '')) : undefined,
+    min_profit: minProfit ? parseFloat(minProfit.replace(/\s/g, '')) : undefined,
+    min_margin: minMargin ? parseFloat(minMargin) : undefined,
+    freshness: freshness ? parseInt(freshness) : undefined,
+    max_volatility: maxVolatility ? parseFloat(maxVolatility) : undefined,
+    categories: selectedCategories,
+    limit: 50,
+    period: getDaysFromRange(dateRange),
+    filter_items: onlyFavorites ? Array.from(favorites) : undefined
+  });
+
+  const [activeFilters, setActiveFilters] = useState<ScannerFilters>(buildFilters());
+
+  const { data: results = [], isLoading: loading, error: queryError } = useScanner(activeFilters);
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Une erreur est survenue' : null;
+
+  const handleSearch = () => {
+    setActiveFilters(buildFilters());
   };
 
   // Trigger search when filters change
   useEffect(() => {
-    handleSearch();
+    setActiveFilters(buildFilters());
   }, [server, dateRange, propMinPrice, propMaxPrice, onlyFavorites, favorites]); // Add other dependencies if we want auto-search on sidebar change too
 
   const toggleCategory = (catName: string) => {
