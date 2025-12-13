@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, List, BarChart2 } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, List, BarChart2, Server, ChevronDown } from 'lucide-react';
 import { ProfileSelector } from '../components/ProfileSelector';
 import type { Profile } from '../types';
 
@@ -9,14 +9,21 @@ interface SidebarProps {
   onSelectProfile: (profile: Profile | null) => void;
   isOpen: boolean;
   onClose: () => void;
+  servers: string[];
+  selectedServer: string | null;
+  onSelectServer: (server: string | null) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentProfile,
   onSelectProfile,
   isOpen,
-  onClose
+  onClose,
+  servers,
+  selectedServer,
+  onSelectServer
 }) => {
+  const [isServerMenuOpen, setIsServerMenuOpen] = useState(false);
   const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/market', label: 'Marché', icon: ShoppingBag },
@@ -72,7 +79,49 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
 
         {/* Bottom Section */}
-        <div className="p-4 border-t border-border-normal">
+        <div className="p-4 border-t border-border-normal space-y-4">
+          {/* Mobile Server Selector */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setIsServerMenuOpen(!isServerMenuOpen)}
+              className="w-full flex items-center justify-between px-3 py-2 bg-bg-tertiary/50 border border-border-normal rounded-lg text-sm text-text-primary hover:bg-bg-tertiary transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Server size={16} className="text-accent-primary" />
+                <span className="truncate">{selectedServer || 'Tous les serveurs'}</span>
+              </div>
+              <ChevronDown size={14} className={`text-text-muted transition-transform duration-200 ${isServerMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {isServerMenuOpen && (
+              <div className="mt-2 space-y-1 pl-2 border-l-2 border-border-normal ml-2 animate-in slide-in-from-top-2">
+                <button
+                  onClick={() => {
+                    onSelectServer(null);
+                    setIsServerMenuOpen(false);
+                    onClose();
+                  }}
+                  className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${!selectedServer ? 'text-accent-primary bg-accent-primary/10 font-medium' : 'text-text-muted hover:text-text-primary'}`}
+                >
+                  Tous les serveurs
+                </button>
+                {servers.map(server => (
+                  <button
+                    key={server}
+                    onClick={() => {
+                      onSelectServer(server);
+                      setIsServerMenuOpen(false);
+                      onClose();
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${selectedServer === server ? 'text-accent-primary bg-accent-primary/10 font-medium' : 'text-text-muted hover:text-text-primary'}`}
+                  >
+                    {server}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <ProfileSelector 
             currentProfile={currentProfile} 
             onSelectProfile={onSelectProfile} 

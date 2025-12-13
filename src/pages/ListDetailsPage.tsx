@@ -174,6 +174,154 @@ const ListDetailsTableRow: React.FC<{
   );
 };
 
+const ListDetailsCard: React.FC<{
+  item: ListItem;
+  favorites: Set<string>;
+  pendingFavorites?: Set<string>;
+  onToggleFavorite: (key: string) => void;
+  dateRange: DateRangePreset;
+  onContextMenu: (e: React.MouseEvent, item: ListItem) => void;
+  onUpdateQuantity: (itemId: number, quantity: number) => void;
+}> = ({ item, favorites, pendingFavorites, onToggleFavorite, dateRange, onContextMenu, onUpdateQuantity }) => {
+  const { data: ts } = useTimeseries(item.item_name, item.server || 'Hell Mina', dateRange);
+  const [localQuantity, setLocalQuantity] = useState(item.quantity || 1);
+  const [prevQuantity, setPrevQuantity] = useState(item.quantity || 1);
+
+  if ((item.quantity || 1) !== prevQuantity) {
+    setPrevQuantity(item.quantity || 1);
+    setLocalQuantity(item.quantity || 1);
+  }
+
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value);
+    if (!isNaN(val) && val > 0) {
+      setLocalQuantity(val);
+      onUpdateQuantity(item.item_id, val);
+    }
+  };
+
+  const stats = useMemo(() => {
+    let evolution = null;
+    if (item.previous_price && item.last_price) {
+      evolution = ((item.last_price - item.previous_price) / item.previous_price) * 100;
+    }
+
+    if (!ts || ts.length === 0) return { avg: null, lastDate: null, evolution };
+    
+    const prices = ts.map(p => p.avg_price);
+    const sum = prices.reduce((a, b) => a + b, 0);
+    const avg = sum / prices.length;
+    const lastDate = ts[ts.length - 1].date;
+    
+    return { avg, lastDate, evolution };
+  }, [ts, item.last_price, item.previous_price]);
+
+  const isPending = pendingFavorites?.has(item.item_name);
+
+  return (
+    <div className="bg-[#1a1b1e] rounded-xl border border-white/5 p-4 relative">
+        <div className="flex justify-between items-start mb-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
+                <div className="w-10 h-10 rounded bg-white/5 flex items-center justify-center text-sm font-bold text-gray-600 shrink-0">
+                    {item.item_name.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                    <Link 
+                        to={`/item/${item.server}/${encodeURIComponent(item.item_name)}`}
+                        className="text-gray-200 font-medium hover:text-blue-400 block line-clamp-2"
+                        title={item.item_name}
+                    >
+                        {item.item_name}
+                    </Link>
+                    <span className="text-xs text-gray-500 truncate block">{item.category || '-'}</span>
+                </div>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+                 <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isPending) onToggleFavorite(item.item_name);
+                    }}
+                    disabled={isPending}
+                    className={`p-2 rounded-full hover:bg-white/10 transition-colors ${
+                        favorites.has(item.item_name) ? 'text-yellow-400' : 'text-gray-600'
+                    }`}
+                >
+                    {isPending ? (
+                        <Loader2 size={18} className="animate-spin text-accent-primary" />
+                    ) : (
+                        <Star size={18} fill={favorites.has(item.item_name) ? "currentColor" : "none"} />
+                    )}
+                </button>
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        onContextMenu(e, item);
+                    }}
+                    className="p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-gray-200"
+                >
+                    <MoreVertical size={18} />
+                </button>
+            </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <label className="text-xs text-gray-500 block mb-1">Quantité</label>
+                <input 
+                    type="number" 
+                    min="1"
+                    value={localQuantity}
+                    onChange={handleQuantityChange}
+                    className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500"
+                />
+            </div>
+            <div>
+                 <label className="text-xs text-gray-500 block mb-1">Prix Actuel</label>
+                 <div className="flex items-center gap-1 text-gray-200 font-medium h-[38px]">
+                    {(item.last_price || 0).toLocaleString('fr-FR')}
+                    <img src={kamaIcon} alt="kamas" className="w-3 h-3 opacity-70" />
+                 </div>
+            </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 mb-4 text-sm">
+             <div>
+                <span className="text-xs text-gray-500 block">Evolution</span>
+                {stats.evolution !== null ? (
+                  <span className={`font-medium ${stats.evolution > 0 ? 'text-rose-400' : stats.evolution < 0 ? 'text-emerald-400' : 'text-gray-400'}`}>
+                    {stats.evolution > 0 ? '+' : ''}{stats.evolution.toFixed(2)}%
+                  </span>
+                ) : (
+                  <span className="text-gray-600">-</span>
+                )}
+             </div>
+             <div>
+                <span className="text-xs text-gray-500 block">Moyenne</span>
+                <div className="flex items-center gap-1 text-gray-400">
+                  {stats.avg ? Math.round(stats.avg).toLocaleString('fr-FR') : '-'}
+                  <img src={kamaIcon} alt="kamas" className="w-3 h-3 opacity-50" />
+                </div>
+             </div>
+             <div className="text-right">
+                <span className="text-xs text-gray-500 block">MAJ</span>
+                <span className="text-xs text-gray-500">
+                    {stats.lastDate ? new Date(stats.lastDate).toLocaleDateString('fr-FR', {
+                      day: '2-digit',
+                      month: '2-digit'
+                    }) : '-'}
+                </span>
+             </div>
+        </div>
+
+        <div className="h-12 w-full bg-white/5 rounded-lg p-2">
+           <SmallSparkline data={ts || null} />
+        </div>
+    </div>
+  );
+};
+
 const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites, pendingFavorites, onToggleFavorite, onlyFavorites }) => {
   const { listId } = useParams<{ listId: string }>();
   const navigate = useNavigate();
@@ -416,7 +564,7 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
       )}
 
       {/* Chart */}
-      <div className="bg-[#1a1b1e] p-6 rounded-xl border border-white/5 h-[400px] flex flex-col">
+      <div className="bg-[#1a1b1e] p-4 md:p-6 rounded-xl border border-white/5 h-[250px] md:h-[400px] lg:h-[600px] flex flex-col">
         <h3 className="text-lg font-semibold text-gray-100 mb-4">Évolution du Portefeuille</h3>
         {historyLoading ? (
           <div className="h-full flex items-center justify-center text-gray-500">Chargement du graphique...</div>
@@ -440,6 +588,7 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
                   dy={10}
                 />
                 <YAxis 
+                  width={40}
                   stroke="#94a3b8" 
                   tickFormatter={(val) => {
                     if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
@@ -470,13 +619,36 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
         )}
       </div>
 
-      {/* Items Table */}
-      <div className="bg-[#1a1b1e] rounded-xl border border-white/5 overflow-hidden flex-shrink-0">
-        <div className="p-4 border-b border-white/5">
-          <h3 className="text-lg font-semibold text-gray-100">Détail des Items</h3>
+      {/* Items List */}
+      <div className="flex-shrink-0">
+        {/* Mobile Header */}
+        <h3 className="md:hidden text-lg font-semibold text-gray-100 mb-4 px-1">Détail des Items</h3>
+        
+        {/* Mobile Cards */}
+        <div className="md:hidden space-y-3">
+             {list.list_items
+                .filter(item => !onlyFavorites || favorites.has(item.item_name))
+                .map((item) => (
+                <ListDetailsCard 
+                  key={item.item_id} 
+                  item={item} 
+                  favorites={favorites}
+                  pendingFavorites={pendingFavorites}
+                  onToggleFavorite={onToggleFavorite}
+                  dateRange={dateRange}
+                  onContextMenu={handleContextMenu}
+                  onUpdateQuantity={handleUpdateQuantity}
+                />
+             ))}
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+
+        {/* Desktop Table Container */}
+        <div className="hidden md:block bg-[#1a1b1e] rounded-xl border border-white/5 overflow-hidden">
+            <div className="p-4 border-b border-white/5">
+                <h3 className="text-lg font-semibold text-gray-100">Détail des Items</h3>
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
             <thead>
               <tr className="text-gray-500 text-sm border-b border-white/5">
                 <th className="p-4 font-medium w-16"></th>
@@ -508,6 +680,7 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
             </tbody>
           </table>
         </div>
+      </div>
       </div>
 
       {contextMenu && (

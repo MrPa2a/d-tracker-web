@@ -93,16 +93,16 @@ export const ManageListModal: React.FC<ManageListModalProps> = ({ list, onClose,
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-bg-secondary p-6 rounded-lg w-full max-w-2xl border border-border-normal flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-text-primary">Gérer la liste : {list.name}</h2>
-          <button onClick={onClose} className="text-text-muted hover:text-text-primary">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-bg-secondary p-4 md:p-6 rounded-lg w-full max-w-2xl border border-border-normal flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4 md:mb-6">
+          <h2 className="text-lg md:text-xl font-bold text-text-primary truncate pr-4">Gérer la liste : {list.name}</h2>
+          <button onClick={onClose} className="text-text-muted hover:text-text-primary shrink-0">
             <X size={24} />
           </button>
         </div>
 
-        <div className="flex gap-6 flex-1 min-h-0">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6 flex-1 min-h-0">
           {/* Left Column: Search & Add */}
           <div className="flex-1 flex flex-col min-h-0">
             <h3 className="text-sm font-semibold text-text-muted mb-2 uppercase tracking-wider">Ajouter des objets</h3>
@@ -153,7 +153,7 @@ export const ManageListModal: React.FC<ManageListModalProps> = ({ list, onClose,
           </div>
 
           {/* Divider */}
-          <div className="w-px bg-border-normal"></div>
+          <div className="hidden md:block w-px bg-border-normal"></div>
 
           {/* Right Column: Current Items */}
           <div className="flex-1 flex flex-col min-h-0">

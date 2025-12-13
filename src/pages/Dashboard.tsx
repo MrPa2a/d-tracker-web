@@ -378,8 +378,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <p className="text-text-muted text-sm text-center py-4">Aucune donnée d'indice disponible pour cette période.</p>
       )}
 
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-bg-secondary/30 backdrop-blur-sm rounded-xl border border-border-normal p-4 flex flex-col shadow-md">
+      <section className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
+        <div className="bg-bg-secondary/30 backdrop-blur-sm rounded-xl border border-border-normal p-4 flex flex-col shadow-md md:col-span-2 2xl:col-span-1">
           <div className="flex justify-between items-center mb-4 border-b border-border-subtle pb-2">
             <h3 className="text-lg font-bold text-text-primary m-0 border-none pb-0 flex items-center gap-2">⭐ Ma liste de surveillance</h3>
             <div className="flex gap-1">

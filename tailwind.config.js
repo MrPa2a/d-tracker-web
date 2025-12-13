@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        '3xl': '1921px',
+      },
       colors: {
         bg: {
           primary: '#0f172a',

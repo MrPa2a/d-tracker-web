@@ -61,48 +61,49 @@ const MarketGridCard: React.FC<{
 
   return (
     <div 
-      className="bg-[#1a1b1e] border border-white/5 rounded-xl p-4 hover:border-blue-500/30 hover:bg-[#25262b] transition-all cursor-pointer group relative flex flex-col"
+      className="bg-[#1a1b1e] border border-white/5 rounded-xl p-4 hover:border-blue-500/30 hover:bg-[#25262b] transition-all cursor-pointer group relative flex flex-col h-full"
     >
         <Link 
             to={`/item/${item.server}/${encodeURIComponent(item.item_name)}`}
             className="absolute inset-0 z-10 rounded-xl"
         />
         
-        <div className="absolute top-3 right-3 z-20 flex items-center gap-1">
-            <button
-                onClick={(e) => {
+        <div className="mb-3 relative z-20 pointer-events-none">
+            <div className="float-right ml-2 flex items-center gap-1 pointer-events-auto">
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        onContextMenu(e, item);
+                    }}
+                    className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                    <MoreVertical size={16} />
+                </button>
+                <button
+                    onClick={(e) => {
                     e.stopPropagation();
-                    e.preventDefault();
-                    onContextMenu(e, item);
-                }}
-                className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-                <MoreVertical size={16} />
-            </button>
-            <button
-                onClick={(e) => {
-                e.stopPropagation();
-                if (!isPending) onToggleFavorite(item.item_name);
-                }}
-                disabled={isPending}
-                className={`p-1.5 rounded-full hover:bg-white/10 transition-opacity ${
-                favorites.has(item.item_name) ? 'text-yellow-400 opacity-100' : 'text-gray-400 opacity-0 group-hover:opacity-100'
-                }`}
-            >
-                {isPending ? (
-                  <Loader2 size={16} className="animate-spin text-accent-primary" />
-                ) : (
-                  <Star size={16} fill={favorites.has(item.item_name) ? "currentColor" : "none"} />
-                )}
-            </button>
-        </div>
+                    if (!isPending) onToggleFavorite(item.item_name);
+                    }}
+                    disabled={isPending}
+                    className={`p-1.5 rounded-full hover:bg-white/10 transition-opacity ${
+                    favorites.has(item.item_name) ? 'text-yellow-400 opacity-100' : 'text-gray-400 opacity-0 group-hover:opacity-100'
+                    }`}
+                >
+                    {isPending ? (
+                      <Loader2 size={16} className="animate-spin text-accent-primary" />
+                    ) : (
+                      <Star size={16} fill={favorites.has(item.item_name) ? "currentColor" : "none"} />
+                    )}
+                </button>
+            </div>
 
-        <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-lg font-bold text-gray-600 shrink-0">
+            <div className="float-left mr-3 w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-lg font-bold text-gray-600 shrink-0">
                 {item.item_name.charAt(0).toUpperCase()}
             </div>
-            <div className="min-w-0">
-                <h3 className="font-medium text-gray-200 truncate pr-6" title={item.item_name}>
+
+            <div>
+                <h3 className="font-medium text-gray-200 break-words" title={item.item_name}>
                 {item.item_name}
                 </h3>
                 {item.category && (
@@ -111,7 +112,7 @@ const MarketGridCard: React.FC<{
             </div>
         </div>
 
-        <div className="flex items-center justify-between mt-auto">
+        <div className="flex flex-wrap items-center justify-between gap-2 mt-auto">
             <div className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded text-sm font-medium text-gray-300">
                 <img src={kamaIcon} alt="kamas" className="w-3 h-3" />
                 {item.last_price?.toLocaleString('fr-FR') ?? '-'}
@@ -487,7 +488,7 @@ const MarketPage: React.FC<MarketPageProps> = ({
               Prix {sortType === 'price' && (sortOrder === 'asc' ? '↑' : '↓')}
             </button>
           </div>
-          <div className="flex gap-1 bg-[#1a1b1e] p-1 rounded-lg border border-white/10">
+          <div className="hidden md:flex gap-1 bg-[#1a1b1e] p-1 rounded-lg border border-white/10">
             <button
               onClick={() => handleViewModeChange('grid')}
               className={`p-1.5 rounded transition-colors ${
@@ -521,53 +522,75 @@ const MarketPage: React.FC<MarketPageProps> = ({
         <div className="text-center py-12 text-red-400">{error}</div>
       ) : displayedItems.length === 0 ? (
         <div className="text-center py-12 text-gray-500">Aucun item trouvé.</div>
-      ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start">
-          {displayedItems.map((item) => (
-            <MarketGridCard
-              key={`${item.server}-${item.item_name}`}
-              item={item}
-              favorites={favorites}
-              pendingFavorites={pendingFavorites}
-              onToggleFavorite={onToggleFavorite}
-              dateRange={dateRange}
-              onContextMenu={handleContextMenu}
-            />
-          ))}
-        </div>
       ) : (
-        <div className="bg-[#1a1b1e] border border-white/5 rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-gray-400">
-              <thead className="bg-white/5 text-gray-200 font-medium">
-                <tr>
-                  <th className="px-4 py-3 w-10"></th>
-                  <th className="px-4 py-3">Nom</th>
-                  <th className="px-4 py-3">Catégorie</th>
-                  <th className="px-4 py-3 w-32">Tendances</th>
-                  <th className="px-4 py-3 text-right">Evolution</th>
-                  <th className="px-4 py-3 text-right">Prix Actuel</th>
-                  <th className="px-4 py-3 text-right">Prix Moyen (30j)</th>
-                  <th className="px-4 py-3 text-right">Dernière MAJ</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
+        <>
+          {/* Mobile View: Always Grid */}
+          <div className="md:hidden grid grid-cols-1 gap-4">
+            {displayedItems.map((item) => (
+              <MarketGridCard
+                key={`${item.server}-${item.item_name}`}
+                item={item}
+                favorites={favorites}
+                pendingFavorites={pendingFavorites}
+                onToggleFavorite={onToggleFavorite}
+                dateRange={dateRange}
+                onContextMenu={handleContextMenu}
+              />
+            ))}
+          </div>
+
+          {/* Desktop View: Grid or Table */}
+          <div className="hidden md:block">
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
                 {displayedItems.map((item) => (
-                  <MarketTableRow
+                  <MarketGridCard
                     key={`${item.server}-${item.item_name}`}
                     item={item}
                     favorites={favorites}
                     pendingFavorites={pendingFavorites}
                     onToggleFavorite={onToggleFavorite}
-                    navigate={navigate}
                     dateRange={dateRange}
                     onContextMenu={handleContextMenu}
                   />
                 ))}
-              </tbody>
-            </table>
+              </div>
+            ) : (
+              <div className="bg-[#1a1b1e] border border-white/5 rounded-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm text-gray-400">
+                    <thead className="bg-white/5 text-gray-200 font-medium">
+                      <tr>
+                        <th className="px-4 py-3 w-10"></th>
+                        <th className="px-4 py-3">Nom</th>
+                        <th className="px-4 py-3">Catégorie</th>
+                        <th className="px-4 py-3 w-32">Tendances</th>
+                        <th className="px-4 py-3 text-right">Evolution</th>
+                        <th className="px-4 py-3 text-right">Prix Actuel</th>
+                        <th className="px-4 py-3 text-right">Prix Moyen (30j)</th>
+                        <th className="px-4 py-3 text-right">Dernière MAJ</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {displayedItems.map((item) => (
+                        <MarketTableRow
+                          key={`${item.server}-${item.item_name}`}
+                          item={item}
+                          favorites={favorites}
+                          pendingFavorites={pendingFavorites}
+                          onToggleFavorite={onToggleFavorite}
+                          navigate={navigate}
+                          dateRange={dateRange}
+                          onContextMenu={handleContextMenu}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        </>
       )}
       
       {contextMenu && (

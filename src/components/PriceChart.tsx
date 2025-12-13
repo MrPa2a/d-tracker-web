@@ -342,7 +342,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex gap-4 bg-bg-primary/40 p-3 rounded-xl border border-border-subtle">
+          <div className="grid grid-cols-2 sm:flex gap-4 bg-bg-primary/40 p-3 rounded-xl border border-border-subtle">
             <div className="flex flex-col">
               <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Dernier prix</span>
               <span className="text-sm md:text-base font-bold text-text-primary font-mono">
@@ -392,7 +392,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
               </span>
             </div>
           </div>
-          <div className="flex gap-4 bg-bg-primary/40 p-3 rounded-xl border border-border-subtle">
+          <div className="grid grid-cols-2 sm:flex gap-4 bg-bg-primary/40 p-3 rounded-xl border border-border-subtle">
             <div className="flex flex-col">
               <span className="text-[0.65rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Évolution</span>
               {loading ? (

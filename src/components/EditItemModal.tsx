@@ -219,7 +219,35 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
 
           <div>
             <h3 className="text-lg font-semibold text-text-primary mb-3">Historique des prix</h3>
-            <div className="overflow-x-auto max-h-[400px]">
+            
+            {/* Mobile View */}
+            <div className="md:hidden space-y-2 max-h-[400px] overflow-y-auto mb-4">
+                {editedTimeseries.map((point) => (
+                    <div key={point.id} className="bg-bg-primary border border-border-normal rounded p-3 flex justify-between items-center">
+                    <div>
+                        <div className="text-sm text-text-primary mb-1">
+                            {new Date(point.date).toLocaleString()}
+                            {point.id < 0 && <span className="ml-2 text-xs text-accent-success">(Nouveau)</span>}
+                        </div>
+                        <input
+                            type="number"
+                            value={point.avg_price}
+                            onChange={(e) => handlePriceChange(point.id, e.target.value)}
+                            className="bg-bg-secondary border border-border-normal rounded px-2 py-1 text-text-primary w-32 focus:outline-none focus:border-accent-primary text-sm"
+                        />
+                    </div>
+                    <button
+                        onClick={() => handleDelete(point.id)}
+                        className="text-text-muted hover:text-accent-danger transition-colors p-2 rounded hover:bg-accent-danger/10"
+                        title="Supprimer"
+                    >
+                        🗑
+                    </button>
+                    </div>
+                ))}
+            </div>
+
+            <div className="hidden md:block overflow-x-auto max-h-[400px]">
               <table className="w-full text-left border-collapse relative">
                 <thead>
                   <tr className="border-b border-border-normal">

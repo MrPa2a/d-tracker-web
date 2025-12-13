@@ -44,6 +44,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         onSelectProfile={onSelectProfile}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        servers={servers}
+        selectedServer={selectedServer}
+        onSelectServer={onSelectServer}
       />
       
       <div className="flex-1 flex flex-col min-w-0 md:pl-64 transition-all duration-200">
@@ -63,7 +66,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           onToggleOnlyFavorites={onToggleOnlyFavorites}
         />
         
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 max-w-[2400px] mx-auto w-full">
           <Outlet />
         </main>
       </div>
