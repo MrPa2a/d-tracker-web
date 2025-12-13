@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, List, BarChart2, Server, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { LayoutDashboard, ShoppingBag, List, BarChart2, Server, ChevronDown, ChevronRight, ScanLine } from 'lucide-react';
 import { ProfileSelector } from '../components/ProfileSelector';
 import type { Profile } from '../types';
 
@@ -23,12 +23,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
   selectedServer,
   onSelectServer
 }) => {
+  const location = useLocation();
   const [isServerMenuOpen, setIsServerMenuOpen] = useState(false);
+  const [isAnalysisOpen, setIsAnalysisOpen] = useState(true);
+
+  // Auto-open analysis menu if we are in analysis section
+  useEffect(() => {
+    if (location.pathname.startsWith('/analysis')) {
+      setIsAnalysisOpen(true);
+    }
+  }, [location.pathname]);
+
   const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/market', label: 'Marché', icon: ShoppingBag },
     { path: '/lists', label: 'Listes', icon: List },
-    { path: '/analytics', label: 'Analyses', icon: BarChart2 },
   ];
 
   return (
@@ -76,6 +85,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span className="font-medium">{item.label}</span>
             </NavLink>
           ))}
+
+          {/* Analysis Section */}
+          <div className="pt-2">
+            <button
+              onClick={() => setIsAnalysisOpen(!isAnalysisOpen)}
+              className={`
+                w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors
+                ${location.pathname.startsWith('/analysis')
+                  ? 'text-accent-primary' 
+                  : 'text-text-muted hover:bg-bg-tertiary hover:text-text-primary'}
+              `}
+            >
+              <div className="flex items-center gap-3">
+                <BarChart2 size={20} />
+                <span className="font-medium">Analyses</span>
+              </div>
+              {isAnalysisOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </button>
+
+            {isAnalysisOpen && (
+              <div className="mt-1 ml-4 pl-4 border-l border-border-normal space-y-1">
+                <NavLink
+                  to="/analysis/scanner"
+                  onClick={() => window.innerWidth < 768 && onClose()}
+                  className={({ isActive }) => `
+                    flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm
+                    ${isActive 
+                      ? 'bg-accent-primary/10 text-accent-primary' 
+                      : 'text-text-muted hover:bg-bg-tertiary hover:text-text-primary'}
+                  `}
+                >
+                  <ScanLine size={16} />
+                  <span className="font-medium">Scanner</span>
+                </NavLink>
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* Bottom Section */}

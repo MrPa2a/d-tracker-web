@@ -104,3 +104,16 @@ export interface List {
     last_observation_at?: string;
   }[];
 }
+
+export interface ScannerResult {
+  item_name: string;
+  server: string;
+  category: string;
+  current_price: number;
+  avg_price: number;
+  profit: number;
+  margin: number;
+  volatility: number;
+  last_seen_at: string;
+  days_seen: number;
+}

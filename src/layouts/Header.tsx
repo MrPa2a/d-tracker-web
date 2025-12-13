@@ -328,12 +328,13 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             
-            {/* Date Range - Always enabled */}
-            <div className="flex bg-bg-tertiary/50 rounded-lg border border-border-normal p-1">
+            {/* Date Range */}
+            <div className={`flex bg-bg-tertiary/50 rounded-lg border border-border-normal p-1 ${areListFiltersDisabled ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
               {(Object.keys(RANGE_LABELS) as DateRangePreset[]).map((range) => (
                 <button
                   key={range}
                   onClick={() => onDateRangeChange(range)}
+                  disabled={areListFiltersDisabled}
                   className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
                     dateRange === range
                       ? 'bg-accent-primary/20 text-accent-primary'

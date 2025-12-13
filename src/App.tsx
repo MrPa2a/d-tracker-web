@@ -1,6 +1,6 @@
 // src/App.tsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { Routes, Route, useNavigate, useSearchParams } from 'react-router-dom';
+import { Routes, Route, useNavigate, useSearchParams, Navigate, useLocation } from 'react-router-dom';
 import type { DateRangePreset, ItemSummary, SortType, SortOrder, Profile } from './types';
 import { MainLayout } from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
@@ -8,6 +8,7 @@ import ItemDetailsPage from './pages/ItemDetailsPage';
 import MarketPage from './pages/MarketPage';
 import ListsPage from './pages/ListsPage';
 import ListDetailsPage from './pages/ListDetailsPage';
+import MarketScannerPage from './pages/MarketScannerPage';
 import { useItems, useUpdateItem } from './hooks/useItems';
 import { useCategories } from './hooks/useCategories';
 import { useFavorites } from './hooks/useFavorites';
@@ -16,6 +17,7 @@ const DEFAULT_RANGE: DateRangePreset = '30d';
 
 const App: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
 
   // Initialize state from URL params
   const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
@@ -36,6 +38,9 @@ const App: React.FC = () => {
 
   // Sync state to URL params
   useEffect(() => {
+    // Only sync market params to URL if we are on the market page
+    if (location.pathname !== '/market') return;
+
     const params = new URLSearchParams(searchParams);
     
     if (selectedCategory) {
@@ -65,7 +70,7 @@ const App: React.FC = () => {
     if (params.toString() !== searchParams.toString()) {
       setSearchParams(params, { replace: true });
     }
-  }, [selectedCategory, marketSearch, sortType, sortOrder, searchParams, setSearchParams]);
+  }, [selectedCategory, marketSearch, sortType, sortOrder, searchParams, setSearchParams, location.pathname]);
 
   // Debounce search for API calls
   const [debouncedSearch, setDebouncedSearch] = useState(marketSearch);
@@ -282,7 +287,23 @@ const App: React.FC = () => {
             />
           } 
         />
-        <Route path="/analytics" element={<div className="text-white p-8">Analyses (À venir)</div>} />
+        <Route 
+          path="/analysis" 
+          element={<Navigate to="/analysis/scanner" replace />} 
+        />
+        <Route 
+          path="/analysis/scanner" 
+          element={
+            <MarketScannerPage 
+              server={dashboardServer} 
+              dateRange={dateRange}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
+              onlyFavorites={onlyFavorites}
+              favorites={favorites}
+            />
+          } 
+        />
       </Route>
     </Routes>
   );

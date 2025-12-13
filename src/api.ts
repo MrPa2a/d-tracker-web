@@ -1,5 +1,5 @@
 // src/api.ts
-import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List } from './types';
+import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
@@ -536,4 +536,47 @@ export async function removeItemFromList(listId: string, itemId: number): Promis
   if (!res.ok) {
     throw new Error(`Erreur API /api/lists (remove item) : ${res.status} ${res.statusText}`);
   }
+}
+
+export interface ScannerFilters {
+  server: string;
+  min_price?: number;
+  max_price?: number;
+  min_profit?: number;
+  min_margin?: number;
+  freshness?: number;
+  min_volatility?: number;
+  max_volatility?: number;
+  categories?: string[];
+  limit?: number;
+  period?: number;
+  filter_items?: string[];
+}
+
+export async function fetchScannerResults(filters: ScannerFilters): Promise<ScannerResult[]> {
+  const params = new URLSearchParams();
+  params.append('type', 'scanner');
+  params.append('server', filters.server);
+  
+  if (filters.min_price) params.append('min_price', filters.min_price.toString());
+  if (filters.max_price) params.append('max_price', filters.max_price.toString());
+  if (filters.min_profit) params.append('min_profit', filters.min_profit.toString());
+  if (filters.min_margin) params.append('min_margin', filters.min_margin.toString());
+  if (filters.freshness) params.append('freshness', filters.freshness.toString());
+  if (filters.min_volatility) params.append('min_volatility', filters.min_volatility.toString());
+  if (filters.max_volatility) params.append('max_volatility', filters.max_volatility.toString());
+  if (filters.categories && filters.categories.length > 0) params.append('categories', filters.categories.join(','));
+  if (filters.limit) params.append('limit', filters.limit.toString());
+  if (filters.period) params.append('period', filters.period.toString());
+  if (filters.filter_items && filters.filter_items.length > 0) params.append('filter_items', filters.filter_items.join(','));
+
+  const res = await safeFetch(`${API_BASE}/api/analysis?${params.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/analysis : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
 }
