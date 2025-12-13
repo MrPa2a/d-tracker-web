@@ -4,7 +4,7 @@ import { useTrends } from '../hooks/useAnalysis';
 import type { Category, DateRangePreset, TrendFilters as TrendFiltersType } from '../types';
 import { Search, Filter, AlertTriangle, TrendingUp, TrendingDown, Activity, Loader2, X, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import kamaIcon from '../assets/kama.png';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 interface TrendHunterPageProps {
   server: string | null;
@@ -121,12 +121,28 @@ const TrendHunterPage: React.FC<TrendHunterPageProps> = ({
   onlyFavorites,
   favorites
 }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   // Filters State
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   
-  const [trendType, setTrendType] = useState<'bullish' | 'bearish' | 'rebound'>('bullish');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [appliedCategories, setAppliedCategories] = useState<string[]>([]);
+  // Derived State from URL (Source of Truth)
+  const trendType = (searchParams.get('trend') as 'bullish' | 'bearish' | 'rebound') || 'bullish';
+  const appliedCategories = useMemo(() => searchParams.get('categories')?.split(',').filter(Boolean) || [], [searchParams]);
+  
+  // UI State
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(appliedCategories);
+  
+  // Sync UI with URL (for back/forward navigation)
+  useEffect(() => {
+    setSelectedCategories(appliedCategories);
+  }, [appliedCategories]);
+
+  const setTrendType = (val: 'bullish' | 'bearish' | 'rebound') => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('trend', val);
+    setSearchParams(newParams);
+  };
   
   // Data State
   const [categories, setCategories] = useState<Category[]>([]);
@@ -161,7 +177,14 @@ const TrendHunterPage: React.FC<TrendHunterPageProps> = ({
   const error = queryError instanceof Error ? queryError.message : queryError ? 'Une erreur est survenue' : null;
 
   const handleSearch = () => {
-    setAppliedCategories(selectedCategories);
+    const newParams = new URLSearchParams(searchParams);
+    if (selectedCategories.length > 0) {
+      newParams.set('categories', selectedCategories.join(','));
+    } else {
+      newParams.delete('categories');
+    }
+    setSearchParams(newParams);
+    setIsMobileFiltersOpen(false);
   };
 
   const toggleCategory = (catName: string) => {

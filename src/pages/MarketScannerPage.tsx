@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { fetchCategories } from '../api';
 import { useScanner } from '../hooks/useAnalysis';
 import type { ScannerResult, Category, DateRangePreset } from '../types';
 import type { ScannerFilters } from '../api';
 import { Search, Filter, AlertTriangle, Clock, Activity, Loader2, X } from 'lucide-react';
 import kamaIcon from '../assets/kama.png';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 interface AnalysisPageProps {
   server: string | null;
@@ -143,24 +143,33 @@ const AnalysisPage: React.FC<AnalysisPageProps> = ({
   onlyFavorites,
   favorites
 }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+
   // Filters State
-  const [server, setServer] = useState<string>(propServer || 'Hell Mina'); 
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   
-  useEffect(() => {
-    if (propServer) {
-      setServer(propServer);
-    }
-  }, [propServer]);
+  // Derived State from URL (Source of Truth)
+  const appliedMinProfit = searchParams.get('minProfit') || '500 000';
+  const appliedMinMargin = searchParams.get('minMargin') || '15';
+  const appliedFreshness = searchParams.get('freshness') || '24';
+  const appliedMaxVolatility = searchParams.get('maxVolatility') || '10';
+  const appliedCategories = useMemo(() => searchParams.get('categories')?.split(',').filter(Boolean) || [], [searchParams]);
 
-  // Use props for price if available, otherwise local state (though we removed local state for price to use header)
-  // Actually, we should use the props directly in the search.
+  // UI State (Local state for inputs before applying)
+  const [minProfit, setMinProfit] = useState<string>(appliedMinProfit);
+  const [minMargin, setMinMargin] = useState<string>(appliedMinMargin);
+  const [freshness, setFreshness] = useState<string>(appliedFreshness);
+  const [maxVolatility, setMaxVolatility] = useState<string>(appliedMaxVolatility);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(appliedCategories);
   
-  const [minProfit, setMinProfit] = useState<string>('500 000');
-  const [minMargin, setMinMargin] = useState<string>('15');
-  const [freshness, setFreshness] = useState<string>('24');
-  const [maxVolatility, setMaxVolatility] = useState<string>('10'); // Stable by default
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  // Sync UI with URL (for back/forward navigation)
+  useEffect(() => {
+    setMinProfit(appliedMinProfit);
+    setMinMargin(appliedMinMargin);
+    setFreshness(appliedFreshness);
+    setMaxVolatility(appliedMaxVolatility);
+    setSelectedCategories(appliedCategories);
+  }, [appliedMinProfit, appliedMinMargin, appliedFreshness, appliedMaxVolatility, appliedCategories]);
   
   // Data State
   const [categories, setCategories] = useState<Category[]>([]);
@@ -188,33 +197,40 @@ const AnalysisPage: React.FC<AnalysisPageProps> = ({
     }
   };
 
-  const buildFilters = (): ScannerFilters => ({
-    server,
+  const filters = useMemo((): ScannerFilters => ({
+    server: propServer || 'Hell Mina',
     min_price: propMinPrice ? parseFloat(propMinPrice.replace(/\s/g, '')) : undefined,
     max_price: propMaxPrice ? parseFloat(propMaxPrice.replace(/\s/g, '')) : undefined,
-    min_profit: minProfit ? parseFloat(minProfit.replace(/\s/g, '')) : undefined,
-    min_margin: minMargin ? parseFloat(minMargin) : undefined,
-    freshness: freshness ? parseInt(freshness) : undefined,
-    max_volatility: maxVolatility ? parseFloat(maxVolatility) : undefined,
-    categories: selectedCategories,
+    min_profit: appliedMinProfit ? parseFloat(appliedMinProfit.replace(/\s/g, '')) : undefined,
+    min_margin: appliedMinMargin ? parseFloat(appliedMinMargin) : undefined,
+    freshness: appliedFreshness ? parseInt(appliedFreshness) : undefined,
+    max_volatility: appliedMaxVolatility ? parseFloat(appliedMaxVolatility) : undefined,
+    categories: appliedCategories,
     limit: 50,
     period: getDaysFromRange(dateRange),
     filter_items: onlyFavorites ? Array.from(favorites) : undefined
-  });
+  }), [propServer, propMinPrice, propMaxPrice, appliedMinProfit, appliedMinMargin, appliedFreshness, appliedMaxVolatility, appliedCategories, dateRange, onlyFavorites, favorites]);
 
-  const [activeFilters, setActiveFilters] = useState<ScannerFilters>(buildFilters());
-
-  const { data: results = [], isLoading: loading, error: queryError } = useScanner(activeFilters);
+  const { data: results = [], isLoading: loading, error: queryError } = useScanner(filters);
   const error = queryError instanceof Error ? queryError.message : queryError ? 'Une erreur est survenue' : null;
 
   const handleSearch = () => {
-    setActiveFilters(buildFilters());
+    const newParams = new URLSearchParams(searchParams);
+    
+    if (minProfit) newParams.set('minProfit', minProfit); else newParams.delete('minProfit');
+    if (minMargin) newParams.set('minMargin', minMargin); else newParams.delete('minMargin');
+    if (freshness) newParams.set('freshness', freshness); else newParams.delete('freshness');
+    if (maxVolatility) newParams.set('maxVolatility', maxVolatility); else newParams.delete('maxVolatility');
+    
+    if (selectedCategories.length > 0) {
+      newParams.set('categories', selectedCategories.join(','));
+    } else {
+      newParams.delete('categories');
+    }
+    
+    setSearchParams(newParams);
+    setIsMobileFiltersOpen(false);
   };
-
-  // Trigger search when filters change
-  useEffect(() => {
-    setActiveFilters(buildFilters());
-  }, [server, dateRange, propMinPrice, propMaxPrice, onlyFavorites, favorites]); // Add other dependencies if we want auto-search on sidebar change too
 
   const toggleCategory = (catName: string) => {
     setSelectedCategories(prev => 
