@@ -117,3 +117,27 @@ export interface ScannerResult {
   last_seen_at: string;
   days_seen: number;
 }
+
+export interface TrendFilters {
+  server: string;
+  min_price?: number;
+  max_price?: number;
+  trend_type?: 'bullish' | 'bearish' | 'rebound';
+  categories?: string[];
+  limit?: number;
+  period?: number;
+  filter_items?: string[];
+}
+
+export interface TrendResult {
+  item_id: number;
+  item_name: string;
+  server: string;
+  category: string;
+  current_price: number;
+  start_price: number;
+  price_change_pct: number;
+  trend_type: 'bullish' | 'bearish' | 'rebound' | 'stable';
+  consecutive_days: number;
+  history: { d: string; p: number }[];
+}

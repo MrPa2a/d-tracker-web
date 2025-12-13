@@ -1,5 +1,5 @@
 // src/api.ts
-import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult } from './types';
+import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
@@ -577,6 +577,30 @@ export async function fetchScannerResults(filters: ScannerFilters): Promise<Scan
 
   if (!res.ok) {
     throw new Error(`Erreur API /api/analysis : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchTrendResults(filters: TrendFilters): Promise<TrendResult[]> {
+  const params = new URLSearchParams();
+  params.append('type', 'trends');
+  params.append('server', filters.server);
+  
+  if (filters.min_price) params.append('min_price', filters.min_price.toString());
+  if (filters.max_price) params.append('max_price', filters.max_price.toString());
+  if (filters.trend_type) params.append('trend_type', filters.trend_type);
+  if (filters.categories && filters.categories.length > 0) params.append('categories', filters.categories.join(','));
+  if (filters.limit) params.append('limit', filters.limit.toString());
+  if (filters.period) params.append('period', filters.period.toString());
+  if (filters.filter_items && filters.filter_items.length > 0) params.append('filter_items', filters.filter_items.join(','));
+
+  const res = await safeFetch(`${API_BASE}/api/analysis?${params.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/analysis (trends) : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }

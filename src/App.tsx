@@ -9,6 +9,7 @@ import MarketPage from './pages/MarketPage';
 import ListsPage from './pages/ListsPage';
 import ListDetailsPage from './pages/ListDetailsPage';
 import MarketScannerPage from './pages/MarketScannerPage';
+import TrendHunterPage from './pages/TrendHunterPage';
 import { useItems, useUpdateItem } from './hooks/useItems';
 import { useCategories } from './hooks/useCategories';
 import { useFavorites } from './hooks/useFavorites';
@@ -295,6 +296,19 @@ const App: React.FC = () => {
           path="/analysis/scanner" 
           element={
             <MarketScannerPage 
+              server={dashboardServer} 
+              dateRange={dateRange}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
+              onlyFavorites={onlyFavorites}
+              favorites={favorites}
+            />
+          } 
+        />
+        <Route 
+          path="/analysis/trends" 
+          element={
+            <TrendHunterPage 
               server={dashboardServer} 
               dateRange={dateRange}
               minPrice={minPrice}
