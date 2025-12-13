@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchScannerResults, fetchCategories } from '../api';
 import type { ScannerResult, Category, DateRangePreset } from '../types';
-import { Search, Filter, AlertTriangle, Clock, Activity, Loader2, X, ChevronUp } from 'lucide-react';
+import { Search, Filter, AlertTriangle, Clock, Activity, Loader2, X } from 'lucide-react';
 import kamaIcon from '../assets/kama.png';
 import { Link } from 'react-router-dom';
 
