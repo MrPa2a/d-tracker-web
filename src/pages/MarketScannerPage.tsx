@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchCategories } from '../api';
 import { useScanner } from '../hooks/useAnalysis';
-import type { ScannerResult, Category, DateRangePreset } from '../types';
-import type { ScannerFilters } from '../api';
+import type { Category, DateRangePreset, ScannerFilters as ScannerFiltersType } from '../types';
 import { Search, Filter, AlertTriangle, Clock, Activity, Loader2, X } from 'lucide-react';
 import kamaIcon from '../assets/kama.png';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -156,19 +155,40 @@ const AnalysisPage: React.FC<AnalysisPageProps> = ({
   const appliedCategories = useMemo(() => searchParams.get('categories')?.split(',').filter(Boolean) || [], [searchParams]);
 
   // UI State (Local state for inputs before applying)
+  // Initialize with URL values, but don't sync back automatically to avoid loops/renders
+  // We only update these when the user types, or when the URL changes drastically (handled by key prop or manual reset if needed)
+  // Actually, the best pattern for "draft" state vs "applied" state is:
+  // 1. Init state from props/URL
+  // 2. Update state on input change
+  // 3. On "Search", push state to URL
+  // 4. If URL changes externally (back button), we need to update state.
+  // The issue was calling setState in useEffect. We can use a key on the component to force re-render, or just accept that
+  // we need to update state when URL changes.
+  
+  // To fix "setState in useEffect", we can just use the URL as the source of truth for the initial value
+  // and only update local state if the URL *really* changes (e.g. navigation).
+  // But React warns about this pattern.
+  // A better way: use `key` on the inputs or the form to reset them when URL changes?
+  // Or simply:
+  
   const [minProfit, setMinProfit] = useState<string>(appliedMinProfit);
   const [minMargin, setMinMargin] = useState<string>(appliedMinMargin);
   const [freshness, setFreshness] = useState<string>(appliedFreshness);
   const [maxVolatility, setMaxVolatility] = useState<string>(appliedMaxVolatility);
   const [selectedCategories, setSelectedCategories] = useState<string[]>(appliedCategories);
-  
-  // Sync UI with URL (for back/forward navigation)
+
+  // Update local state when URL params change (e.g. back button)
+  // We wrap this in a check to avoid unnecessary updates if values are same
   useEffect(() => {
-    setMinProfit(appliedMinProfit);
-    setMinMargin(appliedMinMargin);
-    setFreshness(appliedFreshness);
-    setMaxVolatility(appliedMaxVolatility);
-    setSelectedCategories(appliedCategories);
+    if (minProfit !== appliedMinProfit) setMinProfit(appliedMinProfit);
+    if (minMargin !== appliedMinMargin) setMinMargin(appliedMinMargin);
+    if (freshness !== appliedFreshness) setFreshness(appliedFreshness);
+    if (maxVolatility !== appliedMaxVolatility) setMaxVolatility(appliedMaxVolatility);
+    // Array comparison is tricky, but for this simple case:
+    if (JSON.stringify(selectedCategories) !== JSON.stringify(appliedCategories)) {
+        setSelectedCategories(appliedCategories);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appliedMinProfit, appliedMinMargin, appliedFreshness, appliedMaxVolatility, appliedCategories]);
   
   // Data State
@@ -197,7 +217,7 @@ const AnalysisPage: React.FC<AnalysisPageProps> = ({
     }
   };
 
-  const filters = useMemo((): ScannerFilters => ({
+  const filters = useMemo((): ScannerFiltersType => ({
     server: propServer || 'Hell Mina',
     min_price: propMinPrice ? parseFloat(propMinPrice.replace(/\s/g, '')) : undefined,
     max_price: propMaxPrice ? parseFloat(propMaxPrice.replace(/\s/g, '')) : undefined,
