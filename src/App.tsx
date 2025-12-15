@@ -10,6 +10,7 @@ import ListsPage from './pages/ListsPage';
 import ListDetailsPage from './pages/ListDetailsPage';
 import MarketScannerPage from './pages/MarketScannerPage';
 import TrendHunterPage from './pages/TrendHunterPage';
+import RiskMatrixPage from './pages/RiskMatrixPage';
 import { useItems, useUpdateItem } from './hooks/useItems';
 import { useCategories } from './hooks/useCategories';
 import { useFavorites } from './hooks/useFavorites';
@@ -309,6 +310,19 @@ const App: React.FC = () => {
           path="/analysis/trends" 
           element={
             <TrendHunterPage 
+              server={dashboardServer} 
+              dateRange={dateRange}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
+              onlyFavorites={onlyFavorites}
+              favorites={favorites}
+            />
+          } 
+        />
+        <Route 
+          path="/analysis/matrix" 
+          element={
+            <RiskMatrixPage 
               server={dashboardServer} 
               dateRange={dateRange}
               minPrice={minPrice}
