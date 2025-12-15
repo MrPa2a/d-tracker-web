@@ -9,6 +9,7 @@ export interface ItemSummary {
   last_price: number;
   category?: string;
   average_price?: number;
+  icon_url?: string;
 }
 
 export interface TimeseriesPoint {
@@ -24,6 +25,7 @@ export interface Mover {
   server: string;
   last_price: number;
   pct_change: number; // pourcentage sur la période demandée
+  icon_url?: string;
 }
 
 export interface ItemStats {
@@ -35,6 +37,7 @@ export interface ItemStats {
   ma7: number;             // moyenne mobile 7 jours
   current_price: number;   // prix actuel
   category?: string;
+  icon_url?: string;
 }
 
 export interface MarketIndex {
@@ -50,6 +53,7 @@ export interface VolatilityRanking {
   last_price: number;
   pct_change: number;
   obs_count: number;       // nombre d'observations
+  icon_url?: string;
 }
 
 export interface InvestmentOpportunity {
@@ -60,6 +64,7 @@ export interface InvestmentOpportunity {
   volatility: number;
   target_price: number;
   discount_pct: number;
+  icon_url?: string;
 }
 
 export interface SellOpportunity {
@@ -70,6 +75,7 @@ export interface SellOpportunity {
   volatility: number;
   target_price: number;
   premium_pct: number;
+  icon_url?: string;
 }
 
 export interface Profile {
@@ -102,6 +108,7 @@ export interface List {
     quantity?: number;
     average_price?: number;
     last_observation_at?: string;
+    icon_url?: string;
   }[];
 }
 
@@ -116,6 +123,7 @@ export interface ScannerResult {
   volatility: number;
   last_seen_at: string;
   days_seen: number;
+  icon_url?: string;
 }
 
 export interface ScannerFilters {
@@ -155,4 +163,5 @@ export interface TrendResult {
   trend_type: 'bullish' | 'bearish' | 'rebound' | 'stable';
   consecutive_days: number;
   history: { d: string; p: number }[];
+  icon_url?: string;
 }

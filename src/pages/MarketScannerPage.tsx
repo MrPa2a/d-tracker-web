@@ -384,9 +384,18 @@ const AnalysisPage: React.FC<AnalysisPageProps> = ({
                       className="absolute inset-0 z-10 rounded-xl"
                   />
                   <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="font-medium text-white group-hover:text-accent-primary transition-colors">{item.item_name}</h3>
-                      <span className="text-xs text-gray-500">{item.category}</span>
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded bg-white/5 flex items-center justify-center text-lg font-bold text-gray-600 shrink-0 overflow-hidden">
+                            {item.icon_url ? (
+                                <img src={item.icon_url} alt={item.item_name} className="w-full h-full object-contain" />
+                            ) : (
+                                item.item_name.charAt(0).toUpperCase()
+                            )}
+                        </div>
+                        <div>
+                            <h3 className="font-medium text-white group-hover:text-accent-primary transition-colors">{item.item_name}</h3>
+                            <span className="text-xs text-gray-500">{item.category}</span>
+                        </div>
                     </div>
                     <div className={`px-2 py-1 rounded text-xs font-medium ${
                       item.margin >= 15 ? 'bg-accent-primary/20 text-accent-primary' : 

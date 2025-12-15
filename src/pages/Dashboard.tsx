@@ -40,6 +40,13 @@ const DashboardRow: React.FC<{
   return (
     <li className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_6rem_7rem] gap-4 items-center p-2 rounded-lg bg-bg-tertiary/10 border border-transparent hover:border-border-normal hover:bg-bg-tertiary/30 transition-all duration-200">
       <div className="flex items-center gap-2 min-w-0 relative group">
+         <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-sm font-bold text-gray-600 shrink-0 overflow-hidden">
+            {item.icon_url ? (
+                <img src={item.icon_url} alt={item.item_name} className="w-full h-full object-contain" />
+            ) : (
+                item.item_name.charAt(0).toUpperCase()
+            )}
+         </div>
          <Link 
             to={`/item/${item.server}/${item.item_name}`}
             className="text-sm font-medium text-text-primary hover:text-accent-primary no-underline truncate" 

@@ -98,8 +98,12 @@ const MarketGridCard: React.FC<{
                 </button>
             </div>
 
-            <div className="float-left mr-3 w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-lg font-bold text-gray-600 shrink-0">
-                {item.item_name.charAt(0).toUpperCase()}
+            <div className="float-left mr-3 w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-lg font-bold text-gray-600 shrink-0 overflow-hidden">
+                {item.icon_url ? (
+                    <img src={item.icon_url} alt={item.item_name} className="w-full h-full object-contain" />
+                ) : (
+                    item.item_name.charAt(0).toUpperCase()
+                )}
             </div>
 
             <div>
@@ -226,8 +230,12 @@ const MarketTableRow: React.FC<{
       </td>
       <td className="px-4 py-3 font-medium text-gray-200">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-xs font-bold text-gray-600">
-            {item.item_name.charAt(0).toUpperCase()}
+          <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-xs font-bold text-gray-600 overflow-hidden">
+            {item.icon_url ? (
+                <img src={item.icon_url} alt={item.item_name} className="w-full h-full object-contain" />
+            ) : (
+                item.item_name.charAt(0).toUpperCase()
+            )}
           </div>
           <Link 
             to={`/item/${item.server}/${encodeURIComponent(item.item_name)}`}

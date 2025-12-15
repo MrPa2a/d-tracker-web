@@ -256,6 +256,13 @@ export const PriceChart: React.FC<PriceChartProps> = ({
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6">
         <div className="flex flex-col gap-2">
           <div className="flex items-center flex-wrap gap-3">
+            <div className="w-10 h-10 rounded bg-white/5 flex items-center justify-center text-sm font-bold text-gray-600 overflow-hidden shrink-0">
+                {selectedItem.icon_url ? (
+                    <img src={selectedItem.icon_url} alt={selectedItem.item_name} className="w-full h-full object-contain" />
+                ) : (
+                    selectedItem.item_name.charAt(0).toUpperCase()
+                )}
+            </div>
             <h2 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-text-primary to-text-secondary bg-clip-text text-transparent m-0">{selectedItem.item_name}</h2>
             {onToggleFavorite && (
               <button
