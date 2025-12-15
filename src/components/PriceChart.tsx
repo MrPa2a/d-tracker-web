@@ -209,7 +209,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
   }
 
   return (
-    <div className="flex flex-col h-full bg-bg-secondary/30 backdrop-blur-sm rounded-2xl border border-border-normal p-4 md:p-6 shadow-lg">
+    <div className="flex flex-col h-full bg-bg-secondary backdrop-blur-sm rounded-2xl border border-border-normal p-4 md:p-6 shadow-lg">
       
       {/* Top Bar: Navigation & Date Range */}
       <div className="flex justify-between items-center mb-2">

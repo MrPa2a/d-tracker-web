@@ -99,6 +99,8 @@ export interface RecipeStats {
   roi: number;
   ingredients_count: number;
   ingredients_with_price: number;
+  result_item_last_update?: string;
+  ingredients_last_update?: string;
 }
 
 export interface RecipeIngredient {
@@ -214,4 +216,18 @@ export interface TrendResult {
   consecutive_days: number;
   history: { d: string; p: number }[];
   icon_url?: string;
+}
+
+export interface RecipeUsage {
+  recipe_id: number;
+  result_item_id: number;
+  result_item_name: string;
+  result_item_icon: string;
+  job_name: string;
+  level: number;
+  quantity_required: number;
+  craft_cost: number;
+  sell_price: number;
+  margin: number;
+  roi: number;
 }

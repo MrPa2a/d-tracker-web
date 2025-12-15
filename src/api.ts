@@ -1,5 +1,5 @@
 // src/api.ts
-import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult, ScannerFilters, RecipeStats, RecipeFilters, Job, RecipeDetails } from './types';
+import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult, ScannerFilters, RecipeStats, RecipeFilters, Job, RecipeDetails, RecipeUsage } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
@@ -69,7 +69,42 @@ export async function fetchJobs(): Promise<Job[]> {
   return res.json();
 }
 
+export async function fetchItemRecipe(itemId: number, server: string): Promise<RecipeStats | null> {
+  const res = await safeFetch(`${API_BASE}/api/recipes?item_id=${itemId}&server=${server}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
 
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/recipes : ${res.status} ${res.statusText}`);
+  }
+  const data = await res.json();
+  return data.length > 0 ? data[0] : null;
+}
+
+export async function fetchItemUsages(itemName: string, server: string): Promise<RecipeUsage[]> {
+  const res = await safeFetch(`${API_BASE}/api/recipes?mode=usage&item_name=${encodeURIComponent(itemName)}&server=${server}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/recipes?mode=usage : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function updateRecipe(recipeId: number, ingredients: { item_id: number; quantity: number }[]): Promise<void> {
+  const res = await safeFetch(`${API_BASE}/api/recipes`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify({ recipe_id: recipeId, ingredients }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/recipes (POST) : ${res.status} ${res.statusText}`);
+  }
+}
 
 export async function fetchProfiles(): Promise<Profile[]> {
   const res = await safeFetch(`${API_BASE}/api/profiles`, {

@@ -231,8 +231,12 @@ export const Header: React.FC<HeaderProps> = ({
                           }}
                           className="flex items-center gap-3 flex-1 no-underline"
                         >
-                          <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-xs font-bold text-gray-500 group-hover:text-gray-300 transition-colors">
-                            {item.item_name.charAt(0).toUpperCase()}
+                          <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-xs font-bold text-gray-500 group-hover:text-gray-300 transition-colors overflow-hidden">
+                            {item.icon_url ? (
+                              <img src={item.icon_url} alt={item.item_name} className="w-full h-full object-contain" />
+                            ) : (
+                              item.item_name.charAt(0).toUpperCase()
+                            )}
                           </div>
                           <div>
                             <div className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors">

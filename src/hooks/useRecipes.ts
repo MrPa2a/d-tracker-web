@@ -1,6 +1,6 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { fetchJobs, fetchRecipes, fetchRecipeDetails } from '../api';
-import type { RecipeFilters, Job, RecipeStats, RecipeDetails } from '../types';
+import { fetchJobs, fetchRecipes, fetchRecipeDetails, fetchItemRecipe, fetchItemUsages } from '../api';
+import type { RecipeFilters, Job, RecipeStats, RecipeDetails, RecipeUsage } from '../types';
 
 export function useJobs() {
   return useQuery<Job[]>({
@@ -24,5 +24,23 @@ export function useRecipeDetails(id: number, server: string | null) {
     queryKey: ['recipe', id, server],
     queryFn: () => fetchRecipeDetails(id, server!),
     enabled: !!server && !!id,
+  });
+}
+
+export function useItemRecipe(itemId: number | undefined, server: string | null) {
+  return useQuery<RecipeStats | null>({
+    queryKey: ['item-recipe', itemId, server],
+    queryFn: () => fetchItemRecipe(itemId!, server!),
+    enabled: !!server && !!itemId,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+export function useItemUsages(itemName: string | undefined, server: string | null) {
+  return useQuery<RecipeUsage[]>({
+    queryKey: ['item-usages', itemName, server],
+    queryFn: () => fetchItemUsages(itemName!, server!),
+    enabled: !!server && !!itemName,
+    staleTime: 1000 * 60 * 5,
   });
 }

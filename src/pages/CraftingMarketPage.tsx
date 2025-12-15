@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useJobs, useRecipes } from '../hooks/useRecipes';
 import type { RecipeFilters, RecipeStats } from '../types';
-import { Search, Hammer, AlertTriangle, ChevronDown } from 'lucide-react';
+import { Search, Hammer, AlertTriangle, ChevronDown, Loader2, Clock } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import kamaIcon from '../assets/kama.png';
 
@@ -50,6 +50,7 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
   const { 
     data: recipes = [] as RecipeStats[], 
     isLoading: loading, 
+    isFetching,
     error: queryError 
   } = useRecipes(filters);
 
@@ -78,6 +79,19 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
     if (roi >= 20) return 'text-green-300';
     if (roi > 0) return 'text-yellow-300';
     return 'text-red-400';
+  };
+
+  const isStale = (dateStr?: string) => {
+    if (!dateStr) return true;
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    return diff > 24 * 60 * 60 * 1000; // 24 hours
+  };
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return 'Jamais';
+    return new Date(dateStr).toLocaleString();
   };
 
   // --- Render ---
@@ -202,7 +216,15 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
       </div>
 
       {/* Results Table */}
-      <div className="bg-[#1a1b1e] border border-white/5 rounded-xl overflow-hidden">
+      <div className={`bg-[#1a1b1e] border border-white/5 rounded-xl overflow-hidden relative ${(loading || isFetching) ? 'min-h-[300px]' : ''}`}>
+        {(loading || isFetching) && (
+          <div className="absolute inset-0 bg-[#1a1b1e]/60 backdrop-blur-[1px] z-50 flex items-center justify-center">
+            <div className="bg-[#25262b] p-4 rounded-xl border border-white/10 shadow-xl flex flex-col items-center gap-3">
+              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+              <span className="text-sm text-gray-400 font-medium">Chargement...</span>
+            </div>
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -217,11 +239,7 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="p-8 text-center text-gray-400">Chargement des recettes...</td>
-                </tr>
-              ) : recipes.length === 0 ? (
+              {recipes.length === 0 && !loading && !isFetching ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-gray-400">Aucune recette trouvée avec ces critères.</td>
                 </tr>
@@ -255,21 +273,37 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
                       </div>
                     </td>
                     <td className="p-4 text-right font-mono text-gray-300">
-                      <div className="flex items-center justify-end gap-1">
-                        {formatKamas(recipe.craft_cost)} 
-                        <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
-                      </div>
-                      {recipe.ingredients_with_price < recipe.ingredients_count && (
-                        <div className="text-xs text-yellow-500/80 flex items-center justify-end gap-1">
-                          <AlertTriangle size={10} />
-                          <span>Prix partiels</span>
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="flex items-center justify-end gap-1">
+                          {formatKamas(recipe.craft_cost)} 
+                          <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
                         </div>
-                      )}
+                        {isStale(recipe.ingredients_last_update) && recipe.craft_cost > 0 && (
+                          <div className="text-xs text-yellow-500/80 flex items-center justify-end gap-1" title={`Prix ingrédients potentiellement obsolètes (Plus vieux : ${formatDate(recipe.ingredients_last_update)})`}>
+                            <Clock size={10} />
+                            <span>Obsolète</span>
+                          </div>
+                        )}
+                        {recipe.ingredients_with_price < recipe.ingredients_count && (
+                          <div className="text-xs text-yellow-500/80 flex items-center justify-end gap-1">
+                            <AlertTriangle size={10} />
+                            <span>Prix partiels</span>
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="p-4 text-right font-mono text-gray-300">
-                      <div className="flex items-center justify-end gap-1">
-                        {formatKamas(recipe.sell_price)}
-                        <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="flex items-center justify-end gap-1">
+                          {formatKamas(recipe.sell_price)}
+                          <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
+                        </div>
+                        {isStale(recipe.result_item_last_update) && recipe.sell_price > 0 && (
+                          <div className="text-xs text-yellow-500/80 flex items-center justify-end gap-1" title={`Prix potentiellement obsolète (Dernière maj : ${formatDate(recipe.result_item_last_update)})`}>
+                            <Clock size={10} />
+                            <span>Obsolète</span>
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className={`p-4 text-right font-mono font-medium ${recipe.margin > 0 ? 'text-green-400' : 'text-red-400'}`}>
