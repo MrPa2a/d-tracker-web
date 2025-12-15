@@ -1,5 +1,5 @@
 // src/api.ts
-import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult, ScannerFilters } from './types';
+import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult, ScannerFilters, RecipeStats, RecipeFilters, Job, RecipeDetails } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
@@ -56,6 +56,20 @@ export async function fetchCategories(): Promise<Category[]> {
   }
   return res.json();
 }
+
+export async function fetchJobs(): Promise<Job[]> {
+  const res = await safeFetch(`${API_BASE}/api/recipes?mode=jobs`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/recipes?mode=jobs : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+
 
 export async function fetchProfiles(): Promise<Profile[]> {
   const res = await safeFetch(`${API_BASE}/api/profiles`, {
@@ -589,3 +603,42 @@ export async function fetchTrendResults(filters: TrendFilters): Promise<TrendRes
   }
   return res.json();
 }
+
+export async function fetchRecipes(filters: RecipeFilters): Promise<RecipeStats[]> {
+  const params = new URLSearchParams();
+  params.append('server', filters.server);
+  
+  if (filters.min_level !== undefined) params.append('min_level', filters.min_level.toString());
+  if (filters.max_level !== undefined) params.append('max_level', filters.max_level.toString());
+  if (filters.job_id !== undefined) params.append('job_id', filters.job_id.toString());
+  if (filters.min_roi !== undefined) params.append('min_roi', filters.min_roi.toString());
+  if (filters.search) params.append('search', filters.search);
+  if (filters.limit !== undefined) params.append('limit', filters.limit.toString());
+  if (filters.offset !== undefined) params.append('offset', filters.offset.toString());
+  if (filters.sort_by) params.append('sort_by', filters.sort_by);
+
+  const res = await safeFetch(`${API_BASE}/api/recipes?${params.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/recipes : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchRecipeDetails(id: number, server: string): Promise<RecipeDetails> {
+  const params = new URLSearchParams({ id: id.toString(), server });
+  
+  const res = await safeFetch(`${API_BASE}/api/recipes?${params.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/recipes (details) : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+

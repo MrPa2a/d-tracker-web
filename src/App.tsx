@@ -11,6 +11,8 @@ import ListDetailsPage from './pages/ListDetailsPage';
 import MarketScannerPage from './pages/MarketScannerPage';
 import TrendHunterPage from './pages/TrendHunterPage';
 import RiskMatrixPage from './pages/RiskMatrixPage';
+import CraftingMarketPage from './pages/CraftingMarketPage';
+import RecipeDetailsPage from './pages/RecipeDetailsPage';
 import { useItems, useUpdateItem } from './hooks/useItems';
 import { useCategories } from './hooks/useCategories';
 import { useFavorites } from './hooks/useFavorites';
@@ -329,6 +331,23 @@ const App: React.FC = () => {
               maxPrice={maxPrice}
               onlyFavorites={onlyFavorites}
               favorites={favorites}
+            />
+          } 
+        />
+        <Route 
+          path="/crafting" 
+          element={
+            <CraftingMarketPage 
+              server={dashboardServer} 
+            />
+          } 
+        />
+        <Route 
+          path="/recipes/:id" 
+          element={
+            <RecipeDetailsPage 
+              server={dashboardServer} 
+              dateRange={dateRange}
             />
           } 
         />

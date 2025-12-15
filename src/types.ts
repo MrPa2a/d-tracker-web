@@ -84,6 +84,56 @@ export interface Profile {
   created_at: string;
 }
 
+export interface RecipeStats {
+  recipe_id: number;
+  result_item_id: number;
+  result_item_name: string;
+  result_item_icon?: string;
+  job_id: number;
+  job_name: string;
+  job_icon_id?: number;
+  level: number;
+  craft_cost: number;
+  sell_price: number;
+  margin: number;
+  roi: number;
+  ingredients_count: number;
+  ingredients_with_price: number;
+}
+
+export interface RecipeIngredient {
+  item_id: number;
+  name: string;
+  icon_url?: string;
+  quantity: number;
+  price: number;
+  total_price: number;
+  last_update?: string;
+  ingredient_recipe_id?: number;
+}
+
+export interface RecipeDetails extends RecipeStats {
+  ingredients: RecipeIngredient[];
+}
+
+export interface RecipeFilters {
+  server: string;
+  min_level?: number;
+  max_level?: number;
+  job_id?: number;
+  min_roi?: number;
+  search?: string;
+  limit?: number;
+  offset?: number;
+  sort_by?: 'margin_desc' | 'roi_desc' | 'level_desc' | 'cost_asc';
+}
+
+export interface Job {
+  id: number;
+  name: string;
+  icon_id?: number;
+}
+
 export interface Category {
   id: number;
   name: string;
