@@ -65,7 +65,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
   };
 
   const handleBack = () => {
-    navigate('/');
+    navigate(-1);
   };
 
   const handleItemUpdate = (oldName: string, newName: string, server: string, newCategory: string) => {

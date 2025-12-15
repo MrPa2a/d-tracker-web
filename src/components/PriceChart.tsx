@@ -219,9 +219,9 @@ export const PriceChart: React.FC<PriceChartProps> = ({
                 className="text-sm font-medium text-accent-primary hover:text-accent-primary/80 hover:underline bg-transparent border-none cursor-pointer p-0"
                 type="button"
                 onClick={onBackToDashboard}
-                title="Retour au tableau de bord"
+                title="Retour"
               >
-                ← Retour au tableau de bord
+                ← Retour
               </button>
             )}
             <button
