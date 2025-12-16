@@ -123,7 +123,7 @@ const IngredientRow = ({
                         <div className="flex flex-col">
                             {server ? (
                                 <Link 
-                                    to={`/item/${server}/${ingredient.name}`}
+                                    to={ingredient.ingredient_recipe_id ? `/recipes/${ingredient.ingredient_recipe_id}` : `/item/${server}/${ingredient.name}`}
                                     className="font-medium text-gray-200 hover:text-blue-400 transition-colors"
                                 >
                                     {ingredient.name}
@@ -133,13 +133,6 @@ const IngredientRow = ({
                             )}
                             {ingredient.ingredient_recipe_id && (
                                 <div className="flex items-center gap-3 mt-0.5">
-                                    <Link 
-                                        to={`/recipes/${ingredient.ingredient_recipe_id}`}
-                                        className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
-                                    >
-                                        <Hammer size={10} />
-                                        Voir la recette
-                                    </Link>
                                     <button
                                         onClick={() => onToggle(path)}
                                         className={`text-xs flex items-center gap-1 cursor-pointer ${isExpanded ? "text-orange-400 hover:text-orange-300" : "text-green-400 hover:text-green-300"}`}
