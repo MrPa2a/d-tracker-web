@@ -36,11 +36,18 @@ export function useItemRecipe(itemId: number | undefined, server: string | null)
   });
 }
 
-export function useItemUsages(itemName: string | undefined, server: string | null) {
+export function useItemUsages(
+  itemName: string | undefined, 
+  server: string | null,
+  limit: number = 20,
+  offset: number = 0,
+  search?: string
+) {
   return useQuery<RecipeUsage[]>({
-    queryKey: ['item-usages', itemName, server],
-    queryFn: () => fetchItemUsages(itemName!, server!),
+    queryKey: ['item-usages', itemName, server, limit, offset, search],
+    queryFn: () => fetchItemUsages(itemName!, server!, limit, offset, search),
     enabled: !!server && !!itemName,
     staleTime: 1000 * 60 * 5,
+    placeholderData: keepPreviousData,
   });
 }

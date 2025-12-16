@@ -6,7 +6,7 @@ import { useTimeseries } from '../hooks/useTimeseries';
 import { useItemRecipe, useItemUsages } from '../hooks/useRecipes';
 import { fetchItems } from '../api';
 import type { DateRangePreset, ItemSummary, Profile } from '../types';
-import { Hammer, Coins, ArrowRight, Loader2, ExternalLink } from 'lucide-react';
+import { Hammer, Coins, ArrowRight, Loader2, ExternalLink, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import kamaIcon from '../assets/kama.png';
 
 const ItemIcon = ({ icon, name }: { icon?: string | null, name: string }) => {
@@ -105,7 +105,22 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
 
   // Fetch Recipe Data
   const { data: recipe, isLoading: recipeLoading } = useItemRecipe(selectedItem?.id, server || null);
-  const { data: usages, isLoading: usagesLoading } = useItemUsages(selectedItem?.item_name, server || null);
+  
+  const [usagesPage, setUsagesPage] = React.useState(1);
+  const [usagesSearch, setUsagesSearch] = React.useState('');
+  const usagesLimit = 20;
+  const usagesOffset = (usagesPage - 1) * usagesLimit;
+
+  const { data: usages, isLoading: usagesLoading, isFetching: usagesFetching } = useItemUsages(
+    selectedItem?.item_name, 
+    server || null,
+    usagesLimit,
+    usagesOffset,
+    usagesSearch
+  );
+
+  const totalUsagesCount = usages && usages.length > 0 ? (usages[0].total_count || usages.length) : 0;
+  const totalPages = Math.ceil(totalUsagesCount / usagesLimit);
 
   const formatKamas = (k: number) => {
     return new Intl.NumberFormat('fr-FR').format(Math.round(k));
@@ -193,72 +208,125 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
           <div className="flex justify-center p-6">
             <Loader2 className="w-8 h-8 animate-spin text-blue-500/50" />
           </div>
-        ) : usages && usages.length > 0 && (
+        ) : (usages && usages.length > 0) || usagesSearch ? (
           <div className="bg-bg-secondary border border-border-subtle rounded-xl overflow-hidden shadow-sm">
-            <div className="p-6 border-b border-border-subtle">
-              <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
-                <Coins className="text-yellow-500" />
-                Utilisé dans {usages.length} recettes
-              </h2>
-              <p className="text-text-muted text-sm mt-1">
-                Top recettes utilisant cet item, triées par rentabilité potentielle.
-              </p>
+            <div className="p-6 border-b border-border-subtle flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
+                  <Coins className="text-yellow-500" />
+                  Utilisé dans {totalUsagesCount} recettes
+                </h2>
+                <p className="text-text-muted text-sm mt-1">
+                  Recettes utilisant cet item, triées par rentabilité potentielle.
+                </p>
+              </div>
+              
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Rechercher une recette..."
+                  value={usagesSearch}
+                  onChange={(e) => {
+                    setUsagesSearch(e.target.value);
+                    setUsagesPage(1);
+                  }}
+                  className="pl-9 pr-10 py-2 bg-bg-tertiary border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500 w-full md:w-64"
+                />
+                {usagesFetching && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-bg-tertiary text-text-muted text-xs uppercase tracking-wider border-b border-border-subtle">
-                    <th className="p-4 font-medium">Recette</th>
-                    <th className="p-4 font-medium">Métier</th>
-                    <th className="p-4 font-medium text-right">Niveau</th>
-                    <th className="p-4 font-medium text-right">Qté Requise</th>
-                    <th className="p-4 font-medium text-right">Marge</th>
-                    <th className="p-4 font-medium text-right">ROI</th>
-                    <th className="p-4 font-medium"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border-subtle">
-                  {usages.map((usage) => (
-                    <tr key={usage.recipe_id} className="hover:bg-bg-tertiary/50 transition-colors group">
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-bg-tertiary rounded-lg flex items-center justify-center overflow-hidden border border-border-subtle">
-                            <ItemIcon icon={usage.result_item_icon} name={usage.result_item_name} />
-                          </div>
-                          <Link 
-                            to={`/item/${server}/${encodeURIComponent(usage.result_item_name)}`}
-                            className="font-medium text-text-primary hover:text-blue-400 transition-colors"
-                          >
-                            {usage.result_item_name}
-                          </Link>
-                        </div>
-                      </td>
-                      <td className="p-4 text-text-muted">{usage.job_name}</td>
-                      <td className="p-4 text-right text-text-muted">Niv. {usage.level}</td>
-                      <td className="p-4 text-right text-text-primary font-mono">x{usage.quantity_required}</td>
-                      <td className={`p-4 text-right font-mono font-medium ${!usage.sell_price ? 'text-text-muted italic' : usage.margin > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {usage.sell_price ? formatKamas(usage.margin) : 'Pas de prix'}
-                      </td>
-                      <td className={`p-4 text-right font-mono font-medium ${!usage.sell_price ? 'text-text-muted' : usage.roi > 20 ? 'text-green-400' : usage.roi > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
-                        {usage.sell_price ? `${usage.roi.toFixed(1)}%` : '-'}
-                      </td>
-                      <td className="p-4 text-right">
-                        <Link 
-                          to={`/recipes/${usage.recipe_id}`}
-                          className="inline-flex items-center justify-center p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors opacity-0 group-hover:opacity-100"
-                          title="Voir la recette"
-                        >
-                          <ExternalLink size={16} />
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {usages && usages.length > 0 ? (
+              <>
+                <div className={`overflow-x-auto transition-opacity duration-200 ${usagesFetching ? 'opacity-50' : 'opacity-100'}`}>
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-bg-tertiary text-text-muted text-xs uppercase tracking-wider border-b border-border-subtle">
+                        <th className="p-4 font-medium">Recette</th>
+                        <th className="p-4 font-medium">Métier</th>
+                        <th className="p-4 font-medium text-right">Niveau</th>
+                        <th className="p-4 font-medium text-right">Qté Requise</th>
+                        <th className="p-4 font-medium text-right">Marge</th>
+                        <th className="p-4 font-medium text-right">ROI</th>
+                        <th className="p-4 font-medium"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-subtle">
+                      {usages.map((usage) => (
+                        <tr key={usage.recipe_id} className="hover:bg-bg-tertiary/50 transition-colors group">
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-bg-tertiary rounded-lg flex items-center justify-center overflow-hidden border border-border-subtle">
+                                <ItemIcon icon={usage.result_item_icon} name={usage.result_item_name} />
+                              </div>
+                              <Link 
+                                to={`/item/${server}/${encodeURIComponent(usage.result_item_name)}`}
+                                className="font-medium text-text-primary hover:text-blue-400 transition-colors"
+                              >
+                                {usage.result_item_name}
+                              </Link>
+                            </div>
+                          </td>
+                          <td className="p-4 text-text-muted">{usage.job_name}</td>
+                          <td className="p-4 text-right text-text-muted">Niv. {usage.level}</td>
+                          <td className="p-4 text-right text-text-primary font-mono">x{usage.quantity_required}</td>
+                          <td className={`p-4 text-right font-mono font-medium ${!usage.sell_price ? 'text-text-muted italic' : usage.margin > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {usage.sell_price ? formatKamas(usage.margin) : 'Pas de prix'}
+                          </td>
+                          <td className={`p-4 text-right font-mono font-medium ${!usage.sell_price ? 'text-text-muted' : usage.roi > 20 ? 'text-green-400' : usage.roi > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+                            {usage.sell_price ? `${usage.roi.toFixed(1)}%` : '-'}
+                          </td>
+                          <td className="p-4 text-right">
+                            <Link 
+                              to={`/recipes/${usage.recipe_id}`}
+                              className="inline-flex items-center justify-center p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors opacity-0 group-hover:opacity-100"
+                              title="Voir la recette"
+                            >
+                              <ExternalLink size={16} />
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="p-4 border-t border-border-subtle flex items-center justify-between">
+                    <div className="text-sm text-text-muted">
+                      Page {usagesPage} sur {totalPages}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setUsagesPage(p => Math.max(1, p - 1))}
+                        disabled={usagesPage === 1}
+                        className="p-2 rounded-lg hover:bg-bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+                      <button
+                        onClick={() => setUsagesPage(p => Math.min(totalPages, p + 1))}
+                        disabled={usagesPage === totalPages}
+                        className="p-2 rounded-lg hover:bg-bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronRight size={20} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="p-8 text-center text-text-muted">
+                Aucune recette trouvée pour cette recherche.
+              </div>
+            )}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

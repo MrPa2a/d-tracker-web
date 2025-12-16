@@ -230,4 +230,5 @@ export interface RecipeUsage {
   sell_price: number;
   margin: number;
   roi: number;
+  total_count?: number;
 }

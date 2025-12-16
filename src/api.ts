@@ -82,8 +82,22 @@ export async function fetchItemRecipe(itemId: number, server: string): Promise<R
   return data.length > 0 ? data[0] : null;
 }
 
-export async function fetchItemUsages(itemName: string, server: string): Promise<RecipeUsage[]> {
-  const res = await safeFetch(`${API_BASE}/api/recipes?mode=usage&item_name=${encodeURIComponent(itemName)}&server=${server}`, {
+export async function fetchItemUsages(
+  itemName: string, 
+  server: string, 
+  limit: number = 20, 
+  offset: number = 0, 
+  search?: string
+): Promise<RecipeUsage[]> {
+  const params = new URLSearchParams();
+  params.append('mode', 'usage');
+  params.append('item_name', itemName);
+  params.append('server', server);
+  params.append('limit', limit.toString());
+  params.append('offset', offset.toString());
+  if (search) params.append('search', search);
+
+  const res = await safeFetch(`${API_BASE}/api/recipes?${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
