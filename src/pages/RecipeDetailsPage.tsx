@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, AlertTriangle, Hammer, Loader2, Coins, TrendingUp, Edit2, Save, X, Trash2, Plus, Search, Clock } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Hammer, Loader2, Coins, TrendingUp, Edit2, Save, X, Trash2, Plus, Search, Clock, Minus, ChevronsDown, ChevronsUp } from 'lucide-react';
 import { useRecipeDetails } from '../hooks/useRecipes';
 import { useTimeseries } from '../hooks/useTimeseries';
-import { updateRecipe, fetchItems } from '../api';
+import { updateRecipe, fetchItems, fetchRecipeDetails } from '../api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { DateRangePreset, RecipeIngredient, ItemSummary } from '../types';
 import kamaIcon from '../assets/kama.png';
@@ -17,10 +17,192 @@ import {
   CartesianGrid,
 } from 'recharts';
 
+interface ExtendedRecipeIngredient extends RecipeIngredient {
+  isExpanded?: boolean;
+  subRecipe?: {
+    ingredients: ExtendedRecipeIngredient[];
+    craft_cost: number;
+  };
+  isLoadingSubRecipe?: boolean;
+}
+
+// Helper to update the tree immutably
+const updateIngredientInTree = (
+  ingredients: ExtendedRecipeIngredient[],
+  path: number[],
+  updater: (ing: ExtendedRecipeIngredient) => ExtendedRecipeIngredient
+): ExtendedRecipeIngredient[] => {
+  if (path.length === 0) return ingredients;
+
+  const [currentId, ...restPath] = path;
+
+  return ingredients.map(ing => {
+    if (ing.item_id !== currentId) return ing;
+
+    if (restPath.length === 0) {
+      return updater(ing);
+    }
+
+    if (ing.subRecipe) {
+      return {
+        ...ing,
+        subRecipe: {
+          ...ing.subRecipe,
+          ingredients: updateIngredientInTree(ing.subRecipe.ingredients, restPath, updater)
+        }
+      };
+    }
+
+    return ing;
+  });
+};
+
+// Helper to calculate recursive cost
+const calculateRecursiveCost = (ingredients: ExtendedRecipeIngredient[]): number => {
+  return ingredients.reduce((total, ing) => {
+    if (ing.isExpanded && ing.subRecipe) {
+      return total + calculateRecursiveCost(ing.subRecipe.ingredients) * ing.quantity;
+    }
+    return total + ing.total_price;
+  }, 0);
+};
+
+const formatKamas = (k: number) => {
+    return new Intl.NumberFormat('fr-FR').format(Math.round(k));
+};
+
 interface RecipeDetailsPageProps {
   server: string | null;
   dateRange: DateRangePreset;
 }
+
+// Recursive Row Component
+const IngredientRow = ({ 
+    ingredient, 
+    depth, 
+    path, 
+    onToggle, 
+    server, 
+    adjustedCraftCost 
+}: { 
+    ingredient: ExtendedRecipeIngredient, 
+    depth: number, 
+    path: number[], 
+    onToggle: (path: number[]) => void, 
+    server: string | null, 
+    adjustedCraftCost: number 
+}) => {
+    const isExpanded = ingredient.isExpanded;
+    const subRecipeCost = isExpanded && ingredient.subRecipe ? calculateRecursiveCost(ingredient.subRecipe.ingredients) : 0;
+    const percentCost = adjustedCraftCost > 0 ? ((isExpanded ? subRecipeCost * ingredient.quantity : ingredient.total_price) / adjustedCraftCost) * 100 : 0;
+
+    return (
+        <>
+            <tr 
+                className="transition-colors hover:!bg-white/10"
+                style={{ backgroundColor: `rgba(255, 255, 255, ${(depth * 0.012) + (isExpanded ? 0.035 : 0)})` }}
+            >
+                <td className="p-4" style={{ paddingLeft: `${1 + depth * 2}rem` }}>
+                    <div className="flex items-center gap-3 relative">
+                        {depth > 0 && (
+                             <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-4 h-px bg-gray-600"></div>
+                        )}
+                        <div className="w-10 h-10 bg-[#25262b] rounded-lg flex items-center justify-center overflow-hidden border border-white/5 shrink-0">
+                            {ingredient.icon_url ? (
+                                <img 
+                                    src={ingredient.icon_url} 
+                                    alt={ingredient.name} 
+                                    className="w-full h-full object-contain" 
+                                    referrerPolicy="no-referrer"
+                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                            ) : (
+                                <div className="text-gray-500 font-bold">{ingredient.name.charAt(0)}</div>
+                            )}
+                        </div>
+                        <div className="flex flex-col">
+                            {server ? (
+                                <Link 
+                                    to={`/item/${server}/${ingredient.name}`}
+                                    className="font-medium text-gray-200 hover:text-blue-400 transition-colors"
+                                >
+                                    {ingredient.name}
+                                </Link>
+                            ) : (
+                                <span className="font-medium text-gray-200">{ingredient.name}</span>
+                            )}
+                            {ingredient.ingredient_recipe_id && (
+                                <div className="flex items-center gap-3 mt-0.5">
+                                    <Link 
+                                        to={`/recipes/${ingredient.ingredient_recipe_id}`}
+                                        className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                                    >
+                                        <Hammer size={10} />
+                                        Voir la recette
+                                    </Link>
+                                    <button
+                                        onClick={() => onToggle(path)}
+                                        className={`text-xs flex items-center gap-1 cursor-pointer ${isExpanded ? "text-orange-400 hover:text-orange-300" : "text-green-400 hover:text-green-300"}`}
+                                        disabled={ingredient.isLoadingSubRecipe}
+                                    >
+                                        {ingredient.isLoadingSubRecipe ? (
+                                            <Loader2 size={10} className="animate-spin" />
+                                        ) : isExpanded ? (
+                                            <Minus size={10} />
+                                        ) : (
+                                            <Plus size={10} />
+                                        )}
+                                        {isExpanded ? "Exclure la recette" : "Inclure la recette"}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </td>
+                <td className="p-4 text-right text-gray-300 font-mono">
+                    x{ingredient.quantity}
+                </td>
+                <td className="p-4 text-right text-gray-300 font-mono">
+                    <div className="flex items-center justify-end gap-2">
+                        {ingredient.price > 0 ? formatKamas(ingredient.price) : <span className="text-red-400">???</span>}
+                        {/* We could pass isStale logic here if needed, but let's skip for brevity or pass it down */}
+                    </div>
+                </td>
+                <td className="p-4 text-right text-gray-200 font-mono font-medium">
+                    {isExpanded ? (
+                        <span className={subRecipeCost > ingredient.price ? "text-red-400" : "text-blue-400"}>
+                            {formatKamas(subRecipeCost * ingredient.quantity)}
+                        </span>
+                    ) : (
+                        ingredient.total_price > 0 ? formatKamas(ingredient.total_price) : '-'
+                    )}
+                </td>
+                <td className="p-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                        <span className="text-xs text-gray-400 w-8">{percentCost.toFixed(0)}%</span>
+                        <div className="w-16 h-1.5 bg-[#25262b] rounded-full overflow-hidden">
+                            <div 
+                                className="h-full bg-blue-500/50 rounded-full" 
+                                style={{ width: `${percentCost}%` }}
+                            />
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {isExpanded && ingredient.subRecipe && ingredient.subRecipe.ingredients.map(subIng => (
+                <IngredientRow 
+                    key={subIng.item_id} 
+                    ingredient={subIng} 
+                    depth={depth + 1} 
+                    path={[...path, subIng.item_id]}
+                    onToggle={onToggle}
+                    server={server}
+                    adjustedCraftCost={adjustedCraftCost}
+                />
+            ))}
+        </>
+    );
+};
 
 const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange }) => {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +221,193 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
   // Edit Mode State
   const [isEditing, setIsEditing] = useState(false);
   const [editedIngredients, setEditedIngredients] = useState<RecipeIngredient[]>([]);
+  
+  // Expanded Ingredients State
+  const [extendedIngredients, setExtendedIngredients] = useState<ExtendedRecipeIngredient[]>([]);
+  const [isExpandingAll, setIsExpandingAll] = useState(false);
+
+  useEffect(() => {
+    if (recipe) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setExtendedIngredients(recipe.ingredients.map(ing => ({
+          ...ing,
+          isExpanded: false,
+          isLoadingSubRecipe: false
+      })));
+    }
+  }, [recipe]);
+
+  const handleToggleRecipe = async (path: number[]) => {
+    if (!server) return;
+
+    // Find the ingredient to check its state
+    let targetIng: ExtendedRecipeIngredient | undefined;
+    let currentList = extendedIngredients;
+    for (const id of path) {
+        targetIng = currentList.find(i => i.item_id === id);
+        if (!targetIng) return;
+        if (targetIng.subRecipe) {
+            currentList = targetIng.subRecipe.ingredients;
+        }
+    }
+
+    if (!targetIng) return;
+
+    if (!targetIng.isExpanded && !targetIng.subRecipe) {
+        // Load sub-recipe
+        setExtendedIngredients(prev => updateIngredientInTree(prev, path, ing => ({ ...ing, isLoadingSubRecipe: true })));
+        
+        try {
+            if (!targetIng.ingredient_recipe_id) return;
+            const subRecipeData = await fetchRecipeDetails(targetIng.ingredient_recipe_id, server);
+            
+            const subIngredients: ExtendedRecipeIngredient[] = subRecipeData.ingredients.map(i => ({
+                ...i,
+                isExpanded: false,
+                isLoadingSubRecipe: false
+            }));
+
+            setExtendedIngredients(prev => updateIngredientInTree(prev, path, ing => ({ 
+                ...ing, 
+                isLoadingSubRecipe: false, 
+                isExpanded: true,
+                subRecipe: {
+                    ingredients: subIngredients,
+                    craft_cost: subRecipeData.craft_cost
+                }
+            })));
+        } catch (e) {
+            console.error("Failed to load sub-recipe", e);
+            setExtendedIngredients(prev => updateIngredientInTree(prev, path, ing => ({ ...ing, isLoadingSubRecipe: false })));
+        }
+    } else {
+        // Toggle expansion
+        setExtendedIngredients(prev => updateIngredientInTree(prev, path, ing => ({ ...ing, isExpanded: !ing.isExpanded })));
+    }
+  };
+
+  const handleExpandAll = async () => {
+    if (!server) return;
+    
+    // Helper for recursion
+    const expandRecursively = async (ingredients: ExtendedRecipeIngredient[]): Promise<ExtendedRecipeIngredient[]> => {
+        return Promise.all(ingredients.map(async (ing) => {
+            if (!ing.ingredient_recipe_id) return ing;
+
+            // If already has subRecipe, just recurse
+            if (ing.subRecipe) {
+                const subIngredients = await expandRecursively(ing.subRecipe.ingredients);
+                return {
+                    ...ing,
+                    isExpanded: true,
+                    subRecipe: {
+                        ...ing.subRecipe,
+                        ingredients: subIngredients
+                    }
+                };
+            }
+
+            // Fetch
+            try {
+                const data = await fetchRecipeDetails(ing.ingredient_recipe_id!, server);
+                const subIngredientsRaw: ExtendedRecipeIngredient[] = data.ingredients.map(i => ({
+                    ...i,
+                    isExpanded: false,
+                    isLoadingSubRecipe: false
+                }));
+                
+                // Recurse immediately
+                const subIngredients = await expandRecursively(subIngredientsRaw);
+
+                return {
+                    ...ing,
+                    isExpanded: true,
+                    isLoadingSubRecipe: false,
+                    subRecipe: {
+                        ingredients: subIngredients,
+                        craft_cost: data.craft_cost
+                    }
+                };
+            } catch (e) {
+                console.error(e);
+                return ing;
+            }
+        }));
+    };
+
+    // Set loading on top level
+    setIsExpandingAll(true);
+    setExtendedIngredients(prev => prev.map(ing => 
+        ing.ingredient_recipe_id && !ing.isExpanded ? { ...ing, isLoadingSubRecipe: true } : ing
+    ));
+
+    // Execute
+    try {
+        const newIngredients = await expandRecursively(extendedIngredients);
+        setExtendedIngredients(newIngredients);
+    } finally {
+        setIsExpandingAll(false);
+    }
+  };
+
+  const hasAnyCollapsed = (ingredients: ExtendedRecipeIngredient[]): boolean => {
+      return ingredients.some(ing => {
+          if (ing.ingredient_recipe_id && !ing.isExpanded) return true;
+          if (ing.isExpanded && ing.subRecipe) {
+              return hasAnyCollapsed(ing.subRecipe.ingredients);
+          }
+          return false;
+      });
+  };
+
+  const hasAnyExpanded = (ingredients: ExtendedRecipeIngredient[]): boolean => {
+      return ingredients.some(ing => {
+          if (ing.isExpanded) return true;
+          if (ing.subRecipe) {
+              return hasAnyExpanded(ing.subRecipe.ingredients);
+          }
+          return false;
+      });
+  };
+
+  const canExpandAll = hasAnyCollapsed(extendedIngredients);
+  const canCollapseAll = hasAnyExpanded(extendedIngredients);
+
+  const handleCollapseAll = () => {
+    // Recursive collapse helper
+    const collapseRecursively = (ingredients: ExtendedRecipeIngredient[]): ExtendedRecipeIngredient[] => {
+        return ingredients.map(ing => ({
+            ...ing,
+            isExpanded: false,
+            subRecipe: ing.subRecipe ? {
+                ...ing.subRecipe,
+                ingredients: collapseRecursively(ing.subRecipe.ingredients)
+            } : undefined
+        }));
+    };
+
+    setExtendedIngredients(prev => collapseRecursively(prev));
+  };
+
+  const calculateAdjustedStats = () => {
+    if (!recipe) return { craftCost: 0, margin: 0, roi: 0 };
+    
+    let totalCost = 0;
+    // If editing, we use the flat list of edited ingredients (no recursion support in edit mode for now)
+    if (isEditing) {
+        totalCost = editedIngredients.reduce((sum, ing) => sum + ing.total_price, 0);
+    } else {
+        totalCost = calculateRecursiveCost(extendedIngredients);
+    }
+
+    const margin = recipe.sell_price - totalCost;
+    const roi = totalCost > 0 ? (margin / totalCost) * 100 : 0;
+
+    return { craftCost: totalCost, margin, roi };
+  };
+
+  const { craftCost: adjustedCraftCost, margin: adjustedMargin, roi: adjustedRoi } = calculateAdjustedStats();
+
   
   // Add Ingredient State
   const [isAddingIngredient, setIsAddingIngredient] = useState(false);
@@ -125,10 +494,6 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
     }
     setIsEditing(false);
     setIsAddingIngredient(false);
-  };
-
-  const formatKamas = (k: number) => {
-    return new Intl.NumberFormat('fr-FR').format(Math.round(k));
   };
 
   const getRoiColor = (roi: number) => {
@@ -291,7 +656,7 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
         <div className="bg-[#1a1b1e] border border-white/5 rounded-xl p-4 relative overflow-hidden">
           <div className="text-gray-400 text-xs uppercase font-medium mb-1">Coût de Craft</div>
           <div className="text-2xl font-bold text-white flex items-center gap-1">
-            {formatKamas(recipe.craft_cost)}
+            {formatKamas(adjustedCraftCost)}
             <img src={kamaIcon} alt="k" className="w-5 h-5 opacity-70" />
           </div>
           {hasMissingPrices && (
@@ -303,16 +668,16 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
 
         <div className="bg-[#1a1b1e] border border-white/5 rounded-xl p-4">
           <div className="text-gray-400 text-xs uppercase font-medium mb-1">Marge</div>
-          <div className={`text-2xl font-bold flex items-center gap-1 ${recipe.margin > 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {recipe.margin > 0 ? '+' : ''}{formatKamas(recipe.margin)}
+          <div className={`text-2xl font-bold flex items-center gap-1 ${adjustedMargin > 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {adjustedMargin > 0 ? '+' : ''}{formatKamas(adjustedMargin)}
             <img src={kamaIcon} alt="k" className="w-5 h-5 opacity-70" />
           </div>
         </div>
 
         <div className="bg-[#1a1b1e] border border-white/5 rounded-xl p-4">
           <div className="text-gray-400 text-xs uppercase font-medium mb-1">ROI</div>
-          <div className={`text-2xl font-bold ${getRoiColor(recipe.roi)}`}>
-            {recipe.roi.toFixed(1)}%
+          <div className={`text-2xl font-bold ${getRoiColor(adjustedRoi)}`}>
+            {adjustedRoi.toFixed(1)}%
           </div>
         </div>
       </div>
@@ -334,7 +699,44 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
               <Coins className="w-5 h-5 text-blue-500" />
               Ingrédients
             </h2>
-            <span className="text-sm text-gray-400">{recipe.ingredients.length} items</span>
+            <div className="flex items-center gap-3">
+                {!isEditing && (
+                    <>
+                        <button 
+                            onClick={handleExpandAll}
+                            disabled={!canExpandAll || isExpandingAll}
+                            className={`text-xs flex items-center gap-1 transition-colors ${
+                                !canExpandAll || isExpandingAll
+                                    ? "text-gray-600 cursor-default" 
+                                    : "text-blue-400 hover:text-blue-300 cursor-pointer"
+                            }`}
+                            title="Inclure toutes les recettes"
+                        >
+                            {isExpandingAll ? (
+                                <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                                <ChevronsDown size={14} />
+                            )}
+                            Tout inclure
+                        </button>
+                        <button 
+                            onClick={handleCollapseAll}
+                            disabled={!canCollapseAll}
+                            className={`text-xs flex items-center gap-1 transition-colors ${
+                                !canCollapseAll 
+                                    ? "text-gray-600 cursor-default" 
+                                    : "text-orange-400 hover:text-orange-300 cursor-pointer"
+                            }`}
+                            title="Exclure toutes les recettes"
+                        >
+                            <ChevronsUp size={14} />
+                            Tout exclure
+                        </button>
+                        <div className="w-px h-4 bg-white/10 mx-1"></div>
+                    </>
+                )}
+                <span className="text-sm text-gray-400">{recipe.ingredients.length} items</span>
+            </div>
           </div>
           
           <div className="overflow-x-auto flex-1">
@@ -349,98 +751,81 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {(isEditing ? editedIngredients : recipe.ingredients).map((ing) => {
-                  const percentCost = recipe.craft_cost > 0 ? (ing.total_price / recipe.craft_cost) * 100 : 0;
-                  return (
-                    <tr key={ing.item_id} className="hover:bg-[#25262b] transition-colors">
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-[#25262b] rounded-lg flex items-center justify-center overflow-hidden border border-white/5">
-                            {ing.icon_url ? (
-                              <img 
-                                src={ing.icon_url} 
-                                alt={ing.name} 
-                                className="w-full h-full object-contain" 
-                                referrerPolicy="no-referrer"
-                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                              />
-                            ) : (
-                              <div className="text-gray-500 font-bold">{ing.name.charAt(0)}</div>
-                            )}
-                          </div>
-                          <div className="flex flex-col">
-                            {server ? (
-                              <Link 
-                                to={`/item/${server}/${ing.name}`}
-                                className="font-medium text-gray-200 hover:text-blue-400 transition-colors"
-                              >
-                                {ing.name}
-                              </Link>
-                            ) : (
-                              <span className="font-medium text-gray-200">{ing.name}</span>
-                            )}
-                            {ing.ingredient_recipe_id && (
-                              <Link 
-                                to={`/recipes/${ing.ingredient_recipe_id}`}
-                                className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 mt-0.5"
-                              >
-                                <Hammer size={10} />
-                                Voir la recette
-                              </Link>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4 text-right text-gray-300 font-mono">
-                        {isEditing ? (
-                          <input 
-                            type="number" 
-                            min="1"
-                            value={ing.quantity}
-                            onChange={(e) => handleQuantityChange(ing.item_id, parseInt(e.target.value) || 1)}
-                            className="w-20 bg-[#1a1b1e] border border-white/10 rounded px-2 py-1 text-right focus:outline-none focus:border-blue-500"
-                          />
-                        ) : (
-                          `x${ing.quantity}`
-                        )}
-                      </td>
-                      <td className="p-4 text-right text-gray-300 font-mono">
-                        <div className="flex items-center justify-end gap-2">
-                          {ing.price > 0 ? formatKamas(ing.price) : <span className="text-red-400">???</span>}
-                          {isStale(ing.last_update) && ing.price > 0 && (
-                            <div className="text-yellow-500/70 cursor-help" title={`Prix potentiellement obsolète (Dernière maj : ${formatDate(ing.last_update)})`}>
-                              <Clock size={12} />
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-4 text-right text-gray-200 font-mono font-medium">
-                        {ing.total_price > 0 ? formatKamas(ing.total_price) : '-'}
-                      </td>
-                      <td className="p-4 text-right">
-                        {isEditing ? (
-                          <button 
-                            onClick={() => handleDeleteIngredient(ing.item_id)}
-                            className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                            title="Supprimer l'ingrédient"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        ) : (
-                          <div className="flex items-center justify-end gap-2">
-                            <span className="text-xs text-gray-400 w-8">{percentCost.toFixed(0)}%</span>
-                            <div className="w-16 h-1.5 bg-[#25262b] rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-blue-500/50 rounded-full" 
-                                style={{ width: `${percentCost}%` }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {isEditing ? (
+                    editedIngredients.map((ing) => {
+                        return (
+                            <tr key={ing.item_id} className="hover:bg-[#25262b] transition-colors">
+                            <td className="p-4">
+                                <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-[#25262b] rounded-lg flex items-center justify-center overflow-hidden border border-white/5">
+                                    {ing.icon_url ? (
+                                    <img 
+                                        src={ing.icon_url} 
+                                        alt={ing.name} 
+                                        className="w-full h-full object-contain" 
+                                        referrerPolicy="no-referrer"
+                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                    />
+                                    ) : (
+                                    <div className="text-gray-500 font-bold">{ing.name.charAt(0)}</div>
+                                    )}
+                                </div>
+                                <div className="flex flex-col">
+                                    {server ? (
+                                    <Link 
+                                        to={`/item/${server}/${ing.name}`}
+                                        className="font-medium text-gray-200 hover:text-blue-400 transition-colors"
+                                    >
+                                        {ing.name}
+                                    </Link>
+                                    ) : (
+                                    <span className="font-medium text-gray-200">{ing.name}</span>
+                                    )}
+                                </div>
+                                </div>
+                            </td>
+                            <td className="p-4 text-right text-gray-300 font-mono">
+                                <input 
+                                    type="number" 
+                                    min="1"
+                                    value={ing.quantity}
+                                    onChange={(e) => handleQuantityChange(ing.item_id, parseInt(e.target.value) || 1)}
+                                    className="w-20 bg-[#1a1b1e] border border-white/10 rounded px-2 py-1 text-right focus:outline-none focus:border-blue-500"
+                                />
+                            </td>
+                            <td className="p-4 text-right text-gray-300 font-mono">
+                                <div className="flex items-center justify-end gap-2">
+                                {ing.price > 0 ? formatKamas(ing.price) : <span className="text-red-400">???</span>}
+                                </div>
+                            </td>
+                            <td className="p-4 text-right text-gray-200 font-mono font-medium">
+                                {ing.total_price > 0 ? formatKamas(ing.total_price) : '-'}
+                            </td>
+                            <td className="p-4 text-right">
+                                <button 
+                                    onClick={() => handleDeleteIngredient(ing.item_id)}
+                                    className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                    title="Supprimer l'ingrédient"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </td>
+                            </tr>
+                        );
+                    })
+                ) : (
+                    extendedIngredients.map(ing => (
+                        <IngredientRow 
+                            key={ing.item_id} 
+                            ingredient={ing} 
+                            depth={0} 
+                            path={[ing.item_id]}
+                            onToggle={handleToggleRecipe}
+                            server={server}
+                            adjustedCraftCost={adjustedCraftCost}
+                        />
+                    ))
+                )}
               </tbody>
             </table>
           </div>
