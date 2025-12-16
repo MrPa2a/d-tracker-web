@@ -67,6 +67,16 @@ const calculateRecursiveCost = (ingredients: ExtendedRecipeIngredient[]): number
   }, 0);
 };
 
+// Helper to calculate recursive item count
+const calculateRecursiveItemCount = (ingredients: ExtendedRecipeIngredient[]): number => {
+  return ingredients.reduce((total, ing) => {
+    if (ing.isExpanded && ing.subRecipe) {
+      return total + calculateRecursiveItemCount(ing.subRecipe.ingredients);
+    }
+    return total + 1;
+  }, 0);
+};
+
 const formatKamas = (k: number) => {
     return new Intl.NumberFormat('fr-FR').format(Math.round(k));
 };
@@ -728,7 +738,9 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
                         <div className="w-px h-4 bg-white/10 mx-1"></div>
                     </>
                 )}
-                <span className="text-sm text-gray-400">{recipe.ingredients.length} items</span>
+                <span className="text-sm text-gray-400">
+                    {isEditing ? editedIngredients.length : calculateRecursiveItemCount(extendedIngredients)} items
+                </span>
             </div>
           </div>
           

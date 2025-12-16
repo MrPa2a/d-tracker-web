@@ -163,7 +163,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
                 to={`/recipes/${recipe.recipe_id}`}
                 className="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium"
               >
-                Voir le détail complet
+                Voir le détail de la recette
                 <ArrowRight size={16} />
               </Link>
             </div>
