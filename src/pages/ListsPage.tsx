@@ -346,11 +346,11 @@ export const ListsPage: React.FC<ListsPageProps> = ({ currentProfile, dateRange 
       )}
 
       {/* Manage List Modal */}
-      {managingList && currentProfile && (
+      {managingList && (
         <ManageListModal
           onClose={() => setManagingListId(null)}
           list={managingList}
-          currentProfileId={currentProfile.id}
+          currentProfileId={currentProfile?.id}
         />
       )}
     </div>

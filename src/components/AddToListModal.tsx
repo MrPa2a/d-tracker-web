@@ -11,8 +11,8 @@ interface AddToListModalProps {
 export const AddToListModal: React.FC<AddToListModalProps> = ({ item, currentProfile, onClose }) => {
   const { lists, addItem } = useLists(currentProfile?.id);
 
-  // Only show lists owned by the user
-  const myLists = lists.filter(l => l.profile_id === currentProfile?.id);
+  // Show lists owned by the user OR public lists
+  const myLists = lists.filter(l => l.profile_id === currentProfile?.id || l.scope === 'public');
 
   const handleAdd = (listId: string) => {
     addItem({ listId, itemId: item.id });

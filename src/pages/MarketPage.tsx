@@ -647,11 +647,11 @@ const MarketPage: React.FC<MarketPageProps> = ({
           y={listContextMenu.y}
           onClose={() => setListContextMenu(null)}
           actions={[
-            ...lists.filter(l => l.profile_id === currentProfile?.id).map(list => ({
+            ...lists.filter(l => l.profile_id === currentProfile?.id || l.scope === 'public').map(list => ({
               label: list.name,
               onClick: () => addItem({ listId: list.id, itemId: listContextMenu.item.id }),
             })),
-            ...(lists.filter(l => l.profile_id === currentProfile?.id).length === 0 ? [{
+            ...(lists.filter(l => l.profile_id === currentProfile?.id || l.scope === 'public').length === 0 ? [{
               label: 'Aucune liste',
               onClick: () => {},
             }] : [])
