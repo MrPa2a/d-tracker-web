@@ -269,7 +269,13 @@ const AnalysisPage: React.FC<AnalysisPageProps> = ({
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded bg-white/5 flex items-center justify-center text-lg font-bold text-gray-600 shrink-0 overflow-hidden">
                             {item.icon_url ? (
-                                <img src={item.icon_url} alt={item.item_name} className="w-full h-full object-contain" />
+                                <img 
+                                  src={item.icon_url} 
+                                  alt={item.item_name} 
+                                  className="w-full h-full object-contain" 
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
                             ) : (
                                 item.item_name.charAt(0).toUpperCase()
                             )}

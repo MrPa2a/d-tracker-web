@@ -88,7 +88,13 @@ const ListCard: React.FC<{
                 <span key={item.item_id} className="text-xs bg-bg-tertiary px-2 py-1 rounded text-text-primary flex items-center gap-2 border border-border-subtle animate-[fadeIn_0.2s_ease-out]">
                     <div className="w-4 h-4 rounded bg-white/5 flex items-center justify-center text-[8px] font-bold text-gray-600 shrink-0 overflow-hidden">
                         {item.icon_url ? (
-                            <img src={item.icon_url} alt={item.item_name} className="w-full h-full object-contain" />
+                            <img 
+                              src={item.icon_url} 
+                              alt={item.item_name} 
+                              className="w-full h-full object-contain" 
+                              referrerPolicy="no-referrer"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
                         ) : (
                             item.item_name.charAt(0).toUpperCase()
                         )}

@@ -21,6 +21,7 @@ const ItemIcon = ({ icon, name }: { icon?: string | null, name: string }) => {
       src={icon} 
       alt={name} 
       className="w-full h-full object-contain" 
+      referrerPolicy="no-referrer"
       onError={() => setError(true)} 
     />
   );

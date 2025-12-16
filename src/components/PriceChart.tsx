@@ -258,7 +258,13 @@ export const PriceChart: React.FC<PriceChartProps> = ({
           <div className="flex items-center flex-wrap gap-3">
             <div className="w-10 h-10 rounded bg-white/5 flex items-center justify-center text-sm font-bold text-gray-600 overflow-hidden shrink-0">
                 {selectedItem.icon_url ? (
-                    <img src={selectedItem.icon_url} alt={selectedItem.item_name} className="w-full h-full object-contain" />
+                    <img 
+                      src={selectedItem.icon_url} 
+                      alt={selectedItem.item_name} 
+                      className="w-full h-full object-contain" 
+                      referrerPolicy="no-referrer"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
                 ) : (
                     selectedItem.item_name.charAt(0).toUpperCase()
                 )}

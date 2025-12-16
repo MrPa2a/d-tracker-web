@@ -193,7 +193,13 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
                   title="Voir les détails de l'item"
                 >
                   {recipe.result_item_icon ? (
-                    <img src={recipe.result_item_icon} alt="" className="w-8 h-8 object-contain" />
+                    <img 
+                      src={recipe.result_item_icon} 
+                      alt="" 
+                      className="w-8 h-8 object-contain" 
+                      referrerPolicy="no-referrer"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
                   ) : (
                     <div className="w-8 h-8 bg-[#25262b] rounded flex items-center justify-center text-gray-500 font-bold">
                       {recipe.result_item_name.charAt(0)}
@@ -206,7 +212,13 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
               ) : (
                 <div className="flex items-center gap-3">
                   {recipe.result_item_icon ? (
-                    <img src={recipe.result_item_icon} alt="" className="w-8 h-8 object-contain" />
+                    <img 
+                      src={recipe.result_item_icon} 
+                      alt="" 
+                      className="w-8 h-8 object-contain" 
+                      referrerPolicy="no-referrer"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
                   ) : (
                     <div className="w-8 h-8 bg-[#25262b] rounded flex items-center justify-center text-gray-500 font-bold">
                       {recipe.result_item_name.charAt(0)}
@@ -345,7 +357,13 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-[#25262b] rounded-lg flex items-center justify-center overflow-hidden border border-white/5">
                             {ing.icon_url ? (
-                              <img src={ing.icon_url} alt={ing.name} className="w-full h-full object-contain" />
+                              <img 
+                                src={ing.icon_url} 
+                                alt={ing.name} 
+                                className="w-full h-full object-contain" 
+                                referrerPolicy="no-referrer"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                              />
                             ) : (
                               <div className="text-gray-500 font-bold">{ing.name.charAt(0)}</div>
                             )}
@@ -468,7 +486,15 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
                           className="w-full flex items-center gap-3 p-3 hover:bg-white/5 text-left transition-colors border-b border-white/5 last:border-0"
                         >
                           <div className="w-8 h-8 bg-[#1a1b1e] rounded flex items-center justify-center overflow-hidden">
-                              {item.icon_url ? <img src={item.icon_url} alt="" className="w-full h-full object-contain" /> : <span className="text-gray-500 font-bold">{item.item_name[0]}</span>}
+                              {item.icon_url ? (
+                                <img 
+                                  src={item.icon_url} 
+                                  alt="" 
+                                  className="w-full h-full object-contain" 
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              ) : <span className="text-gray-500 font-bold">{item.item_name[0]}</span>}
                           </div>
                           <div>
                             <div className="text-sm font-medium text-white">{item.item_name}</div>

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useJobs, useRecipes } from '../hooks/useRecipes';
 import type { RecipeFilters, RecipeStats } from '../types';
-import { Search, Hammer, AlertTriangle, ChevronDown, Loader2, Clock } from 'lucide-react';
+import { Search, Hammer, AlertTriangle, ChevronDown, Loader2, Clock, X, Plus } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import kamaIcon from '../assets/kama.png';
+import { AddRecipeModal } from '../components/AddRecipeModal';
 
 interface CraftingMarketPageProps {
   server: string | null;
@@ -25,6 +26,8 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
   // Pagination
   const [page, setPage] = useState(1);
   const limit = 50;
+
+  const [isAddRecipeModalOpen, setIsAddRecipeModalOpen] = useState(false);
 
   // Debounce search
   useEffect(() => {
@@ -117,6 +120,13 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
             Identifiez les recettes les plus rentables à crafter sur {propServer}.
           </p>
         </div>
+        <button
+          onClick={() => setIsAddRecipeModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
+        >
+          <Plus size={16} />
+          Ajouter une recette
+        </button>
       </div>
 
       {error && (
@@ -139,8 +149,16 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Nom de l'item..."
-              className="w-full bg-[#25262b] border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+              className="w-full bg-[#25262b] border border-white/10 rounded-lg pl-9 pr-10 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-all"
             />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -151,7 +169,7 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
             <select
               value={selectedJob}
               onChange={(e) => setSelectedJob(e.target.value)}
-              className="w-full bg-[#25262b] border border-white/10 rounded-lg pl-3 pr-10 py-2 text-sm text-white appearance-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+              className="w-full bg-[#25262b] border border-white/10 rounded-lg pl-3 pr-10 py-2 text-sm text-white appearance-none focus:outline-none focus:border-blue-500 transition-all"
             >
               <option value="">Tous les métiers</option>
               {jobs.map((job) => (
@@ -170,7 +188,7 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
               type="number"
               value={minLevel}
               onChange={(e) => setMinLevel(e.target.value)}
-              className="w-full bg-[#25262b] border border-white/10 rounded-lg px-3 py-2 text-sm text-white text-center focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+              className="w-full bg-[#25262b] border border-white/10 rounded-lg px-3 py-2 text-sm text-white text-center focus:outline-none focus:border-blue-500"
             />
           </div>
           <span className="text-gray-500 pb-2">-</span>
@@ -180,7 +198,7 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
               type="number"
               value={maxLevel}
               onChange={(e) => setMaxLevel(e.target.value)}
-              className="w-full bg-[#25262b] border border-white/10 rounded-lg px-3 py-2 text-sm text-white text-center focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+              className="w-full bg-[#25262b] border border-white/10 rounded-lg px-3 py-2 text-sm text-white text-center focus:outline-none focus:border-blue-500"
             />
           </div>
         </div>
@@ -192,7 +210,7 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
             type="number"
             value={minRoi}
             onChange={(e) => setMinRoi(e.target.value)}
-            className="w-full bg-[#25262b] border border-white/10 rounded-lg px-3 py-2 text-sm text-white text-center focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+            className="w-full bg-[#25262b] border border-white/10 rounded-lg px-3 py-2 text-sm text-white text-center focus:outline-none focus:border-blue-500"
           />
         </div>
 
@@ -203,7 +221,7 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="w-full bg-[#25262b] border border-white/10 rounded-lg pl-3 pr-10 py-2 text-sm text-white appearance-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+              className="w-full bg-[#25262b] border border-white/10 rounded-lg pl-3 pr-10 py-2 text-sm text-white appearance-none focus:outline-none focus:border-blue-500 transition-all"
             >
               <option value="margin_desc">Marge (High)</option>
               <option value="roi_desc">ROI (High)</option>
@@ -254,7 +272,13 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-[#25262b] rounded-lg flex items-center justify-center overflow-hidden border border-white/5 text-gray-500 font-bold text-lg">
                           {recipe.result_item_icon ? (
-                            <img src={recipe.result_item_icon} alt={recipe.result_item_name} className="w-full h-full object-contain" />
+                            <img 
+                              src={recipe.result_item_icon} 
+                              alt={recipe.result_item_name} 
+                              className="w-full h-full object-contain" 
+                              referrerPolicy="no-referrer"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
                           ) : (
                             recipe.result_item_name.charAt(0).toUpperCase()
                           )}
@@ -344,6 +368,11 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
           </button>
         </div>
       </div>
+
+      <AddRecipeModal 
+        isOpen={isAddRecipeModalOpen} 
+        onClose={() => setIsAddRecipeModalOpen(false)} 
+      />
     </div>
   );
 };

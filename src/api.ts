@@ -677,3 +677,24 @@ export async function fetchRecipeDetails(id: number, server: string): Promise<Re
   return res.json();
 }
 
+export async function searchItems(query: string, limit = 10): Promise<any[]> {
+  const res = await safeFetch(`${API_BASE}/api/items?mode=search&search=${encodeURIComponent(query)}&limit=${limit}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch items');
+  return res.json();
+}
+
+export async function createCustomRecipe(payload: { result_item_id: number; ingredients: { item_id: number; quantity: number }[] }): Promise<void> {
+  const res = await safeFetch(`${API_BASE}/api/recipes`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Erreur lors de la sauvegarde');
+  }
+}
+

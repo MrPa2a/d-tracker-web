@@ -174,7 +174,13 @@ const RiskMatrixPage: React.FC<RiskMatrixPageProps> = ({
       return (
         <div className="bg-[#1A1B1E] border border-white/10 p-3 rounded-lg shadow-xl z-50">
           <div className="flex items-center gap-2 mb-2">
-            <img src={data.icon_url} alt="" className="w-8 h-8 rounded bg-[#25262b]" />
+            <img 
+              src={data.icon_url} 
+              alt="" 
+              className="w-8 h-8 rounded bg-[#25262b] object-contain" 
+              referrerPolicy="no-referrer"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
             <div>
               <p className="font-bold text-white">{data.item_name}</p>
               <p className="text-xs text-gray-400">{data.category}</p>
