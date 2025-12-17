@@ -285,7 +285,7 @@ const MobileIngredientRow = ({
                                 ) : (
                                     <Plus size={10} />
                                 )}
-                                {isExpanded ? "Masquer recette" : "Voir recette"}
+                                {isExpanded ? "Exclure la recette" : "Inclure la recette"}
                             </button>
                         )}
 
