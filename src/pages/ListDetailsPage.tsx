@@ -634,7 +634,7 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
                 />
                 <Tooltip 
                   content={({ active, payload, label }) => {
-                    if (active && payload && payload.length) {
+                    if (active && payload && payload.length && label) {
                       return (
                         <div className="bg-[#1a1b1e] border border-[#334155] p-3 rounded shadow-lg">
                           <p className="text-gray-200 text-sm mb-1">
