@@ -273,8 +273,20 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
               {filteredRecipes.map((recipe) => (
                 <div 
                   key={recipe.recipe_id}
-                  onClick={() => navigate(`/recipes/${recipe.recipe_id}`)}
-                  className="p-4 hover:bg-[#25262b] transition-colors active:bg-[#25262b]"
+                  onClick={(e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        window.open(`/recipes/${recipe.recipe_id}`, '_blank');
+                    } else {
+                        navigate(`/recipes/${recipe.recipe_id}`);
+                    }
+                  }}
+                  onMouseDown={(e) => {
+                    if (e.button === 1) {
+                        e.preventDefault();
+                        window.open(`/recipes/${recipe.recipe_id}`, '_blank');
+                    }
+                  }}
+                  className="p-4 hover:bg-[#25262b] transition-colors active:bg-[#25262b] cursor-pointer"
                 >
                   <div className="flex items-start gap-3 mb-4">
                     <div className="w-12 h-12 bg-[#25262b] rounded-lg flex items-center justify-center overflow-hidden border border-white/5 text-gray-500 font-bold text-lg shrink-0">
@@ -385,7 +397,19 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
                 filteredRecipes.map((recipe) => (
                   <tr 
                     key={recipe.recipe_id} 
-                    onClick={() => navigate(`/recipes/${recipe.recipe_id}`)}
+                    onClick={(e) => {
+                        if (e.ctrlKey || e.metaKey) {
+                            window.open(`/recipes/${recipe.recipe_id}`, '_blank');
+                        } else {
+                            navigate(`/recipes/${recipe.recipe_id}`);
+                        }
+                    }}
+                    onMouseDown={(e) => {
+                        if (e.button === 1) {
+                            e.preventDefault();
+                            window.open(`/recipes/${recipe.recipe_id}`, '_blank');
+                        }
+                    }}
                     className="hover:bg-[#25262b] transition-colors group cursor-pointer"
                   >
                     <td className="p-4">
