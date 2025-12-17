@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { ItemSummary, TimeseriesPoint, Category } from '../types';
 import { updateItem, updateObservation, createObservation, deleteObservation, fetchCategories } from '../api';
 
@@ -136,8 +137,8 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="bg-bg-secondary border border-border-normal rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
         <div className="p-4 border-b border-border-normal flex justify-between items-center">
           <h2 className="text-xl font-bold text-text-primary">Modifier l'item</h2>
@@ -305,6 +306,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

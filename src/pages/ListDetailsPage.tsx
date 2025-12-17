@@ -389,12 +389,11 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
     
     const sortedDates = Array.from(allDates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
     
-    const aggregated: { date: string; value: number }[] = [];
-    
     // We need to keep track of the last known price for each item to fill gaps (forward fill)
     const lastKnownPrices = new Map<number, number>();
     
-    sortedDates.forEach(date => {
+    // First pass: calculate totals and completeness
+    const aggregated = sortedDates.map(date => {
       let total = 0;
       filteredResults.forEach(({ itemId, quantity }) => {
         const prices = itemPrices.get(itemId);
@@ -403,10 +402,35 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
         }
         total += (lastKnownPrices.get(itemId) || 0) * quantity;
       });
-      aggregated.push({ date, value: total });
+      
+      return { 
+        date, 
+        value: total, 
+        isComplete: lastKnownPrices.size === filteredResults.length 
+      };
     });
-    
-    return aggregated;
+
+    // Find the first index where data is complete
+    const firstCompleteIndex = aggregated.findIndex(p => p.isComplete);
+
+    // Second pass: split into complete/incomplete series
+    return aggregated.map((point, index) => {
+       const { date, value } = point;
+       
+       // Incomplete series: exists until the data becomes complete (inclusive of the transition point)
+       // If never complete, it's always incomplete.
+       const showIncomplete = firstCompleteIndex === -1 || index <= firstCompleteIndex;
+       
+       // Complete series: exists from the point data becomes complete
+       const showComplete = firstCompleteIndex !== -1 && index >= firstCompleteIndex;
+       
+       return {
+         date,
+         value, // For tooltip
+         valueIncomplete: showIncomplete ? value : null,
+         valueComplete: showComplete ? value : null
+       };
+    });
   }, [rawPortfolioData, onlyFavorites, favorites]);
 
   useEffect(() => {
@@ -609,17 +633,42 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
                   tick={{ fontSize: 12 }}
                 />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#1a1b1e', borderColor: '#334155', color: '#f1f5f9' }}
-                  labelFormatter={(label) => new Date(label).toLocaleDateString() + ' ' + new Date(label).toLocaleTimeString()}
-                  formatter={(value: number) => [value.toLocaleString() + ' K', 'Valeur Totale']}
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="bg-[#1a1b1e] border border-[#334155] p-3 rounded shadow-lg">
+                          <p className="text-gray-200 text-sm mb-1">
+                            {new Date(label).toLocaleDateString() + ' ' + new Date(label).toLocaleTimeString()}
+                          </p>
+                          <p className="text-[#3b82f6] text-sm font-medium">
+                            Valeur Totale : {payload[0].value?.toLocaleString()} K
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
                 />
                 <Area 
                   type="monotone" 
-                  dataKey="value" 
+                  dataKey="valueIncomplete" 
+                  stroke="#3b82f6" 
+                  strokeDasharray="5 5"
+                  fillOpacity={1} 
+                  fill="url(#colorValue)" 
+                  strokeWidth={2}
+                  connectNulls={true}
+                  name="valueIncomplete"
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="valueComplete" 
                   stroke="#3b82f6" 
                   fillOpacity={1} 
                   fill="url(#colorValue)" 
                   strokeWidth={2}
+                  connectNulls={true}
+                  name="valueComplete"
                 />
               </AreaChart>
             </ResponsiveContainer>
