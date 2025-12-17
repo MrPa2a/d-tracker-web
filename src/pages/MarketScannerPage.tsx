@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { fetchCategories } from '../api';
 import { useScanner } from '../hooks/useAnalysis';
 import type { Category, DateRangePreset, ScannerFilters as ScannerFiltersType } from '../types';
-import { Search, Filter, AlertTriangle, Clock, X } from 'lucide-react';
+import { Search, Filter, AlertTriangle, Clock, X, ScanLine } from 'lucide-react';
 import kamaIcon from '../assets/kama.png';
 import { ScannerFilters } from '../components/ScannerFilters';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -159,7 +159,10 @@ const AnalysisPage: React.FC<AnalysisPageProps> = ({
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto pb-24 md:pb-6">
       <div className="mb-6 md:mb-8 flex justify-between items-start">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Analyse de Marché</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 flex items-center gap-3">
+            <ScanLine className="w-6 h-6 md:w-8 md:h-8 text-accent-primary" />
+            Analyse de Marché
+          </h1>
           <p className="text-sm md:text-base text-gray-400">Détectez les opportunités d'achat-revente et analysez les tendances.</p>
         </div>
       </div>

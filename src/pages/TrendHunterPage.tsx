@@ -245,7 +245,10 @@ const TrendHunterPage: React.FC<TrendHunterPageProps> = ({
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto pb-24 md:pb-6">
       <div className="mb-6 md:mb-8 flex justify-between items-start">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Détecteur de Tendance</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 flex items-center gap-3">
+            <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-accent-primary" />
+            Détecteur de Tendance
+          </h1>
           <p className="text-sm md:text-base text-gray-400">Identifiez les mouvements de fond : Bull Run, Bear Run et Rebonds.</p>
         </div>
       </div>

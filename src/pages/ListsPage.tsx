@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Trash2, Globe, Lock, AlertTriangle, Loader2, Edit } from 'lucide-react';
+import { Plus, Trash2, Globe, Lock, AlertTriangle, Loader2, Edit, List as ListIcon } from 'lucide-react';
 import { useLists } from '../hooks/useLists';
 import type { Profile, List, DateRangePreset } from '../types';
 import { ManageListModal } from '../components/ManageListModal';
@@ -165,15 +165,21 @@ export const ListsPage: React.FC<ListsPageProps> = ({ currentProfile, dateRange 
   const deletingListId = isDeleting ? deleteConfirmation.listId : null;
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-text-primary">Les listes</h1>
+    <div className="p-4 md:p-6 max-w-[1600px] mx-auto pb-24 md:pb-6 space-y-8">
+      <div className="mb-6 md:mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-text-primary mb-2 flex items-center gap-3">
+            <ListIcon className="w-6 h-6 md:w-8 md:h-8 text-accent-primary" />
+            Les listes
+          </h1>
+          <p className="text-sm md:text-base text-gray-400">Gérez vos listes d'objets favoris et partagez-les.</p>
+        </div>
         <button 
           onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 bg-accent-primary hover:bg-accent-primary/90 text-white px-4 py-2 rounded-lg transition-colors"
+          className="flex items-center gap-2 bg-accent-primary hover:bg-accent-primary/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
         >
-          <Plus size={20} />
-          Créer une liste
+          <Plus size={16} />
+          <span className="hidden md:inline">Créer une liste</span>
         </button>
       </div>
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { fetchCategories } from '../api';
 import { useScanner } from '../hooks/useAnalysis';
 import type { Category, DateRangePreset, ScannerFilters as ScannerFiltersType, ScannerResult } from '../types';
-import { Filter, AlertTriangle, Info, Loader2 } from 'lucide-react';
+import { Filter, AlertTriangle, Info, Loader2, Target } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { ScannerFilters } from '../components/ScannerFilters';
 import {
@@ -214,7 +214,10 @@ const RiskMatrixPage: React.FC<RiskMatrixPageProps> = ({
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto pb-24 md:pb-6">
       <div className="mb-6 md:mb-8 flex justify-between items-start">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Matrice Risque / Rendement</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 flex items-center gap-3">
+            <Target className="w-6 h-6 md:w-8 md:h-8 text-accent-primary" />
+            Matrice Risque / Rendement
+          </h1>
           <p className="text-sm md:text-base text-gray-400">Visualisez les opportunités selon leur potentiel de gain et leur stabilité.</p>
         </div>
       </div>

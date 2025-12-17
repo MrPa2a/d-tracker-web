@@ -109,23 +109,23 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
   }
 
   return (
-    <div className="p-6 max-w-[1600px] mx-auto">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-4 md:p-6 max-w-[1600px] mx-auto pb-24 md:pb-6">
+      <div className="mb-6 md:mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <Hammer className="w-8 h-8 text-blue-500" />
+          <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
+            <Hammer className="w-6 h-6 md:w-8 md:h-8 text-blue-500" />
             Marché des Artisans
           </h1>
-          <p className="text-gray-400 mt-2">
+          <p className="text-sm md:text-base text-gray-400 mt-2">
             Identifiez les recettes les plus rentables à crafter sur {propServer}.
           </p>
         </div>
         <button
           onClick={() => setIsAddRecipeModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-accent-primary hover:bg-accent-primary/90 text-white rounded-lg text-sm font-medium transition-colors"
         >
           <Plus size={16} />
-          Ajouter une recette
+          <span className="hidden md:inline">Ajouter une recette</span>
         </button>
       </div>
 

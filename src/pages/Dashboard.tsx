@@ -7,7 +7,7 @@ import { fetchTimeseries } from '../api';
 import { useMovers, useVolatilityRankings, useOpportunities, useSellOpportunities, useMarketIndex } from '../hooks/useMarketData';
 import kamaIcon from '../assets/kama.png';
 import { SmallSparkline } from '../components/Sparkline';
-import { MoreVertical, Star, StarOff, Copy, List, Loader2 } from 'lucide-react';
+import { MoreVertical, Star, StarOff, Copy, List, Loader2, LayoutDashboard } from 'lucide-react';
 import { ContextMenu } from '../components/ContextMenu';
 import { AddToListModal } from '../components/AddToListModal';
 import { useLists } from '../hooks/useLists';
@@ -348,12 +348,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 mb-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-text-primary to-text-secondary bg-clip-text text-transparent m-0">Tableau de bord</h1>
-          </div>
+    <div className="p-4 md:p-6 max-w-[1600px] mx-auto pb-24 md:pb-6 flex flex-col gap-6">
+      <div className="mb-6 md:mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-text-primary to-text-secondary bg-clip-text text-transparent m-0 mb-2 flex items-center gap-3">
+            <LayoutDashboard className="w-6 h-6 md:w-8 md:h-8 text-accent-primary" />
+            Tableau de bord
+          </h1>
+          <p className="text-sm md:text-base text-gray-400">Vue d'ensemble de votre activité et des opportunités du marché.</p>
         </div>
       </div>
 

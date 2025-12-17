@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import type { ItemSummary, SortType, SortOrder, Category, DateRangePreset } from '../types';
 import { useTimeseries } from '../hooks/useTimeseries';
 import kamaIcon from '../assets/kama.png';
-import { Star, StarOff, Search, Filter, X, ChevronDown, ChevronUp, LayoutGrid, List, MoreVertical, Copy, Loader2 } from 'lucide-react';
+import { Star, StarOff, Search, Filter, X, ChevronDown, ChevronUp, LayoutGrid, List, MoreVertical, Copy, Loader2, ShoppingBag } from 'lucide-react';
 import { SmallSparkline } from '../components/Sparkline';
 import { ContextMenu } from '../components/ContextMenu';
 import { useLists } from '../hooks/useLists';
@@ -387,11 +387,14 @@ const MarketPage: React.FC<MarketPageProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="p-4 md:p-6 max-w-[1600px] mx-auto pb-24 md:pb-6 space-y-6">
+      <div className="mb-6 md:mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Marché</h1>
-          <p className="text-gray-400 text-sm">Explorez les items et analysez les tendances</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 flex items-center gap-3">
+            <ShoppingBag className="w-6 h-6 md:w-8 md:h-8 text-blue-500" />
+            Marché
+          </h1>
+          <p className="text-sm md:text-base text-gray-400">Explorez les items et analysez les tendances</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
           {/* Item Search (restored) */}
