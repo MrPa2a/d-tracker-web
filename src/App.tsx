@@ -343,6 +343,15 @@ const App: React.FC = () => {
           } 
         />
         <Route 
+          path="/recipes/item/:itemId" 
+          element={
+            <RecipeDetailsPage 
+              server={dashboardServer} 
+              dateRange={dateRange}
+            />
+          } 
+        />
+        <Route 
           path="/recipes/:id" 
           element={
             <RecipeDetailsPage 

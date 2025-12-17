@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, Search, Bell, Server, ChevronDown, Star, X, MoreVertical, Copy, List, Loader2, RefreshCw, Filter } from 'lucide-react';
+import { Menu, Search, Bell, Server, ChevronDown, Star, X, MoreVertical, RefreshCw, Filter } from 'lucide-react';
 import { useLocation, Link } from 'react-router-dom';
 import { useQueryClient, useIsFetching } from '@tanstack/react-query';
 import type { ItemSummary, DateRangePreset, Profile } from '../types';
 import { fetchItems } from '../api';
-import { ContextMenu } from '../components/ContextMenu';
+import { ItemContextMenu } from '../components/ItemContextMenu';
 import { AddToListModal } from '../components/AddToListModal';
 import { useFavorites } from '../hooks/useFavorites';
 
@@ -437,43 +437,17 @@ export const Header: React.FC<HeaderProps> = ({
       )}
 
       {contextMenu && (
-        <ContextMenu
+        <ItemContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
+          item={contextMenu.item}
           onClose={() => setContextMenu(null)}
-          actions={[
-            {
-              label: favorites.has(contextMenu.item.item_name) ? 'Retirer des favoris' : 'Ajouter aux favoris',
-              icon: pendingFavorites?.has(contextMenu.item.item_name) ? (
-                <Loader2 size={16} className="animate-spin text-accent-primary" />
-              ) : (
-                <Star size={16} className={favorites.has(contextMenu.item.item_name) ? "text-yellow-400" : ""} fill={favorites.has(contextMenu.item.item_name) ? "currentColor" : "none"} />
-              ),
-              onClick: () => {
-                if (!pendingFavorites?.has(contextMenu.item.item_name)) {
-                    toggleFavorite(contextMenu.item.item_name);
-                }
-                setContextMenu(null);
-              },
-              disabled: pendingFavorites?.has(contextMenu.item.item_name)
-            },
-            {
-              label: 'Ajouter à une liste',
-              icon: <List size={16} />,
-              onClick: () => {
-                setItemToAddToList(contextMenu.item);
-                setContextMenu(null);
-              }
-            },
-            {
-              label: 'Copier le nom',
-              icon: <Copy size={16} />,
-              onClick: () => {
-                navigator.clipboard.writeText(contextMenu.item.item_name);
-                setContextMenu(null);
-              }
-            }
-          ]}
+          favorites={favorites}
+          pendingFavorites={pendingFavorites}
+          onToggleFavorite={toggleFavorite}
+          onAddToList={(item) => {
+            setItemToAddToList(item);
+          }}
         />
       )}
 

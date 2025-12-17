@@ -3,9 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import type { ItemSummary, SortType, SortOrder, Category, DateRangePreset } from '../types';
 import { useTimeseries } from '../hooks/useTimeseries';
 import kamaIcon from '../assets/kama.png';
-import { Star, StarOff, Search, Filter, X, ChevronDown, ChevronUp, LayoutGrid, List, MoreVertical, Copy, Loader2, ShoppingBag } from 'lucide-react';
+import { Star, Search, Filter, X, ChevronDown, ChevronUp, LayoutGrid, List, MoreVertical, Loader2, ShoppingBag } from 'lucide-react';
 import { SmallSparkline } from '../components/Sparkline';
 import { ContextMenu } from '../components/ContextMenu';
+import { ItemContextMenu } from '../components/ItemContextMenu';
 import { useLists } from '../hooks/useLists';
 import type { Profile } from '../types';
 
@@ -617,31 +618,18 @@ const MarketPage: React.FC<MarketPageProps> = ({
       )}
       
       {contextMenu && (
-        <ContextMenu
+        <ItemContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
+          item={contextMenu.item}
           onClose={() => setContextMenu(null)}
-          actions={[
-            {
-              label: favorites.has(contextMenu.item.item_name) ? 'Retirer des favoris' : 'Ajouter aux favoris',
-              icon: pendingFavorites?.has(contextMenu.item.item_name) ? <Loader2 size={16} className="animate-spin" /> : (favorites.has(contextMenu.item.item_name) ? <StarOff size={16} /> : <Star size={16} />),
-              onClick: () => onToggleFavorite && onToggleFavorite(contextMenu.item.item_name),
-              disabled: pendingFavorites?.has(contextMenu.item.item_name)
-            },
-            {
-              label: 'Ajouter à une liste',
-              icon: <List size={16} />,
-              onClick: () => {
-                setListContextMenu({ x: contextMenu.x, y: contextMenu.y, item: contextMenu.item });
-                setContextMenu(null);
-              },
-            },
-            {
-              label: 'Copier le nom',
-              icon: <Copy size={16} />,
-              onClick: () => navigator.clipboard.writeText(contextMenu.item.item_name),
-            },
-          ]}
+          favorites={favorites}
+          pendingFavorites={pendingFavorites}
+          onToggleFavorite={onToggleFavorite}
+          onAddToList={(item) => {
+            setListContextMenu({ x: contextMenu.x, y: contextMenu.y, item });
+            setContextMenu(null);
+          }}
         />
       )}
       {listContextMenu && (

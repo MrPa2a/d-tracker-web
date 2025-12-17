@@ -7,8 +7,9 @@ import { fetchTimeseries } from '../api';
 import { useMovers, useVolatilityRankings, useOpportunities, useSellOpportunities, useMarketIndex } from '../hooks/useMarketData';
 import kamaIcon from '../assets/kama.png';
 import { SmallSparkline } from '../components/Sparkline';
-import { MoreVertical, Star, StarOff, Copy, List, Loader2, LayoutDashboard } from 'lucide-react';
+import { MoreVertical, Star, Loader2, LayoutDashboard } from 'lucide-react';
 import { ContextMenu } from '../components/ContextMenu';
+import { ItemContextMenu } from '../components/ItemContextMenu';
 import { AddToListModal } from '../components/AddToListModal';
 import { useLists } from '../hooks/useLists';
 
@@ -788,31 +789,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </section>
       {contextMenu && (
-        <ContextMenu
+        <ItemContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
+          item={contextMenu.item}
           onClose={() => setContextMenu(null)}
-          actions={[
-            {
-              label: favorites.has(contextMenu.item.item_name) ? 'Retirer des favoris' : 'Ajouter aux favoris',
-              icon: pendingFavorites?.has(contextMenu.item.item_name) ? <Loader2 size={16} className="animate-spin" /> : (favorites.has(contextMenu.item.item_name) ? <StarOff size={16} /> : <Star size={16} />),
-              onClick: () => onToggleFavorite && onToggleFavorite(contextMenu.item.item_name),
-              disabled: pendingFavorites?.has(contextMenu.item.item_name)
-            },
-            {
-              label: 'Ajouter à une liste',
-              icon: <List size={16} />,
-              onClick: () => {
-                setListContextMenu({ x: contextMenu.x, y: contextMenu.y, item: contextMenu.item });
-                setContextMenu(null);
-              },
-            },
-            {
-              label: 'Copier le nom',
-              icon: <Copy size={16} />,
-              onClick: () => navigator.clipboard.writeText(contextMenu.item.item_name),
-            },
-          ]}
+          favorites={favorites}
+          pendingFavorites={pendingFavorites}
+          onToggleFavorite={onToggleFavorite}
+          onAddToList={(item) => {
+            setListContextMenu({ x: contextMenu.x, y: contextMenu.y, item });
+            setContextMenu(null);
+          }}
         />
       )}
       {listContextMenu && (

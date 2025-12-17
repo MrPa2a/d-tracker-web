@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, AlertTriangle, Hammer, Loader2, Coins, TrendingUp, Edit2, Save, X, Trash2, Plus, Search, Clock, Minus, ChevronsDown, ChevronsUp } from 'lucide-react';
-import { useRecipeDetails } from '../hooks/useRecipes';
+import { useRecipeDetails, useItemRecipe } from '../hooks/useRecipes';
 import { useTimeseries } from '../hooks/useTimeseries';
 import { updateRecipe, fetchItems, fetchRecipeDetails } from '../api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -333,12 +333,21 @@ const MobileIngredientRow = ({
 };
 
 const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange }) => {
-  const { id } = useParams<{ id: string }>();
+  const { id, itemId } = useParams<{ id: string; itemId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const recipeId = parseInt(id || '0');
 
-  const { data: recipe, isLoading, error } = useRecipeDetails(recipeId, server);
+  // Resolve recipe ID from item ID if needed
+  const { data: itemRecipe, isLoading: isLoadingItemRecipe } = useItemRecipe(
+    itemId ? Number(itemId) : undefined, 
+    server
+  );
+
+  const recipeId = id ? parseInt(id) : (itemRecipe?.recipe_id || 0);
+
+  const { data: recipe, isLoading: isLoadingRecipe, error } = useRecipeDetails(recipeId, server);
+  
+  const isLoading = isLoadingRecipe || (!!itemId && isLoadingItemRecipe);
   const { data: timeseries } = useTimeseries(
     recipe?.result_item_name || '', 
     server || '', 

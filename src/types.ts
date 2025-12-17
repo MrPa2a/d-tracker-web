@@ -10,6 +10,7 @@ export interface ItemSummary {
   category?: string;
   average_price?: number;
   icon_url?: string;
+  is_craftable?: boolean;
 }
 
 export interface TimeseriesPoint {
@@ -161,6 +162,7 @@ export interface List {
     average_price?: number;
     last_observation_at?: string;
     icon_url?: string;
+    is_craftable?: boolean;
   }[];
 }
 

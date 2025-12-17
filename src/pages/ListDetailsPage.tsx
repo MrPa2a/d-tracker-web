@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, TrendingUp, TrendingDown, MoreVertical, Star, Trash2, Copy, Loader2 } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, MoreVertical, Star, Trash2, Loader2 } from 'lucide-react';
 import { fetchListDetails, fetchTimeseries, removeItemFromList, updateItemInList } from '../api';
 import type { DateRangePreset, TimeseriesPoint, List } from '../types';
 import {
@@ -16,7 +16,7 @@ import {
 import kamaIcon from '../assets/kama.png';
 import { SmallSparkline } from '../components/Sparkline';
 import { useTimeseries } from '../hooks/useTimeseries';
-import { ContextMenu } from '../components/ContextMenu';
+import { ItemContextMenu } from '../components/ItemContextMenu';
 
 type ListItem = List['list_items'][0];
 
@@ -743,19 +743,21 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
       </div>
 
       {contextMenu && (
-        <ContextMenu
+        <ItemContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
+          item={{
+            ...contextMenu.item,
+            id: contextMenu.item.item_id,
+            server: contextMenu.item.server || '',
+            last_observation_at: contextMenu.item.last_observation_at || '',
+            last_price: contextMenu.item.last_price || 0,
+          }}
           onClose={() => setContextMenu(null)}
-          actions={[
-            {
-              label: 'Copier le nom',
-              icon: <Copy size={16} />,
-              onClick: () => {
-                navigator.clipboard.writeText(contextMenu.item.item_name);
-                setContextMenu(null);
-              }
-            },
+          favorites={favorites}
+          pendingFavorites={pendingFavorites}
+          onToggleFavorite={onToggleFavorite}
+          extraActions={[
             {
               label: 'Retirer de la liste',
               icon: <Trash2 size={16} className="text-rose-400" />,

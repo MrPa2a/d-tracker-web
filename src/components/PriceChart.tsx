@@ -4,7 +4,8 @@ import type { DateRangePreset, ItemSummary, TimeseriesPoint, ItemStats, Profile 
 import { fetchItemStats } from '../api';
 import { EditItemModal } from './EditItemModal';
 import { ContextMenu } from './ContextMenu';
-import { MoreVertical, Star, Copy, List, Loader2, Trash2 } from 'lucide-react';
+import { ItemContextMenu } from './ItemContextMenu';
+import { MoreVertical, Loader2, Trash2 } from 'lucide-react';
 import { useLists } from '../hooks/useLists';
 import kamaIcon from '../assets/kama.png';
 import {
@@ -514,31 +515,18 @@ export const PriceChart: React.FC<PriceChartProps> = ({
       )}
 
       {contextMenu && (
-        <ContextMenu
+        <ItemContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
+          item={contextMenu.item}
           onClose={() => setContextMenu(null)}
-          actions={[
-            ...(onToggleFavorite ? [{
-              label: favorites?.has(contextMenu.item.item_name) ? 'Retirer des favoris' : 'Ajouter aux favoris',
-              icon: pendingFavorites?.has(contextMenu.item.item_name) ? <Loader2 size={16} className="animate-spin" /> : <Star size={16} className={favorites?.has(contextMenu.item.item_name) ? "fill-accent-warning text-accent-warning" : ""} />,
-              onClick: () => onToggleFavorite(contextMenu.item.item_name),
-              disabled: pendingFavorites?.has(contextMenu.item.item_name)
-            }] : []),
-            ...(contextMenu.item.id ? [{
-              label: 'Ajouter à une liste...',
-              icon: <List size={16} />,
-              onClick: () => {
-                setListContextMenu({ x: contextMenu.x, y: contextMenu.y, item: contextMenu.item });
-                setContextMenu(null);
-              },
-            }] : []),
-            {
-              label: 'Copier le nom',
-              icon: <Copy size={16} />,
-              onClick: () => navigator.clipboard.writeText(contextMenu.item.item_name),
-            },
-          ]}
+          favorites={favorites}
+          pendingFavorites={pendingFavorites}
+          onToggleFavorite={onToggleFavorite}
+          onAddToList={(item) => {
+            setListContextMenu({ x: contextMenu.x, y: contextMenu.y, item });
+            setContextMenu(null);
+          }}
         />
       )}
 

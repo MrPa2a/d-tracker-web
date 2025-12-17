@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
-interface ContextMenuAction {
+export interface ContextMenuAction {
   label: string;
   icon?: React.ReactNode;
   onClick: () => void;
