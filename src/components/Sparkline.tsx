@@ -95,7 +95,7 @@ export const SmallSparkline: React.FC<{ data: TimeseriesPoint[] | null }> = ({ d
   if (!data || data.length === 0) return <div className="text-center text-gray-500 text-xs leading-10">—</div>;
   
   return (
-    <div className="w-full h-full relative overflow-hidden" ref={setContainerNode}>
+    <div className="w-full h-full relative overflow-hidden [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none [&_*]:focus:outline-none outline-none" ref={setContainerNode}>
       {dimensions.width > 0 && dimensions.height > 0 && (
         <LineChart width={dimensions.width} height={dimensions.height} data={data}>
           <XAxis dataKey="date" hide />

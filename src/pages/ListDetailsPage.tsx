@@ -598,7 +598,7 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
       )}
 
       {/* Chart */}
-      <div className="bg-[#1a1b1e] p-4 md:p-6 rounded-xl border border-white/5 h-[250px] md:h-[400px] lg:h-[600px] flex flex-col">
+      <div className="bg-[#1a1b1e] p-4 md:p-6 rounded-xl border border-white/5 h-[250px] md:h-[400px] lg:h-[600px] flex flex-col [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none [&_*]:focus:outline-none outline-none">
         <h3 className="text-lg font-semibold text-gray-100 mb-4">Évolution du Portefeuille</h3>
         {historyLoading ? (
           <div className="h-full flex items-center justify-center text-gray-500">Chargement du graphique...</div>

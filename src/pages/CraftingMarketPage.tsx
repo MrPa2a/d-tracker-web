@@ -243,7 +243,107 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
             </div>
           </div>
         )}
-        <div className="overflow-x-auto">
+        
+        {/* Mobile Card View */}
+        <div className="md:hidden">
+          {recipes.length === 0 && !loading && !isFetching ? (
+            <div className="p-8 text-center text-gray-400">Aucune recette trouvée avec ces critères.</div>
+          ) : (
+            <div className="divide-y divide-white/5">
+              {recipes.map((recipe) => (
+                <div 
+                  key={recipe.recipe_id}
+                  onClick={() => navigate(`/recipes/${recipe.recipe_id}`)}
+                  className="p-4 hover:bg-[#25262b] transition-colors active:bg-[#25262b]"
+                >
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-12 h-12 bg-[#25262b] rounded-lg flex items-center justify-center overflow-hidden border border-white/5 text-gray-500 font-bold text-lg shrink-0">
+                      {recipe.result_item_icon ? (
+                        <img 
+                          src={recipe.result_item_icon} 
+                          alt={recipe.result_item_name} 
+                          className="w-full h-full object-contain" 
+                          referrerPolicy="no-referrer"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      ) : (
+                        recipe.result_item_name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-white text-base leading-tight mb-1">
+                        {recipe.result_item_name}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span>Niv. {recipe.level}</span>
+                        <span>•</span>
+                        <span>{recipe.job_name}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-y-4 gap-x-4 text-sm">
+                    {/* Row 1: Cost & Sell Price */}
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Coût Craft</div>
+                      <div className="font-mono text-gray-300 flex items-center gap-1">
+                        {formatKamas(recipe.craft_cost)} 
+                        <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
+                      </div>
+                      {(isStale(recipe.ingredients_last_update) || recipe.ingredients_with_price < recipe.ingredients_count) && (
+                        <div className="flex flex-col gap-0.5 mt-1">
+                          {isStale(recipe.ingredients_last_update) && recipe.craft_cost > 0 && (
+                            <div className="text-[10px] text-yellow-500/80 flex items-center gap-1">
+                              <Clock size={10} />
+                              <span>Obsolète</span>
+                            </div>
+                          )}
+                          {recipe.ingredients_with_price < recipe.ingredients_count && (
+                            <div className="text-[10px] text-yellow-500/80 flex items-center gap-1">
+                              <AlertTriangle size={10} />
+                              <span>Partiel ({recipe.ingredients_with_price}/{recipe.ingredients_count})</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-500 mb-1">Prix Vente</div>
+                      <div className="font-mono text-gray-300 flex items-center justify-end gap-1">
+                        {formatKamas(recipe.sell_price)}
+                        <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
+                      </div>
+                      {isStale(recipe.result_item_last_update) && recipe.sell_price > 0 && (
+                        <div className="text-[10px] text-yellow-500/80 flex items-center justify-end gap-1 mt-1">
+                          <Clock size={10} />
+                          <span>Obsolète</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Row 2: ROI & Margin */}
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">ROI</div>
+                      <div className={`font-mono font-bold ${getRoiColor(recipe.roi)}`}>
+                        {recipe.roi.toFixed(1)}%
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-500 mb-1">Marge</div>
+                      <div className={`font-mono font-medium flex items-center justify-end gap-1 ${recipe.margin > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {recipe.margin > 0 ? '+' : ''}{formatKamas(recipe.margin)}
+                        <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[#25262b] text-gray-400 text-xs uppercase tracking-wider border-b border-white/5">

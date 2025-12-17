@@ -101,26 +101,28 @@ const RiskMatrixPage: React.FC<RiskMatrixPageProps> = ({
   // Chart sizing logic
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [chartHeight, setChartHeight] = useState(550);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
-    const updateChartHeight = () => {
+    const handleResize = () => {
       if (chartContainerRef.current) {
         const height = chartContainerRef.current.offsetHeight;
         // Subtract padding (p-6 = 24px * 2 = 48px)
         const calculatedHeight = Math.max(height - 48, 300);
         setChartHeight(calculatedHeight);
       }
+      setIsMobile(window.innerWidth < 768);
     };
 
-    updateChartHeight();
+    handleResize();
     
-    const timer1 = setTimeout(updateChartHeight, 50);
-    const timer2 = setTimeout(updateChartHeight, 200);
+    const timer1 = setTimeout(handleResize, 50);
+    const timer2 = setTimeout(handleResize, 200);
     
-    window.addEventListener('resize', updateChartHeight);
+    window.addEventListener('resize', handleResize);
 
     return () => {
-      window.removeEventListener('resize', updateChartHeight);
+      window.removeEventListener('resize', handleResize);
       clearTimeout(timer1);
       clearTimeout(timer2);
     };
@@ -272,7 +274,7 @@ const RiskMatrixPage: React.FC<RiskMatrixPageProps> = ({
 
           <div 
             ref={chartContainerRef}
-            className="bg-[#1A1B1E] rounded-xl border border-white/5 p-6 h-[600px] relative"
+            className="bg-[#1A1B1E] rounded-xl border border-white/5 p-4 md:p-6 h-[500px] md:h-[600px] relative [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none [&_*]:focus:outline-none outline-none"
           >
             {loading ? (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -285,7 +287,7 @@ const RiskMatrixPage: React.FC<RiskMatrixPageProps> = ({
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={chartHeight}>
-                <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: isMobile ? 0 : 20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                     <XAxis 
                       type="number" 
@@ -293,18 +295,25 @@ const RiskMatrixPage: React.FC<RiskMatrixPageProps> = ({
                       name="Volatilité" 
                       unit="%" 
                       stroke="#666"
-                      label={{ value: 'Volatilité (Risque)', position: 'bottom', offset: 0, fill: '#888' }}
+                      label={{ value: 'Volatilité (Risque)', position: 'bottom', offset: 0, fill: '#888', fontSize: isMobile ? 12 : 14 }}
+                      tick={{ fontSize: isMobile ? 10 : 12 }}
                     />
                     <YAxis 
                       type="number" 
                       dataKey="profit" 
-                    name="Profit" 
-                    unit=" k" 
-                    stroke="#666"
-                    label={{ value: 'Profit Potentiel', angle: -90, position: 'left', fill: '#888' }}
-                    domain={['auto', 'auto']}
-                  />
-                  <ZAxis type="number" dataKey="margin" range={[50, 400]} name="Marge" />
+                      name="Profit" 
+                      stroke="#666"
+                      tickFormatter={(value) => {
+                        if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                        if (value >= 1000) return `${(value / 1000).toFixed(0)}k`;
+                        return value;
+                      }}
+                      width={isMobile ? 45 : 60}
+                      label={isMobile ? undefined : { value: 'Profit Potentiel', angle: -90, position: 'left', fill: '#888' }}
+                      domain={['auto', 'auto']}
+                      tick={{ fontSize: isMobile ? 10 : 12 }}
+                    />
+                  <ZAxis type="number" dataKey="margin" range={isMobile ? [30, 150] : [50, 400]} name="Marge" />
                   <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
                   
                   {/* Zones */}

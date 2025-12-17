@@ -152,7 +152,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
   return (
     <div className="h-full overflow-y-auto">
       <div className="p-4 md:p-6 space-y-6">
-        <div className="h-[720px] md:h-[600px] w-full">
+        <div className="h-[820px] md:h-[600px] w-full">
           <PriceChart
             selectedItem={selectedItem}
             server={server || null}
@@ -267,8 +267,71 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
 
             {usages && usages.length > 0 ? (
               <>
-                <div className={`overflow-x-auto transition-opacity duration-200 ${usagesFetching ? 'opacity-50' : 'opacity-100'}`}>
-                  <table className="w-full text-left border-collapse">
+                <div className={`transition-opacity duration-200 ${usagesFetching ? 'opacity-50' : 'opacity-100'}`}>
+                  {/* Mobile Card View */}
+                  <div className="md:hidden divide-y divide-border-subtle">
+                    {usages.map((usage) => (
+                      <div 
+                        key={usage.recipe_id}
+                        onClick={() => navigate(`/recipes/${usage.recipe_id}`)}
+                        className="p-4 hover:bg-bg-tertiary/50 transition-colors active:bg-bg-tertiary/50 cursor-pointer"
+                      >
+                        <div className="flex items-start gap-3 mb-4">
+                          <div className="w-12 h-12 bg-bg-tertiary rounded-lg flex items-center justify-center overflow-hidden border border-border-subtle shrink-0">
+                            <ItemIcon icon={usage.result_item_icon} name={usage.result_item_name} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-text-primary text-base leading-tight mb-1">
+                              {usage.result_item_name}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-text-muted">
+                              <span>Niv. {usage.level}</span>
+                              <span>•</span>
+                              <span>{usage.job_name}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-y-4 gap-x-4 text-sm">
+                          {/* Row 1: Quantity & Sell Price */}
+                          <div>
+                            <div className="text-xs text-text-muted mb-1">Qté Requise</div>
+                            <div className="font-mono text-text-primary">x{usage.quantity_required}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-text-muted mb-1">Prix Vente</div>
+                            <div className="font-mono text-text-primary flex items-center justify-end gap-1">
+                              {usage.sell_price ? formatKamas(usage.sell_price) : '-'}
+                              {usage.sell_price && <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />}
+                            </div>
+                          </div>
+
+                          {/* Row 2: ROI & Margin */}
+                          <div>
+                            <div className="text-xs text-text-muted mb-1">ROI</div>
+                            <div className={`font-mono font-bold ${!usage.sell_price ? 'text-text-muted' : usage.roi > 20 ? 'text-green-400' : usage.roi > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+                              {usage.sell_price ? `${usage.roi.toFixed(1)}%` : '-'}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-text-muted mb-1">Marge</div>
+                            <div className={`font-mono font-medium flex items-center justify-end gap-1 ${!usage.sell_price ? 'text-text-muted italic' : usage.margin > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {usage.sell_price ? (
+                                <>
+                                  {usage.margin > 0 ? '+' : ''}{formatKamas(usage.margin)}
+                                  <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
+                                </>
+                              ) : 'Pas de prix'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-bg-tertiary text-text-muted text-xs uppercase tracking-wider border-b border-border-subtle">
                         <th className="p-4 font-medium">Recette</th>
@@ -319,6 +382,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
                     </tbody>
                   </table>
                 </div>
+              </div>
 
                 {totalPages > 1 && (
                   <div className="p-4 border-t border-border-subtle flex items-center justify-between">

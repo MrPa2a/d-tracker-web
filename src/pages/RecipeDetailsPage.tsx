@@ -207,6 +207,131 @@ const IngredientRow = ({
     );
 };
 
+// Mobile Row Component
+const MobileIngredientRow = ({ 
+    ingredient, 
+    depth, 
+    path, 
+    onToggle, 
+    server, 
+    adjustedCraftCost 
+}: { 
+    ingredient: ExtendedRecipeIngredient, 
+    depth: number, 
+    path: number[], 
+    onToggle: (path: number[]) => void, 
+    server: string | null, 
+    adjustedCraftCost: number 
+}) => {
+    const isExpanded = ingredient.isExpanded;
+    const subRecipeCost = isExpanded && ingredient.subRecipe ? calculateRecursiveCost(ingredient.subRecipe.ingredients) : 0;
+    const percentCost = adjustedCraftCost > 0 ? ((isExpanded ? subRecipeCost * ingredient.quantity : ingredient.total_price) / adjustedCraftCost) * 100 : 0;
+
+    return (
+        <div className="flex flex-col">
+            <div 
+                className="p-3 border-b border-white/5 relative transition-colors"
+                style={{ 
+                    paddingLeft: `${1 + depth}rem`,
+                    backgroundColor: `rgba(255, 255, 255, ${(depth * 0.012) + (isExpanded ? 0.035 : 0)})` 
+                }}
+            >
+                {depth > 0 && (
+                    <div className="absolute left-0 top-0 bottom-0 w-[1px] bg-white/5" style={{ left: `${depth}rem` }}></div>
+                )}
+                
+                <div className="flex gap-3">
+                    <div className="w-10 h-10 bg-[#25262b] rounded-lg flex items-center justify-center overflow-hidden border border-white/5 shrink-0">
+                        {ingredient.icon_url ? (
+                            <img 
+                                src={ingredient.icon_url} 
+                                alt={ingredient.name} 
+                                className="w-full h-full object-contain" 
+                                referrerPolicy="no-referrer"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                        ) : (
+                            <div className="text-gray-500 font-bold">{ingredient.name.charAt(0)}</div>
+                        )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start mb-1">
+                            <div className="min-w-0 pr-2">
+                                {server ? (
+                                    <Link 
+                                        to={ingredient.ingredient_recipe_id ? `/recipes/${ingredient.ingredient_recipe_id}` : `/item/${server}/${ingredient.name}`}
+                                        className="font-medium text-gray-200 hover:text-blue-400 transition-colors truncate block"
+                                    >
+                                        {ingredient.name}
+                                    </Link>
+                                ) : (
+                                    <span className="font-medium text-gray-200 truncate block">{ingredient.name}</span>
+                                )}
+                            </div>
+                            <span className="text-gray-400 font-mono text-sm whitespace-nowrap">x{ingredient.quantity}</span>
+                        </div>
+
+                        {ingredient.ingredient_recipe_id && (
+                            <button
+                                onClick={() => onToggle(path)}
+                                className={`text-xs flex items-center gap-1 cursor-pointer mb-2 ${isExpanded ? "text-orange-400" : "text-green-400"}`}
+                                disabled={ingredient.isLoadingSubRecipe}
+                            >
+                                {ingredient.isLoadingSubRecipe ? (
+                                    <Loader2 size={10} className="animate-spin" />
+                                ) : isExpanded ? (
+                                    <Minus size={10} />
+                                ) : (
+                                    <Plus size={10} />
+                                )}
+                                {isExpanded ? "Masquer recette" : "Voir recette"}
+                            </button>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2 text-xs bg-black/20 rounded p-2">
+                            <div>
+                                <span className="text-gray-500 block">Unitaire</span>
+                                <span className="text-gray-300 font-mono">
+                                    {ingredient.price > 0 ? formatKamas(ingredient.price) : '???'}
+                                </span>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-gray-500 block">Total</span>
+                                <span className={`font-mono font-medium ${isExpanded && subRecipeCost > ingredient.price ? "text-red-400" : "text-blue-400"}`}>
+                                    {isExpanded ? formatKamas(subRecipeCost * ingredient.quantity) : (ingredient.total_price > 0 ? formatKamas(ingredient.total_price) : '-')}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div className="mt-2 flex items-center gap-2">
+                            <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
+                                <div 
+                                    className="h-full bg-blue-500/50 rounded-full" 
+                                    style={{ width: `${percentCost}%` }}
+                                />
+                            </div>
+                            <span className="text-[10px] text-gray-500 w-6 text-right">{percentCost.toFixed(0)}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {isExpanded && ingredient.subRecipe && ingredient.subRecipe.ingredients.map(subIng => (
+                <MobileIngredientRow 
+                    key={subIng.item_id} 
+                    ingredient={subIng} 
+                    depth={depth + 1} 
+                    path={[...path, subIng.item_id]}
+                    onToggle={onToggle}
+                    server={server}
+                    adjustedCraftCost={adjustedCraftCost}
+                />
+            ))}
+        </div>
+    );
+};
+
 const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -544,16 +669,17 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
   return (
     <div className="p-6 max-w-[1600px] mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center gap-4 min-w-0">
           <button 
             onClick={() => navigate(-1)}
-            className="p-2 rounded-lg bg-[#25262b] hover:bg-[#2c2e33] text-gray-400 hover:text-white transition-colors"
+            className="p-2 rounded-lg bg-[#25262b] hover:bg-[#2c2e33] text-gray-400 hover:text-white transition-colors w-fit"
           >
             <ArrowLeft size={20} />
           </button>
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+          
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-2xl font-bold text-white flex flex-wrap items-center gap-3">
               {server ? (
                 <Link 
                   to={`/item/${server}/${recipe.result_item_name}`}
@@ -604,7 +730,7 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
         </div>
 
         {/* Edit Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-end md:self-auto">
           {isEditing ? (
             <>
               <button 
@@ -697,21 +823,27 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Ingredients Table */}
         <div className="lg:col-span-2 bg-[#1a1b1e] border border-white/5 rounded-xl flex flex-col relative">
-          <div className="p-4 border-b border-white/5 flex items-center justify-between rounded-t-xl bg-[#1a1b1e]">
-            <h2 className="font-bold text-white flex items-center gap-2">
-              <Coins className="w-5 h-5 text-blue-500" />
-              Ingrédients
-            </h2>
-            <div className="flex items-center gap-3">
+          <div className="p-4 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-t-xl bg-[#1a1b1e]">
+            <div className="flex items-center justify-between w-full md:w-auto">
+                <h2 className="font-bold text-white flex items-center gap-2">
+                  <Coins className="w-5 h-5 text-blue-500" />
+                  Ingrédients
+                </h2>
+                <span className="text-sm text-gray-400 md:hidden">
+                    {isEditing ? editedIngredients.length : calculateRecursiveItemCount(extendedIngredients)} items
+                </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 justify-end w-full md:w-auto">
                 {!isEditing && (
                     <>
                         <button 
                             onClick={handleExpandAll}
                             disabled={!canExpandAll || isExpandingAll}
-                            className={`text-xs flex items-center gap-1 transition-colors ${
+                            className={`text-xs flex items-center gap-1 transition-colors px-3 py-1.5 rounded-lg bg-white/5 md:bg-transparent border border-white/5 md:border-none ${
                                 !canExpandAll || isExpandingAll
                                     ? "text-gray-600 cursor-default" 
-                                    : "text-blue-400 hover:text-blue-300 cursor-pointer"
+                                    : "text-blue-400 hover:text-blue-300 cursor-pointer hover:bg-white/10 md:hover:bg-transparent"
                             }`}
                             title="Inclure toutes les recettes"
                         >
@@ -725,27 +857,82 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
                         <button 
                             onClick={handleCollapseAll}
                             disabled={!canCollapseAll}
-                            className={`text-xs flex items-center gap-1 transition-colors ${
+                            className={`text-xs flex items-center gap-1 transition-colors px-3 py-1.5 rounded-lg bg-white/5 md:bg-transparent border border-white/5 md:border-none ${
                                 !canCollapseAll 
                                     ? "text-gray-600 cursor-default" 
-                                    : "text-orange-400 hover:text-orange-300 cursor-pointer"
+                                    : "text-orange-400 hover:text-orange-300 cursor-pointer hover:bg-white/10 md:hover:bg-transparent"
                             }`}
                             title="Exclure toutes les recettes"
                         >
                             <ChevronsUp size={14} />
                             Tout exclure
                         </button>
-                        <div className="w-px h-4 bg-white/10 mx-1"></div>
+                        <div className="w-px h-4 bg-white/10 mx-1 hidden md:block"></div>
                     </>
                 )}
-                <span className="text-sm text-gray-400">
+                <span className="text-sm text-gray-400 hidden md:block">
                     {isEditing ? editedIngredients.length : calculateRecursiveItemCount(extendedIngredients)} items
                 </span>
             </div>
           </div>
           
           <div className="overflow-x-auto flex-1">
-            <table className="w-full text-left border-collapse">
+            {/* Mobile View */}
+            <div className="md:hidden">
+                {isEditing ? (
+                    <div className="divide-y divide-white/5">
+                        {editedIngredients.map((ing) => (
+                            <div key={ing.item_id} className="p-4">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-10 h-10 bg-[#25262b] rounded-lg flex items-center justify-center overflow-hidden border border-white/5 shrink-0">
+                                        {ing.icon_url ? (
+                                            <img src={ing.icon_url} alt={ing.name} className="w-full h-full object-contain" />
+                                        ) : (
+                                            <div className="text-gray-500 font-bold">{ing.name.charAt(0)}</div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-medium text-white truncate">{ing.name}</div>
+                                        <div className="text-xs text-gray-400">{formatKamas(ing.price)} k</div>
+                                    </div>
+                                    <button 
+                                        onClick={() => handleDeleteIngredient(ing.item_id)}
+                                        className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                </div>
+                                <div className="flex items-center justify-between bg-[#25262b] p-2 rounded-lg">
+                                    <span className="text-sm text-gray-400">Quantité</span>
+                                    <input 
+                                        type="number" 
+                                        min="1"
+                                        value={ing.quantity}
+                                        onChange={(e) => handleQuantityChange(ing.item_id, parseInt(e.target.value) || 1)}
+                                        className="w-20 bg-[#1a1b1e] border border-white/10 rounded px-2 py-1 text-right text-white focus:outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="divide-y divide-white/5">
+                        {extendedIngredients.map(ing => (
+                            <MobileIngredientRow 
+                                key={ing.item_id} 
+                                ingredient={ing} 
+                                depth={0} 
+                                path={[ing.item_id]}
+                                onToggle={handleToggleRecipe}
+                                server={server}
+                                adjustedCraftCost={adjustedCraftCost}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            <table className="w-full text-left border-collapse hidden md:table">
               <thead>
                 <tr className="bg-[#25262b] text-gray-400 text-xs uppercase tracking-wider border-b border-white/5">
                   <th className="p-4 font-medium">Item</th>
@@ -903,7 +1090,7 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
         </div>
 
         {/* Chart */}
-        <div className="bg-[#1a1b1e] border border-white/5 rounded-xl p-4 flex flex-col h-[400px]">
+        <div className="bg-[#1a1b1e] border border-white/5 rounded-xl p-4 flex flex-col h-[400px] [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none [&_*]:focus:outline-none outline-none">
           <h2 className="font-bold text-white mb-4 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-green-500" />
             Historique Prix Vente

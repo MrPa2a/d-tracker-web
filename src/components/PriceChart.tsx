@@ -465,7 +465,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
       )}
 
       {!loading && !error && hasData && timeseries && (
-        <div className="flex-1 min-h-[300px] w-full" ref={chartContainerRef}>
+        <div className="flex-1 min-h-[300px] w-full [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none [&_*]:focus:outline-none outline-none" ref={chartContainerRef}>
           <ResponsiveContainer width="100%" height={chartHeight} maxHeight={600}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />

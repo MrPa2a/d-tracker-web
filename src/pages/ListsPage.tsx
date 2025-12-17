@@ -85,7 +85,7 @@ const ListCard: React.FC<{
       <div className="flex-1">
         <div className="flex flex-wrap gap-2 transition-all duration-300 ease-in-out">
             {visibleItems.map(item => (
-                <span key={item.item_id} className="text-xs bg-bg-tertiary px-2 py-1 rounded text-text-primary flex items-center gap-2 border border-border-subtle animate-[fadeIn_0.2s_ease-out]">
+                <div key={item.item_id} className="text-xs bg-bg-tertiary px-2 py-1 rounded text-text-primary flex items-center gap-2 border border-border-subtle animate-[fadeIn_0.2s_ease-out] max-w-full">
                     <div className="w-4 h-4 rounded bg-white/5 flex items-center justify-center text-[8px] font-bold text-gray-600 shrink-0 overflow-hidden">
                         {item.icon_url ? (
                             <img 
@@ -99,10 +99,10 @@ const ListCard: React.FC<{
                             item.item_name.charAt(0).toUpperCase()
                         )}
                     </div>
-                    <span className="font-medium">{item.item_name}</span>
-                    {item.category && <span className="text-[10px] text-text-muted bg-bg-primary px-1 rounded">{item.category}</span>}
-                    <span className="text-text-muted font-mono">{(item.last_price || 0).toLocaleString('fr-FR')} k</span>
-                </span>
+                    <span className="font-medium truncate">{item.item_name}</span>
+                    {item.category && <span className="text-[10px] text-text-muted bg-bg-primary px-1 rounded truncate max-w-[80px] hidden sm:block">{item.category}</span>}
+                    <span className="text-text-muted font-mono whitespace-nowrap ml-auto">{(item.last_price || 0).toLocaleString('fr-FR')} k</span>
+                </div>
             ))}
             {list.list_items.length > 5 && (
                 <button 
