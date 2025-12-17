@@ -4,7 +4,7 @@ import type { DateRangePreset, ItemSummary, TimeseriesPoint, ItemStats, Profile 
 import { fetchItemStats } from '../api';
 import { EditItemModal } from './EditItemModal';
 import { ContextMenu } from './ContextMenu';
-import { MoreVertical, Star, Copy, List, Loader2 } from 'lucide-react';
+import { MoreVertical, Star, Copy, List, Loader2, Trash2 } from 'lucide-react';
 import { useLists } from '../hooks/useLists';
 import kamaIcon from '../assets/kama.png';
 import {
@@ -32,6 +32,7 @@ interface PriceChartProps {
   pendingFavorites?: Set<string>;
   onToggleFavorite?: (key: string) => void;
   onItemUpdate?: (oldName: string, newName: string, server: string, newCategory: string) => void;
+  onDeleteItem?: () => void;
   currentProfile?: Profile | null;
 }
 
@@ -91,6 +92,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
   pendingFavorites,
   onToggleFavorite,
   onItemUpdate,
+  onDeleteItem,
   currentProfile,
 }) => {
   const hasData = !!timeseries && Array.isArray(timeseries) && timeseries.length > 0;
@@ -302,6 +304,15 @@ export const PriceChart: React.FC<PriceChartProps> = ({
             >
               ✎
             </button>
+            {onDeleteItem && (
+              <button
+                className="p-1 hover:bg-bg-tertiary rounded-md transition-colors cursor-pointer text-text-muted hover:text-accent-danger ml-1"
+                onClick={onDeleteItem}
+                title="Supprimer l'item"
+              >
+                <Trash2 size={20} />
+              </button>
+            )}
             {(statsLoading || (itemStats && itemStats.signal)) && (
               <>
                 <span className="text-border-strong">—</span>

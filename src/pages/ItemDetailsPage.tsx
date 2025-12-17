@@ -2,9 +2,10 @@ import React from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PriceChart } from '../components/PriceChart';
+import { DeleteItemModal } from '../components/DeleteItemModal';
 import { useTimeseries } from '../hooks/useTimeseries';
 import { useItemRecipe, useItemUsages } from '../hooks/useRecipes';
-import { fetchItems } from '../api';
+import { fetchItems, deleteItem } from '../api';
 import type { DateRangePreset, ItemSummary, Profile } from '../types';
 import { Hammer, Coins, ArrowRight, Loader2, ExternalLink, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import kamaIcon from '../assets/kama.png';
@@ -81,12 +82,34 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
     last_observation_at: new Date().toISOString()
   } as ItemSummary : null);
 
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+
   const handleRefresh = () => {
     refetch();
   };
 
   const handleBack = () => {
     navigate(-1);
+  };
+
+  const handleDeleteItem = async () => {
+    if (!selectedItem?.id) return;
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedItem?.id) return;
+    try {
+      await deleteItem(selectedItem.id);
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: ['item-details'] });
+      // Navigate back
+      navigate('/');
+    } catch (err) {
+      console.error('Failed to delete item:', err);
+      alert('Erreur lors de la suppression de l\'item.');
+    }
   };
 
   const handleItemUpdate = (oldName: string, newName: string, server: string, newCategory: string) => {
@@ -143,6 +166,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
             onRefresh={handleRefresh}
             onBackToDashboard={handleBack}
             onItemUpdate={handleItemUpdate}
+            onDeleteItem={handleDeleteItem}
             currentProfile={currentProfile}
           />
         </div>
@@ -328,6 +352,15 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
           </div>
         ) : null}
       </div>
+
+      {selectedItem && (
+        <DeleteItemModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={confirmDelete}
+          item={selectedItem}
+        />
+      )}
     </div>
   );
 };

@@ -712,3 +712,27 @@ export async function createCustomRecipe(payload: { result_item_id: number; ingr
   }
 }
 
+export async function deleteItem(id: number): Promise<void> {
+  const res = await safeFetch(`${API_BASE}/api/items?id=${id}`, {
+    method: 'DELETE',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Erreur API /api/items DELETE : ${res.status} ${res.statusText}`);
+  }
+}
+
+export async function fetchItemUsageStats(id: number): Promise<any> {
+  const res = await safeFetch(`${API_BASE}/api/items?mode=usage_stats&id=${id}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/items (usage_stats) : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
