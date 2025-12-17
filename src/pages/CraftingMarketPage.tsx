@@ -22,6 +22,7 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
   const [search, setSearch] = useState<string>(searchParams.get('search') || '');
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [sortBy, setSortBy] = useState<string>(searchParams.get('sortBy') || 'margin_desc');
+  const [hidePartialPrices, setHidePartialPrices] = useState<boolean>(searchParams.get('hidePartial') === 'true');
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -57,6 +58,8 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
     error: queryError 
   } = useRecipes(filters);
 
+  const filteredRecipes = recipes.filter(r => !hidePartialPrices || r.ingredients_with_price === r.ingredients_count);
+
   const error = queryError instanceof Error ? queryError.message : queryError ? 'Une erreur est survenue' : null;
 
   // Sync URL
@@ -68,8 +71,9 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
     if (minRoi) params.minRoi = minRoi;
     if (search) params.search = search;
     if (sortBy) params.sortBy = sortBy;
+    if (hidePartialPrices) params.hidePartial = 'true';
     setSearchParams(params, { replace: true });
-  }, [selectedJob, minLevel, maxLevel, minRoi, search, sortBy, setSearchParams]);
+  }, [selectedJob, minLevel, maxLevel, minRoi, search, sortBy, hidePartialPrices, setSearchParams]);
 
 
   // --- Helpers ---
@@ -231,6 +235,22 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
           </div>
         </div>
+
+        {/* Partial Prices Toggle */}
+        <div className="flex items-center h-10 pb-1">
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${hidePartialPrices ? 'bg-blue-500 border-blue-500' : 'bg-[#25262b] border-white/10 group-hover:border-white/30'}`}>
+              {hidePartialPrices && <X size={14} className="text-white" />}
+            </div>
+            <input 
+              type="checkbox" 
+              className="hidden" 
+              checked={hidePartialPrices} 
+              onChange={(e) => setHidePartialPrices(e.target.checked)} 
+            />
+            <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">Masquer prix partiels</span>
+          </label>
+        </div>
       </div>
 
       {/* Results Table */}
@@ -246,11 +266,11 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
         
         {/* Mobile Card View */}
         <div className="md:hidden">
-          {recipes.length === 0 && !loading && !isFetching ? (
+          {filteredRecipes.length === 0 && !loading && !isFetching ? (
             <div className="p-8 text-center text-gray-400">Aucune recette trouvée avec ces critères.</div>
           ) : (
             <div className="divide-y divide-white/5">
-              {recipes.map((recipe) => (
+              {filteredRecipes.map((recipe) => (
                 <div 
                   key={recipe.recipe_id}
                   onClick={() => navigate(`/recipes/${recipe.recipe_id}`)}
@@ -357,12 +377,12 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {recipes.length === 0 && !loading && !isFetching ? (
+              {filteredRecipes.length === 0 && !loading && !isFetching ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-gray-400">Aucune recette trouvée avec ces critères.</td>
                 </tr>
               ) : (
-                recipes.map((recipe) => (
+                filteredRecipes.map((recipe) => (
                   <tr 
                     key={recipe.recipe_id} 
                     onClick={() => navigate(`/recipes/${recipe.recipe_id}`)}
