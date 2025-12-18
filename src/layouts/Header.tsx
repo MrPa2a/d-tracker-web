@@ -372,9 +372,9 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-3">
              <button
               onClick={() => queryClient.invalidateQueries()}
-              className={`flex-1 flex items-center justify-center gap-2 p-2 rounded-lg bg-bg-tertiary/50 border border-border-normal text-text-muted hover:text-text-primary transition-all ${isFetching ? 'animate-spin text-accent-primary' : ''}`}
+              className={`flex-1 flex items-center justify-center gap-2 p-2 rounded-lg bg-bg-tertiary/50 border border-border-normal text-text-muted hover:text-text-primary transition-all ${isFetching ? 'text-accent-primary' : ''}`}
             >
-              <RefreshCw size={16} />
+              <RefreshCw size={16} className={isFetching ? 'animate-spin' : ''} />
               <span className="text-sm">Rafraîchir</span>
             </button>
 
@@ -401,7 +401,7 @@ export const Header: React.FC<HeaderProps> = ({
                 placeholder="Min"
                 value={formatNumber(minPrice)}
                 onChange={(e) => handlePriceChange(e.target.value, onMinPriceChange)}
-                className="flex-1 bg-bg-tertiary/50 border border-border-normal rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent-primary"
+                className="flex-1 min-w-0 bg-bg-tertiary/50 border border-border-normal rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent-primary"
               />
               <span className="text-text-muted">-</span>
               <input
@@ -409,7 +409,7 @@ export const Header: React.FC<HeaderProps> = ({
                 placeholder="Max"
                 value={formatNumber(maxPrice)}
                 onChange={(e) => handlePriceChange(e.target.value, onMaxPriceChange)}
-                className="flex-1 bg-bg-tertiary/50 border border-border-normal rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent-primary"
+                className="flex-1 min-w-0 bg-bg-tertiary/50 border border-border-normal rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent-primary"
               />
             </div>
           </div>

@@ -17,6 +17,8 @@ import { useItems, useUpdateItem } from './hooks/useItems';
 import { useCategories } from './hooks/useCategories';
 import { useFavorites } from './hooks/useFavorites';
 
+import { ConsumablesPage } from './pages/ConsumablesPage';
+
 const DEFAULT_RANGE: DateRangePreset = '30d';
 
 const App: React.FC = () => {
@@ -360,6 +362,10 @@ const App: React.FC = () => {
             />
           } 
         />
+        
+        {/* Toolbox Routes */}
+        <Route path="/toolbox/consumables" element={<ConsumablesPage server={currentServer} />} />
+
       </Route>
     </Routes>
   );

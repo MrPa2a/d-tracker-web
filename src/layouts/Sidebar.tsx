@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, List, BarChart2, Server, ChevronDown, ChevronRight, ScanLine, TrendingUp, Target, Hammer } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, List, BarChart2, Server, ChevronDown, ChevronRight, ScanLine, TrendingUp, Target, Hammer, Wrench, Zap } from 'lucide-react';
 import { ProfileSelector } from '../components/ProfileSelector';
 import type { Profile } from '../types';
 
@@ -26,11 +26,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const location = useLocation();
   const [isServerMenuOpen, setIsServerMenuOpen] = useState(false);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(true);
+  const [isToolboxOpen, setIsToolboxOpen] = useState(true);
 
-  // Auto-open analysis menu if we are in analysis section
+  // Auto-open menus if we are in their section
   useEffect(() => {
     if (location.pathname.startsWith('/analysis')) {
       setIsAnalysisOpen(true);
+    }
+    if (location.pathname.startsWith('/toolbox')) {
+      setIsToolboxOpen(true);
     }
   }, [location.pathname]);
 
@@ -145,6 +149,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <Target size={16} />
                   <span className="font-medium">Matrice</span>
+                </NavLink>
+              </div>
+            )}
+          </div>
+
+          {/* Toolbox Section */}
+          <div className="pt-2">
+            <button
+              onClick={() => setIsToolboxOpen(!isToolboxOpen)}
+              className={`
+                w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors
+                ${location.pathname.startsWith('/toolbox')
+                  ? 'text-accent-primary' 
+                  : 'text-text-muted hover:bg-bg-tertiary hover:text-text-primary'}
+              `}
+            >
+              <div className="flex items-center gap-3">
+                <Wrench size={20} />
+                <span className="font-medium">Boite à outils</span>
+              </div>
+              {isToolboxOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </button>
+
+            {isToolboxOpen && (
+              <div className="mt-1 ml-4 pl-4 border-l border-border-normal space-y-1">
+                <NavLink
+                  to="/toolbox/consumables"
+                  onClick={() => window.innerWidth < 768 && onClose()}
+                  className={({ isActive }) => `
+                    flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm
+                    ${isActive 
+                      ? 'bg-accent-primary/10 text-accent-primary' 
+                      : 'text-text-muted hover:bg-bg-tertiary hover:text-text-primary'}
+                  `}
+                >
+                  <Zap size={16} />
+                  <span className="font-medium">Consommables</span>
                 </NavLink>
               </div>
             )}
