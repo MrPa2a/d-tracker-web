@@ -358,6 +358,7 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
   // Edit Mode State
   const [isEditing, setIsEditing] = useState(false);
   const [editedIngredients, setEditedIngredients] = useState<RecipeIngredient[]>([]);
+  const [editedLevel, setEditedLevel] = useState<number>(1);
   
   // Expanded Ingredients State
   const [extendedIngredients, setExtendedIngredients] = useState<ExtendedRecipeIngredient[]>([]);
@@ -371,6 +372,7 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
           isExpanded: false,
           isLoadingSubRecipe: false
       })));
+      setEditedLevel(recipe.level);
     }
   }, [recipe]);
 
@@ -573,7 +575,7 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
         item_id: ing.item_id,
         quantity: ing.quantity
       }));
-      await updateRecipe(recipeId, payload);
+      await updateRecipe(recipeId, payload, recipe?.result_item_id, editedLevel);
     },
     onSuccess: () => {
       // Invalidate specific recipe details
@@ -628,6 +630,7 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
   const handleCancel = () => {
     if (recipe) {
       setEditedIngredients(recipe.ingredients);
+      setEditedLevel(recipe.level);
     }
     setIsEditing(false);
     setIsAddingIngredient(false);
@@ -733,7 +736,22 @@ const RecipeDetailsPage: React.FC<RecipeDetailsPageProps> = ({ server, dateRange
             </h1>
             <div className="flex items-center gap-2 text-gray-400 text-sm mt-1">
               <Hammer size={14} />
-              <span>{recipe.job_name} (Niv. {recipe.level})</span>
+              {isEditing ? (
+                <div className="flex items-center gap-2">
+                  <span>{recipe.job_name}</span>
+                  <span className="text-gray-500">Niv.</span>
+                  <input
+                    type="number"
+                    value={editedLevel}
+                    onChange={(e) => setEditedLevel(parseInt(e.target.value) || 1)}
+                    className="w-16 bg-[#25262b] border border-white/10 rounded px-2 py-0.5 text-white text-sm focus:outline-none focus:border-blue-500"
+                    min="1"
+                    max="200"
+                  />
+                </div>
+              ) : (
+                <span>{recipe.job_name} (Niv. {recipe.level})</span>
+              )}
             </div>
           </div>
         </div>

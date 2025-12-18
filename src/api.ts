@@ -108,11 +108,20 @@ export async function fetchItemUsages(
   return res.json();
 }
 
-export async function updateRecipe(recipeId: number, ingredients: { item_id: number; quantity: number }[]): Promise<void> {
+export async function updateRecipe(
+  recipeId: number, 
+  ingredients: { item_id: number; quantity: number }[],
+  resultItemId?: number,
+  level?: number
+): Promise<void> {
+  const body: any = { recipe_id: recipeId, ingredients };
+  if (resultItemId) body.result_item_id = resultItemId;
+  if (level) body.level = level;
+
   const res = await safeFetch(`${API_BASE}/api/recipes`, {
     method: 'POST',
     headers: buildHeaders(),
-    body: JSON.stringify({ recipe_id: recipeId, ingredients }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
