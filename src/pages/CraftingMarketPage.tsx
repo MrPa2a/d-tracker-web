@@ -453,7 +453,7 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
                           </div>
                         )}
                         {recipe.ingredients_with_price < recipe.ingredients_count && (
-                          <div className="text-xs text-yellow-500/80 flex items-center justify-end gap-1">
+                          <div className="text-xs text-red-400/80 flex items-center justify-end gap-1">
                             <AlertTriangle size={10} />
                             <span>Prix partiels</span>
                           </div>
