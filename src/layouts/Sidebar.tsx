@@ -92,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ))}
 
           {/* Analysis Section */}
-          <div className="pt-2">
+          <div>
             <button
               onClick={() => setIsAnalysisOpen(!isAnalysisOpen)}
               className={`
@@ -155,7 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* Toolbox Section */}
-          <div className="pt-2">
+          <div>
             <button
               onClick={() => setIsToolboxOpen(!isToolboxOpen)}
               className={`

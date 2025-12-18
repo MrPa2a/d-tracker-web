@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import type { Profile } from '../types';
 
 export interface ConsumableItem {
   id: number;
