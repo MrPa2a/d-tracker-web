@@ -34,49 +34,49 @@ export async function fetchItems(search?: string, server?: string, category?: st
   if (server) params.append('server', server);
   if (category) params.append('category', category);
 
-  const res = await safeFetch(`${API_BASE}/api/items?${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/data?resource=items&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/items : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/data?resource=items : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
 
 export async function fetchCategories(): Promise<Category[]> {
-  const res = await safeFetch(`${API_BASE}/api/categories`, {
+  const res = await safeFetch(`${API_BASE}/api/data?resource=categories`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/categories : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/data?resource=categories : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
 
 export async function fetchJobs(): Promise<Job[]> {
-  const res = await safeFetch(`${API_BASE}/api/recipes?mode=jobs`, {
+  const res = await safeFetch(`${API_BASE}/api/data?resource=recipes&mode=jobs`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/recipes?mode=jobs : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/data?resource=recipes&mode=jobs : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
 
 export async function fetchItemRecipe(itemId: number, server: string): Promise<RecipeStats | null> {
-  const res = await safeFetch(`${API_BASE}/api/recipes?item_id=${itemId}&server=${server}`, {
+  const res = await safeFetch(`${API_BASE}/api/data?resource=recipes&item_id=${itemId}&server=${server}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/recipes : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/data?resource=recipes : ${res.status} ${res.statusText}`);
   }
   const data = await res.json();
   return data.length > 0 ? data[0] : null;
@@ -97,13 +97,13 @@ export async function fetchItemUsages(
   params.append('offset', offset.toString());
   if (search) params.append('search', search);
 
-  const res = await safeFetch(`${API_BASE}/api/recipes?${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/data?resource=recipes&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/recipes?mode=usage : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/data?resource=recipes&mode=usage : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
@@ -114,35 +114,36 @@ export async function updateRecipe(
   resultItemId?: number,
   level?: number
 ): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const body: any = { recipe_id: recipeId, ingredients };
   if (resultItemId) body.result_item_id = resultItemId;
   if (level) body.level = level;
 
-  const res = await safeFetch(`${API_BASE}/api/recipes`, {
+  const res = await safeFetch(`${API_BASE}/api/data?resource=recipes`, {
     method: 'POST',
     headers: buildHeaders(),
     body: JSON.stringify(body),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/recipes (POST) : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/data?resource=recipes (POST) : ${res.status} ${res.statusText}`);
   }
 }
 
 export async function fetchProfiles(): Promise<Profile[]> {
-  const res = await safeFetch(`${API_BASE}/api/profiles`, {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=profiles`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/profiles : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/user?resource=profiles : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
 
 export async function createProfile(name: string): Promise<Profile> {
-  const res = await safeFetch(`${API_BASE}/api/profiles`, {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=profiles`, {
     method: 'POST',
     headers: buildHeaders(),
     body: JSON.stringify({ name }),
@@ -152,79 +153,79 @@ export async function createProfile(name: string): Promise<Profile> {
     if (res.status === 409) {
       throw new Error('Ce nom de profil existe déjà');
     }
-    throw new Error(`Erreur API /api/profiles : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/user?resource=profiles : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
 
 export async function deleteProfile(id: string): Promise<void> {
-  const res = await safeFetch(`${API_BASE}/api/profiles?id=${id}`, {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=profiles&id=${id}`, {
     method: 'DELETE',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/profiles : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/user?resource=profiles : ${res.status} ${res.statusText}`);
   }
 }
 
 export async function fetchProfileFavorites(profileId: string): Promise<string[]> {
-  const res = await safeFetch(`${API_BASE}/api/profiles?mode=favorites&profileId=${profileId}`, {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=profiles&mode=favorites&profileId=${profileId}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/profiles?mode=favorites : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/user?resource=profiles&mode=favorites : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
 
 export async function addProfileFavorite(profileId: string, itemName: string): Promise<void> {
-  const res = await safeFetch(`${API_BASE}/api/profiles?mode=favorites`, {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=profiles&mode=favorites`, {
     method: 'POST',
     headers: buildHeaders(),
     body: JSON.stringify({ profileId, itemName }),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/profiles?mode=favorites : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/user?resource=profiles&mode=favorites : ${res.status} ${res.statusText}`);
   }
 }
 
 export async function removeProfileFavorite(profileId: string, itemName: string): Promise<void> {
-  const res = await safeFetch(`${API_BASE}/api/profiles?mode=favorites`, {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=profiles&mode=favorites`, {
     method: 'DELETE',
     headers: buildHeaders(),
     body: JSON.stringify({ profileId, itemName }),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/profiles?mode=favorites : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/user?resource=profiles&mode=favorites : ${res.status} ${res.statusText}`);
   }
 }
 
 export async function updateItem(oldName: string, newName: string, server: string, category?: string): Promise<void> {
-  const res = await safeFetch(`${API_BASE}/api/items`, {
+  const res = await safeFetch(`${API_BASE}/api/data?resource=items`, {
     method: 'PUT',
     headers: buildHeaders(),
     body: JSON.stringify({ old_item_name: oldName, new_item_name: newName, server, category }),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/items (update) : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/data?resource=items (update) : ${res.status} ${res.statusText}`);
   }
 }
 
 export async function updateObservation(id: number, price: number): Promise<void> {
-  const res = await safeFetch(`${API_BASE}/api/observations`, {
+  const res = await safeFetch(`${API_BASE}/api/market_v2?resource=observations`, {
     method: 'PUT',
     headers: buildHeaders(),
     body: JSON.stringify({ id, price_unit_avg: price }),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/observations (update) : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/market_v2?resource=observations (update) : ${res.status} ${res.statusText}`);
   }
 }
 
@@ -261,7 +262,7 @@ export async function fetchTimeseries(
   });
 
   const res = await safeFetch(
-    `${API_BASE}/api/timeseries?${params.toString()}`,
+    `${API_BASE}/api/market_v2?resource=timeseries&${params.toString()}`,
     {
       method: 'GET',
       headers: buildHeaders(),
@@ -296,13 +297,13 @@ export async function fetchMovers(
   if (maxPrice !== undefined) params.append('max_price', String(maxPrice));
   if (filterItems && filterItems.length > 0) params.append('filterItems', filterItems.join(','));
 
-  const res = await safeFetch(`${API_BASE}/api/market?type=movers&${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/market_v2?resource=market&type=movers&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/market?type=movers : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/market_v2?resource=market&type=movers : ${res.status} ${res.statusText}`);
   }
 
   return res.json();
@@ -321,13 +322,13 @@ export async function fetchItemStats(
 
   const params = new URLSearchParams({ item: itemName, server, from, to });
 
-  const res = await safeFetch(`${API_BASE}/api/market?type=stats&${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/market_v2?resource=market&type=stats&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/market?type=stats : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/market_v2?resource=market&type=stats : ${res.status} ${res.statusText}`);
   }
 
   return res.json();
@@ -347,13 +348,13 @@ export async function fetchMarketIndex(
   const params = new URLSearchParams({ server, from, to });
   if (filterItems && filterItems.length > 0) params.append('filterItems', filterItems.join(','));
 
-  const res = await safeFetch(`${API_BASE}/api/market?type=index&${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/market_v2?resource=market&type=index&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/market?type=index : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/market_v2?resource=market&type=index : ${res.status} ${res.statusText}`);
   }
 
   return res.json();
@@ -385,13 +386,13 @@ export async function fetchVolatilityRankings(
   if (maxPrice !== undefined) params.append('max_price', String(maxPrice));
   if (filterItems && filterItems.length > 0) params.append('filterItems', filterItems.join(','));
 
-  const res = await safeFetch(`${API_BASE}/api/market?type=volatility&${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/market_v2?resource=market&type=volatility&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/market?type=volatility : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/market_v2?resource=market&type=volatility : ${res.status} ${res.statusText}`);
   }
 
   return res.json();
@@ -416,13 +417,13 @@ export async function fetchOpportunities(
   if (maxPrice !== undefined) params.append('max_price', String(maxPrice));
   if (filterItems && filterItems.length > 0) params.append('filterItems', filterItems.join(','));
 
-  const res = await safeFetch(`${API_BASE}/api/market?type=opportunities&${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/market_v2?resource=market&type=opportunities&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/market?type=opportunities : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/market_v2?resource=market&type=opportunities : ${res.status} ${res.statusText}`);
   }
 
   return res.json();
@@ -447,20 +448,20 @@ export async function fetchSellOpportunities(
   if (maxPrice !== undefined) params.append('max_price', String(maxPrice));
   if (filterItems && filterItems.length > 0) params.append('filterItems', filterItems.join(','));
 
-  const res = await safeFetch(`${API_BASE}/api/market?type=sell-opportunities&${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/market_v2?resource=market&type=sell-opportunities&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/market?type=sell-opportunities : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/market_v2?resource=market&type=sell-opportunities : ${res.status} ${res.statusText}`);
   }
 
   return res.json();
 }
 
 export async function createObservation(itemName: string, server: string, price: number, date: string): Promise<TimeseriesPoint> {
-  const res = await safeFetch(`${API_BASE}/api/observations`, {
+  const res = await safeFetch(`${API_BASE}/api/market_v2?resource=observations`, {
     method: 'POST',
     headers: buildHeaders(),
     body: JSON.stringify({ 
@@ -472,7 +473,7 @@ export async function createObservation(itemName: string, server: string, price:
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/observations (create) : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/market_v2?resource=observations (create) : ${res.status} ${res.statusText}`);
   }
   
   const json = await res.json();
@@ -484,14 +485,14 @@ export async function createObservation(itemName: string, server: string, price:
 }
 
 export async function deleteObservation(id: number): Promise<void> {
-  const res = await safeFetch(`${API_BASE}/api/observations`, {
+  const res = await safeFetch(`${API_BASE}/api/market_v2?resource=observations`, {
     method: 'DELETE',
     headers: buildHeaders(),
     body: JSON.stringify({ id }),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/observations (delete) : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/market_v2?resource=observations (delete) : ${res.status} ${res.statusText}`);
   }
 }
 
@@ -500,13 +501,13 @@ export async function fetchLists(profileId?: string, range: DateRangePreset = '3
   if (profileId) params.append('profileId', profileId);
   params.append('range', range);
 
-  const res = await safeFetch(`${API_BASE}/api/lists?${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=lists&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/lists : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/user?resource=lists : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
@@ -517,13 +518,13 @@ export async function fetchListDetails(listId: string, range?: string, server?: 
   if (range) params.append('range', range);
   if (server) params.append('server', server);
 
-  const res = await safeFetch(`${API_BASE}/api/lists?${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=lists&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/lists details : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/user?resource=lists details : ${res.status} ${res.statusText}`);
   }
   
   const data = await res.json();
@@ -534,63 +535,63 @@ export async function fetchListDetails(listId: string, range?: string, server?: 
 }
 
 export async function createList(name: string, scope: 'public' | 'private', profileId?: string): Promise<List> {
-  const res = await safeFetch(`${API_BASE}/api/lists`, {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=lists`, {
     method: 'POST',
     headers: buildHeaders(),
     body: JSON.stringify({ name, scope, profileId }),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/lists (create) : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/user?resource=lists (create) : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
 
 export async function updateList(id: string, updates: { name?: string, scope?: 'public' | 'private', profileId?: string }): Promise<List> {
-  const res = await safeFetch(`${API_BASE}/api/lists`, {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=lists`, {
     method: 'PUT',
     headers: buildHeaders(),
     body: JSON.stringify({ id, ...updates }),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/lists (update) : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/user?resource=lists (update) : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
 
 export async function deleteList(id: string): Promise<void> {
-  const res = await safeFetch(`${API_BASE}/api/lists?id=${id}`, {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=lists&id=${id}`, {
     method: 'DELETE',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/lists (delete) : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/user?resource=lists (delete) : ${res.status} ${res.statusText}`);
   }
 }
 
 export async function addItemToList(listId: string, itemId: number, quantity: number = 1): Promise<void> {
-  const res = await safeFetch(`${API_BASE}/api/lists?mode=items`, {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=lists&mode=items`, {
     method: 'POST',
     headers: buildHeaders(),
     body: JSON.stringify({ listId, itemId, quantity }),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/lists (add item) : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/user?resource=lists (add item) : ${res.status} ${res.statusText}`);
   }
 }
 
 export async function updateItemInList(listId: string, itemId: number, quantity: number): Promise<void> {
-  const res = await safeFetch(`${API_BASE}/api/lists?mode=items`, {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=lists&mode=items`, {
     method: 'PUT',
     headers: buildHeaders(),
     body: JSON.stringify({ listId, itemId, quantity }),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/lists (update item) : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/user?resource=lists (update item) : ${res.status} ${res.statusText}`);
   }
 }
 
@@ -600,13 +601,13 @@ export async function removeItemFromList(listId: string, itemId: number): Promis
   params.append('listId', listId);
   params.append('itemId', itemId.toString());
 
-  const res = await safeFetch(`${API_BASE}/api/lists?${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=lists&${params.toString()}`, {
     method: 'DELETE',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/lists (remove item) : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/user?resource=lists (remove item) : ${res.status} ${res.statusText}`);
   }
 }
 
@@ -627,7 +628,7 @@ export async function fetchScannerResults(filters: ScannerFilters): Promise<Scan
   if (filters.period) params.append('period', filters.period.toString());
   if (filters.filter_items && filters.filter_items.length > 0) params.append('filter_items', filters.filter_items.join(','));
 
-  const res = await safeFetch(`${API_BASE}/api/analysis?${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/market_v2?resource=analysis&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
@@ -651,7 +652,7 @@ export async function fetchTrendResults(filters: TrendFilters): Promise<TrendRes
   if (filters.period) params.append('period', filters.period.toString());
   if (filters.filter_items && filters.filter_items.length > 0) params.append('filter_items', filters.filter_items.join(','));
 
-  const res = await safeFetch(`${API_BASE}/api/analysis?${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/market_v2?resource=analysis&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
@@ -675,13 +676,13 @@ export async function fetchRecipes(filters: RecipeFilters): Promise<RecipeStats[
   if (filters.offset !== undefined) params.append('offset', filters.offset.toString());
   if (filters.sort_by) params.append('sort_by', filters.sort_by);
 
-  const res = await safeFetch(`${API_BASE}/api/recipes?${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/data?resource=recipes&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/recipes : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/data?resource=recipes : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
@@ -689,19 +690,20 @@ export async function fetchRecipes(filters: RecipeFilters): Promise<RecipeStats[
 export async function fetchRecipeDetails(id: number, server: string): Promise<RecipeDetails> {
   const params = new URLSearchParams({ id: id.toString(), server });
   
-  const res = await safeFetch(`${API_BASE}/api/recipes?${params.toString()}`, {
+  const res = await safeFetch(`${API_BASE}/api/data?resource=recipes&${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/recipes (details) : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/data?resource=recipes (details) : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function searchItems(query: string, limit = 10): Promise<any[]> {
-  const res = await safeFetch(`${API_BASE}/api/items?mode=search&search=${encodeURIComponent(query)}&limit=${limit}`, {
+  const res = await safeFetch(`${API_BASE}/api/data?resource=items&mode=search&search=${encodeURIComponent(query)}&limit=${limit}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
@@ -710,7 +712,7 @@ export async function searchItems(query: string, limit = 10): Promise<any[]> {
 }
 
 export async function createCustomRecipe(payload: { result_item_id: number; ingredients: { item_id: number; quantity: number }[] }): Promise<void> {
-  const res = await safeFetch(`${API_BASE}/api/recipes`, {
+  const res = await safeFetch(`${API_BASE}/api/data?resource=recipes`, {
     method: 'POST',
     headers: buildHeaders(),
     body: JSON.stringify(payload)
@@ -722,32 +724,34 @@ export async function createCustomRecipe(payload: { result_item_id: number; ingr
 }
 
 export async function deleteItem(id: number): Promise<void> {
-  const res = await safeFetch(`${API_BASE}/api/items?id=${id}`, {
+  const res = await safeFetch(`${API_BASE}/api/data?resource=items&id=${id}`, {
     method: 'DELETE',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || `Erreur API /api/items DELETE : ${res.status} ${res.statusText}`);
+    throw new Error(errorData.error || `Erreur API /api/data?resource=items DELETE : ${res.status} ${res.statusText}`);
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function fetchItemUsageStats(id: number): Promise<any> {
-  const res = await safeFetch(`${API_BASE}/api/items?mode=usage_stats&id=${id}`, {
+  const res = await safeFetch(`${API_BASE}/api/data?resource=items&mode=usage_stats&id=${id}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
 
   if (!res.ok) {
-    throw new Error(`Erreur API /api/items (usage_stats) : ${res.status} ${res.statusText}`);
+    throw new Error(`Erreur API /api/data?resource=items (usage_stats) : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
 
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function fetchLevelingPlan(payload: { job_id: number; from_level: number; to_level: number; server: string }): Promise<any> {
-  const res = await safeFetch(`${API_BASE}/api/toolbox?mode=leveling`, {
+  const res = await safeFetch(`${API_BASE}/api/data?resource=toolbox&mode=leveling`, {
     method: 'POST',
     headers: buildHeaders(),
     body: JSON.stringify(payload)
