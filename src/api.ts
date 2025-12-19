@@ -745,3 +745,18 @@ export async function fetchItemUsageStats(id: number): Promise<any> {
   return res.json();
 }
 
+
+export async function fetchLevelingPlan(payload: { job_id: number; from_level: number; to_level: number; server: string }): Promise<any> {
+  const res = await safeFetch(`${API_BASE}/api/toolbox?mode=leveling`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Erreur API /api/toolbox : ${res.status}`);
+  }
+  return res.json();
+}
+
