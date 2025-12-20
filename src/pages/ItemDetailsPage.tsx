@@ -1,11 +1,12 @@
 import React from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { PriceChart } from '../components/PriceChart';
 import { DeleteItemModal } from '../components/DeleteItemModal';
 import { useTimeseries } from '../hooks/useTimeseries';
 import { useItemRecipe, useItemUsages } from '../hooks/useRecipes';
-import { fetchItems, deleteItem } from '../api';
+import { useItemByName, useItemDetails } from '../hooks/useItems';
+import { deleteItem } from '../api';
 import type { DateRangePreset, ItemSummary, Profile } from '../types';
 import { Hammer, Coins, ArrowRight, Loader2, ExternalLink, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import kamaIcon from '../assets/kama.png';
@@ -66,12 +67,10 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
   );
 
   // Fetch item details if not found in global list (to get the ID)
-  const { data: fetchedItems } = useQuery({
-    queryKey: ['item-details', server, itemName],
-    queryFn: () => fetchItems(itemName, server),
-    enabled: !foundItem && !!server && !!itemName,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
+  const { data: fetchedItems } = useItemByName(itemName || '', server || '', !foundItem);
+
+  // Fetch full item details (including stats)
+  const { data: itemDetails, isLoading: detailsLoading } = useItemDetails(itemName || '', server || '');
 
   const fetchedItem = fetchedItems?.find(i => i.item_name === itemName && i.server === server);
 
@@ -170,6 +169,53 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
             currentProfile={currentProfile}
           />
         </div>
+
+        {/* Section Statistiques */}
+        {detailsLoading ? (
+           <div className="flex justify-center p-6">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-500/50" />
+          </div>
+        ) : itemDetails && itemDetails.effects && itemDetails.effects.length > 0 && (
+          <div className="bg-bg-secondary border border-border-subtle rounded-xl p-6 shadow-sm">
+             <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
+                <div className="w-6 h-6 flex items-center justify-center bg-blue-500/20 rounded-md text-blue-500">
+                   <span className="text-sm font-bold">S</span>
+                </div>
+                Statistiques
+              </h2>
+              <div className="text-text-muted font-medium">
+                Niveau {itemDetails.level}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
+                {/* Column 1 */}
+                <div className="space-y-2">
+                    {itemDetails.effects.slice(0, Math.ceil(itemDetails.effects.length / 2)).map((effect) => (
+                        <div key={effect.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-bg-tertiary/30 transition-colors">
+                            {effect.icon_url && (
+                                <img src={effect.icon_url} alt="" className="w-5 h-5 object-contain" />
+                            )}
+                            <span className="text-text-primary font-medium text-sm">{effect.formatted_description}</span>
+                        </div>
+                    ))}
+                </div>
+                
+                {/* Column 2 */}
+                <div className="space-y-2">
+                    {itemDetails.effects.slice(Math.ceil(itemDetails.effects.length / 2)).map((effect) => (
+                        <div key={effect.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-bg-tertiary/30 transition-colors">
+                            {effect.icon_url && (
+                                <img src={effect.icon_url} alt="" className="w-5 h-5 object-contain" />
+                            )}
+                            <span className="text-text-primary font-medium text-sm">{effect.formatted_description}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+          </div>
+        )}
 
         {/* Section Craft (Si l'item est craftable) */}
         {recipeLoading ? (

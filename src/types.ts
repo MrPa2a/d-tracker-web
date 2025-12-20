@@ -234,3 +234,24 @@ export interface RecipeUsage {
   roi: number;
   total_count?: number;
 }
+
+export interface ItemEffect {
+  id: number;
+  item_id: number;
+  effect_id: number;
+  min_value: number;
+  max_value: number;
+  formatted_description: string;
+  order_index: number;
+  icon_url?: string;
+}
+
+export interface ItemDetails {
+  id: number;
+  name: string;
+  level: number;
+  icon_url?: string;
+  ankama_id?: number;
+  category_id?: number;
+  effects: ItemEffect[];
+}

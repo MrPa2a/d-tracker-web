@@ -1,5 +1,5 @@
 // src/api.ts
-import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult, ScannerFilters, RecipeStats, RecipeFilters, Job, RecipeDetails, RecipeUsage } from './types';
+import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult, ScannerFilters, RecipeStats, RecipeFilters, Job, RecipeDetails, RecipeUsage, ItemDetails } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
@@ -41,6 +41,23 @@ export async function fetchItems(search?: string, server?: string, category?: st
 
   if (!res.ok) {
     throw new Error(`Erreur API /api/data?resource=items : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchItemDetails(itemName: string, server: string): Promise<ItemDetails> {
+  const params = new URLSearchParams();
+  params.append('mode', 'details');
+  params.append('item_name', itemName);
+  params.append('server', server);
+
+  const res = await safeFetch(`${API_BASE}/api/data?resource=items&${params.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/data?resource=items&mode=details : ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
