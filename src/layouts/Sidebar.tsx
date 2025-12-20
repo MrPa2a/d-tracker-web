@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, List, BarChart2, Server, ChevronDown, ChevronRight, ScanLine, TrendingUp, Target, Hammer, Wrench, Zap, ChevronsUp } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, List, BarChart2, Server, ChevronDown, ChevronRight, ScanLine, TrendingUp, Target, Hammer, Wrench, Zap, ChevronsUp, Calendar } from 'lucide-react';
 import { ProfileSelector } from '../components/ProfileSelector';
 import type { Profile } from '../types';
 
@@ -199,8 +199,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <ChevronsUp size={16} />
                   <span className="font-medium">Leveling</span>
-                </NavLink>
-              </div>
+                </NavLink>                <NavLink
+                  to="/toolbox/almanax"
+                  onClick={() => window.innerWidth < 768 && onClose()}
+                  className={({ isActive }) => `
+                    flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm
+                    ${isActive 
+                      ? 'bg-accent-primary/10 text-accent-primary' 
+                      : 'text-text-muted hover:bg-bg-tertiary hover:text-text-primary'}
+                  `}
+                >
+                  <Calendar size={16} />
+                  <span className="font-medium">Almanax</span>
+                </NavLink>              </div>
             )}
           </div>
         </nav>

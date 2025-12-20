@@ -19,6 +19,7 @@ import { useFavorites } from './hooks/useFavorites';
 
 import { ConsumablesPage } from './pages/ConsumablesPage';
 import { LevelingOptimizerPage } from './pages/LevelingOptimizerPage';
+import { AlmanaxPage } from './pages/AlmanaxPage';
 
 const DEFAULT_RANGE: DateRangePreset = '30d';
 
@@ -367,6 +368,7 @@ const App: React.FC = () => {
         {/* Toolbox Routes */}
         <Route path="/toolbox/consumables" element={<ConsumablesPage server={currentServer} />} />
         <Route path="/toolbox/leveling" element={<LevelingOptimizerPage />} />
+        <Route path="/toolbox/almanax" element={<AlmanaxPage server={currentServer} />} />
 
       </Route>
     </Routes>
