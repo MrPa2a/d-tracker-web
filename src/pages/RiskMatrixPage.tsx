@@ -3,7 +3,7 @@ import { fetchCategories } from '../api';
 import { useScanner } from '../hooks/useAnalysis';
 import type { Category, DateRangePreset, ScannerFilters as ScannerFiltersType, ScannerResult } from '../types';
 import { Filter, AlertTriangle, Info, Loader2, Target } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ScannerFilters } from '../components/ScannerFilters';
 import {
   ScatterChart,
@@ -36,6 +36,7 @@ const RiskMatrixPage: React.FC<RiskMatrixPageProps> = ({
   favorites
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // Filters State
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
@@ -274,7 +275,7 @@ const RiskMatrixPage: React.FC<RiskMatrixPageProps> = ({
 
           <div 
             ref={chartContainerRef}
-            className="bg-[#1A1B1E] rounded-xl border border-white/5 p-4 md:p-6 h-[500px] md:h-[600px] relative [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none [&_*]:focus:outline-none outline-none"
+            className="bg-[#1A1B1E] rounded-xl border border-white/5 p-4 md:p-6 h-[500px] md:h-[600px] relative [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none [&_*]:focus:outline-none outline-none [&_.recharts-scatter-symbol]:cursor-pointer"
           >
             {loading ? (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -355,7 +356,16 @@ const RiskMatrixPage: React.FC<RiskMatrixPageProps> = ({
                     fillOpacity={0.05} 
                   />
 
-                  <Scatter name="Items" data={results} fill="#8884d8">
+                  <Scatter 
+                    name="Items" 
+                    data={results} 
+                    fill="#8884d8"
+                    onClick={(data) => {
+                      const item = data.payload as ScannerResult;
+                      navigate(`/item/${item.server}/${encodeURIComponent(item.item_name)}`);
+                    }}
+                    cursor="pointer"
+                  >
                     {results.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.volatility < 5 ? "#10B981" : "#F59E0B"} />
                     ))}
