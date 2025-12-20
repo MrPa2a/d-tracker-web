@@ -8,7 +8,7 @@ import { useItemRecipe, useItemUsages } from '../hooks/useRecipes';
 import { useItemByName, useItemDetails } from '../hooks/useItems';
 import { deleteItem } from '../api';
 import type { DateRangePreset, ItemSummary, Profile } from '../types';
-import { Hammer, Coins, ArrowRight, Loader2, ExternalLink, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Hammer, Coins, ArrowRight, Loader2, ExternalLink, Search, ChevronLeft, ChevronRight, Activity } from 'lucide-react';
 import kamaIcon from '../assets/kama.png';
 
 const ItemIcon = ({ icon, name }: { icon?: string | null, name: string }) => {
@@ -179,9 +179,7 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
           <div className="bg-bg-secondary border border-border-subtle rounded-xl p-6 shadow-sm">
              <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
-                <div className="w-6 h-6 flex items-center justify-center bg-blue-500/20 rounded-md text-blue-500">
-                   <span className="text-sm font-bold">S</span>
-                </div>
+                <Activity className="text-blue-500" />
                 Statistiques
               </h2>
               <div className="text-text-muted font-medium">
