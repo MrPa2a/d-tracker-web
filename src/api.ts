@@ -1,5 +1,5 @@
 // src/api.ts
-import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult, ScannerFilters, RecipeStats, RecipeFilters, Job, RecipeDetails, RecipeUsage, ItemDetails } from './types';
+import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult, ScannerFilters, RecipeStats, RecipeFilters, Job, RecipeDetails, RecipeUsage, ItemDetails, Message } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
@@ -781,3 +781,125 @@ export async function fetchLevelingPlan(payload: { job_id: number; from_level: n
   return res.json();
 }
 
+
+// =============================================
+// Messages API (bulletin board)
+// =============================================
+
+// Constante pour la pagination (préparation pagination infinie)
+export const MESSAGES_PAGE_SIZE = 20;
+
+export async function fetchMessages(
+  authorProfileId?: string, 
+  readerProfileId?: string,
+  limit = MESSAGES_PAGE_SIZE, 
+  offset = 0
+): Promise<Message[]> {
+  const params = new URLSearchParams();
+  params.append('resource', 'messages');
+  params.append('limit', limit.toString());
+  params.append('offset', offset.toString());
+  if (authorProfileId) params.append('profileId', authorProfileId);
+  if (readerProfileId) params.append('readerProfileId', readerProfileId);
+
+  const res = await safeFetch(`${API_BASE}/api/user?${params.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/user?resource=messages : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function createMessage(profileId: string, content: string): Promise<Message> {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=messages`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify({ profileId, content }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/user?resource=messages (POST) : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function updateMessage(id: string, profileId: string, content: string): Promise<Message> {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=messages`, {
+    method: 'PUT',
+    headers: buildHeaders(),
+    body: JSON.stringify({ id, profileId, content }),
+  });
+
+  if (!res.ok) {
+    if (res.status === 403) {
+      throw new Error('Vous ne pouvez modifier que vos propres messages');
+    }
+    if (res.status === 404) {
+      throw new Error('Message non trouvé');
+    }
+    throw new Error(`Erreur API /api/user?resource=messages (PUT) : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function deleteMessage(id: string, profileId: string): Promise<void> {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=messages&id=${id}&profileId=${profileId}`, {
+    method: 'DELETE',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    if (res.status === 403) {
+      throw new Error('Vous ne pouvez supprimer que vos propres messages');
+    }
+    if (res.status === 404) {
+      throw new Error('Message non trouvé');
+    }
+    throw new Error(`Erreur API /api/user?resource=messages (DELETE) : ${res.status} ${res.statusText}`);
+  }
+}
+
+// --- Messages Read/Unread API ---
+
+export async function fetchUnreadCount(readerProfileId: string): Promise<number> {
+  const res = await safeFetch(
+    `${API_BASE}/api/user?resource=messages&mode=unread-count&readerProfileId=${readerProfileId}`,
+    {
+      method: 'GET',
+      headers: buildHeaders(),
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/user?resource=messages&mode=unread-count : ${res.status} ${res.statusText}`);
+  }
+  const data = await res.json();
+  return data.count;
+}
+
+export async function markMessagesAsRead(readerProfileId: string, messageIds: string[]): Promise<void> {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=messages&mode=mark-read`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify({ readerProfileId, messageIds }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/user?resource=messages&mode=mark-read : ${res.status} ${res.statusText}`);
+  }
+}
+
+export async function markAllMessagesAsRead(readerProfileId: string): Promise<void> {
+  const res = await safeFetch(`${API_BASE}/api/user?resource=messages&mode=mark-all-read`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify({ readerProfileId }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/user?resource=messages&mode=mark-all-read : ${res.status} ${res.statusText}`);
+  }
+}

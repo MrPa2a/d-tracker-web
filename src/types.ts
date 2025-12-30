@@ -255,3 +255,24 @@ export interface ItemDetails {
   category_id?: number;
   effects: ItemEffect[];
 }
+
+// --- Messages (bulletin board) ---
+
+export interface MessageAuthor {
+  id: string;
+  name: string;
+}
+
+export interface Message {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  author: MessageAuthor;
+  isRead?: boolean; // Optionnel: indique si le message a été lu par le profil courant
+}
+
+export interface UnreadCountResponse {
+  count: number;
+}
+

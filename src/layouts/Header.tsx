@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, Search, Bell, Server, ChevronDown, Star, X, MoreVertical, RefreshCw, Filter } from 'lucide-react';
+import { Menu, Search, Server, ChevronDown, Star, X, MoreVertical, RefreshCw, Filter } from 'lucide-react';
 import { useLocation, Link } from 'react-router-dom';
 import { useQueryClient, useIsFetching } from '@tanstack/react-query';
 import type { ItemSummary, DateRangePreset, Profile } from '../types';
@@ -7,6 +7,7 @@ import { fetchItems } from '../api';
 import { ItemContextMenu } from '../components/ItemContextMenu';
 import { AddToListModal } from '../components/AddToListModal';
 import { useFavorites } from '../hooks/useFavorites';
+import { MessagesButton } from '../components/messages';
 
 interface HeaderProps {
   currentProfile: Profile | null;
@@ -177,11 +178,11 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Notification Icon */}
-          <button className="p-2 text-text-muted hover:text-text-primary relative hidden md:block">
-            <Bell size={20} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-accent-primary rounded-full"></span>
-          </button>
+          {/* Messages Button */}
+          <MessagesButton 
+            currentProfileId={currentProfile?.id ?? null}
+            currentProfileName={currentProfile?.name ?? null}
+          />
         </div>
         
         {/* Center: Global Search */}
