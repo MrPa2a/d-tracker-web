@@ -21,6 +21,7 @@ import { ConsumablesPage } from './pages/ConsumablesPage';
 import { LevelingOptimizerPage } from './pages/LevelingOptimizerPage';
 import { AlmanaxPage } from './pages/AlmanaxPage';
 import BankPage from './pages/BankPage';
+import BankCraftOpportunitiesPage from './pages/BankCraftOpportunitiesPage';
 
 const DEFAULT_RANGE: DateRangePreset = '30d';
 
@@ -270,6 +271,15 @@ const App: React.FC = () => {
               currentProfile={currentProfile}
               dateRange={dateRange}
               categories={categories}
+            />
+          }
+        />
+        <Route
+          path="/bank/crafts"
+          element={
+            <BankCraftOpportunitiesPage
+              server={currentServer}
+              currentProfile={currentProfile}
             />
           }
         />

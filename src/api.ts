@@ -1,5 +1,5 @@
 // src/api.ts
-import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult, ScannerFilters, RecipeStats, RecipeFilters, Job, RecipeDetails, RecipeUsage, ItemDetails, Message, BankResponse } from './types';
+import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult, ScannerFilters, RecipeStats, RecipeFilters, Job, RecipeDetails, RecipeUsage, ItemDetails, Message, BankResponse, CraftOpportunityFilters, CraftOpportunity, CraftIngredientStatus } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
@@ -918,4 +918,59 @@ export async function markAllMessagesAsRead(readerProfileId: string): Promise<vo
   if (!res.ok) {
     throw new Error(`Erreur API /api/user?resource=messages&mode=mark-all-read : ${res.status} ${res.statusText}`);
   }
+}
+
+// --- Bank Craft Opportunities API ---
+
+export async function fetchCraftOpportunities(
+  filters: CraftOpportunityFilters
+): Promise<CraftOpportunity[]> {
+  const params = new URLSearchParams();
+  params.set('resource', 'bank');
+  params.set('mode', 'craft-opportunities');
+  params.set('server', filters.server);
+
+  if (filters.profile_id) params.set('profileId', filters.profile_id);
+  if (filters.max_missing !== undefined) params.set('max_missing', String(filters.max_missing));
+  if (filters.min_level !== undefined) params.set('min_level', String(filters.min_level));
+  if (filters.max_level !== undefined) params.set('max_level', String(filters.max_level));
+  if (filters.job_id !== undefined) params.set('job_id', String(filters.job_id));
+  if (filters.min_roi !== undefined) params.set('min_roi', String(filters.min_roi));
+  if (filters.limit !== undefined) params.set('limit', String(filters.limit));
+  if (filters.offset !== undefined) params.set('offset', String(filters.offset));
+  if (filters.sort_by) params.set('sort_by', filters.sort_by);
+  if (filters.search) params.set('search', filters.search);
+
+  const res = await safeFetch(`${API_BASE}/api/user?${params.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API craft-opportunities : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchCraftIngredientsWithStock(
+  recipeId: number,
+  server: string,
+  profileId?: string | null
+): Promise<CraftIngredientStatus[]> {
+  const params = new URLSearchParams();
+  params.set('resource', 'bank');
+  params.set('mode', 'craft-ingredients');
+  params.set('server', server);
+  params.set('recipe_id', String(recipeId));
+  if (profileId) params.set('profileId', profileId);
+
+  const res = await safeFetch(`${API_BASE}/api/user?${params.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API craft-ingredients : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
 }

@@ -331,3 +331,65 @@ export interface UnreadCountResponse {
   count: number;
 }
 
+// --- Bank Craft Opportunities ---
+
+export interface CraftOpportunity {
+  recipe_id: number;
+  result_item_id: number;
+  result_item_name: string;
+  result_item_icon?: string;
+  job_id: number;
+  job_name: string;
+  job_icon_id?: number;
+  level: number;
+
+  // Complétude
+  total_ingredients: number;
+  owned_ingredients: number;
+  missing_ingredients: number;
+  completeness_pct: number;
+
+  // Quantités
+  max_craftable: number;
+
+  // Coûts
+  owned_value: number;
+  missing_cost: number;
+  total_craft_cost: number;
+
+  // Profit
+  sell_price: number;
+  margin: number;
+  roi: number;
+
+  // Métadonnées
+  result_item_last_update?: string;
+}
+
+export interface CraftIngredientStatus {
+  item_id: number;
+  name: string;
+  icon_url?: string;
+  required_quantity: number;
+  owned_quantity: number;
+  missing_quantity: number;
+  unit_price: number;
+  owned_value: number;
+  missing_cost: number;
+  status: 'complete' | 'partial' | 'missing';
+  ingredient_recipe_id?: number | null;  // ID de la recette si l'ingrédient est craftable
+}
+
+export interface CraftOpportunityFilters {
+  server: string;
+  profile_id?: string | null;
+  max_missing?: number;
+  min_level?: number;
+  max_level?: number;
+  job_id?: number;
+  min_roi?: number;
+  limit?: number;
+  offset?: number;
+  sort_by?: 'completeness_desc' | 'margin_desc' | 'roi_desc';
+  search?: string;
+}

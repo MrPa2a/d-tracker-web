@@ -1,6 +1,7 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import type { Category, DateRangePreset, Profile } from '../types';
-import { Coins, Loader2 } from 'lucide-react';
+import { Coins, Loader2, Hammer } from 'lucide-react';
 import { useBank, useBankProgression, useBankSummary } from '../hooks/useBank';
 import { useQueries } from '@tanstack/react-query';
 import { fetchTimeseries } from '../api';
@@ -140,6 +141,14 @@ const BankPage: React.FC<BankPageProps> = ({ server, currentProfile, dateRange, 
             {lastScrapedAt ? ` • Dernier scan : ${formatDateTime(lastScrapedAt)}` : ''}
           </p>
         </div>
+        <Link
+          to="/bank/crafts"
+          className="flex items-center gap-2 px-4 py-2 bg-accent-primary hover:bg-accent-primary/90 text-white rounded-lg text-sm font-medium transition-colors"
+        >
+          <Hammer size={16} />
+          <span className="hidden md:inline">Opportunités de Craft</span>
+          <span className="md:hidden">Crafts</span>
+        </Link>
       </div>
 
       {isLoading ? (
