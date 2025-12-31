@@ -256,6 +256,61 @@ export interface ItemDetails {
   effects: ItemEffect[];
 }
 
+// --- Bank (storage tracker) ---
+
+export interface BankItem {
+  id: number;
+  server: string;
+  profile_id: string | null;
+  item_id: number;
+  gid: number;
+  quantity: number;
+  captured_at: string;
+  item_name: string;
+  icon_url?: string;
+  item_level?: number;
+  category_id?: number;
+  last_price?: number | null;
+}
+
+export interface BankStats {
+  total_items: number;
+  unique_items: number;
+  total_value: number;
+}
+
+export interface BankResponse {
+  items: BankItem[];
+  stats: BankStats;
+}
+
+export interface BankSummary {
+  totalValue: number;
+  uniqueItems: number;
+  progressionPct: number | null;
+}
+
+export interface BankOpportunity {
+  item: BankItem;
+  score: number;
+}
+
+export type BankTableSortColumn =
+  | 'quantity'
+  | 'name'
+  | 'category'
+  | 'trend'
+  | 'evolution'
+  | 'current_price'
+  | 'avg_price'
+  | 'last_update'
+  | 'total_value';
+
+export interface BankTableSort {
+  column: BankTableSortColumn;
+  direction: 'asc' | 'desc';
+}
+
 // --- Messages (bulletin board) ---
 
 export interface MessageAuthor {

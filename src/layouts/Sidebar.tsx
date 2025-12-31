@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, List, BarChart2, Server, ChevronDown, ChevronRight, ScanLine, TrendingUp, Target, Hammer, Wrench, Zap, ChevronsUp, Calendar } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, List, BarChart2, Server, ChevronDown, ChevronRight, ScanLine, TrendingUp, Target, Hammer, Wrench, Zap, ChevronsUp, Calendar, Coins } from 'lucide-react';
 import { ProfileSelector } from '../components/ProfileSelector';
 import type { Profile } from '../types';
 
@@ -40,6 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/bank', label: 'Banque', icon: Coins },
     { path: '/market', label: 'Marché', icon: ShoppingBag },
     { path: '/lists', label: 'Listes', icon: List },
     { path: '/crafting', label: 'Artisans', icon: Hammer },

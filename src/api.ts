@@ -1,5 +1,5 @@
 // src/api.ts
-import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult, ScannerFilters, RecipeStats, RecipeFilters, Job, RecipeDetails, RecipeUsage, ItemDetails, Message } from './types';
+import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult, ScannerFilters, RecipeStats, RecipeFilters, Job, RecipeDetails, RecipeUsage, ItemDetails, Message, BankResponse } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
@@ -156,6 +156,22 @@ export async function fetchProfiles(): Promise<Profile[]> {
   if (!res.ok) {
     throw new Error(`Erreur API /api/user?resource=profiles : ${res.status} ${res.statusText}`);
   }
+  return res.json();
+}
+
+export async function fetchBankContent(server: string, profileId?: string | null): Promise<BankResponse> {
+  const params = new URLSearchParams({ server });
+  if (profileId) params.append('profileId', profileId);
+
+  const res = await safeFetch(`${API_BASE}/api/user?resource=bank&${params.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/user?resource=bank : ${res.status} ${res.statusText}`);
+  }
+
   return res.json();
 }
 

@@ -20,6 +20,7 @@ import { useFavorites } from './hooks/useFavorites';
 import { ConsumablesPage } from './pages/ConsumablesPage';
 import { LevelingOptimizerPage } from './pages/LevelingOptimizerPage';
 import { AlmanaxPage } from './pages/AlmanaxPage';
+import BankPage from './pages/BankPage';
 
 const DEFAULT_RANGE: DateRangePreset = '30d';
 
@@ -259,6 +260,18 @@ const App: React.FC = () => {
               currentProfile={currentProfile}
             />
           } 
+        />
+
+        <Route
+          path="/bank"
+          element={
+            <BankPage
+              server={currentServer}
+              currentProfile={currentProfile}
+              dateRange={dateRange}
+              categories={categories}
+            />
+          }
         />
         <Route 
           path="/item/:server/:itemName" 
