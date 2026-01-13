@@ -12,8 +12,7 @@ import {
   ChevronRight,
   ChevronDown,
   Loader2,
-  ChevronsUp,
-  AlertTriangle
+  ChevronsUp
 } from 'lucide-react';
 
 const EXCLUDED_JOBS = [
@@ -166,18 +165,6 @@ export const LevelingOptimizerPage: React.FC = () => {
           </h1>
           <p className="text-sm md:text-base text-gray-400 mt-2">
             Trouvez le chemin le moins cher pour monter vos métiers sur {server}.
-          </p>
-        </div>
-      </div>
-
-      {/* Disclaimer Banner */}
-      <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6 flex items-start gap-3">
-        <AlertTriangle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
-        <div>
-          <h3 className="text-sm font-semibold text-yellow-500">Fonctionnalité en construction</h3>
-          <p className="text-sm text-yellow-500/80 mt-1">
-            Les quantités d'items nécessaires pour passer les paliers peuvent varier légèrement (quelques dizaines d'unités). 
-            Nous travaillons à affiner les calculs d'XP.
           </p>
         </div>
       </div>
