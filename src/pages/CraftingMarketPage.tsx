@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useJobs, useRecipes } from '../hooks/useRecipes';
 import type { RecipeFilters, RecipeStats } from '../types';
-import { Search, Hammer, AlertTriangle, ChevronDown, Loader2, Clock, X, Plus } from 'lucide-react';
+import { Search, Hammer, AlertTriangle, ChevronDown, Loader2, Clock, X, Plus, Wrench } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import kamaIcon from '../assets/kama.png';
 import { AddRecipeModal } from '../components/AddRecipeModal';
@@ -22,7 +22,8 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
   const [search, setSearch] = useState<string>(searchParams.get('search') || '');
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [sortBy, setSortBy] = useState<string>(searchParams.get('sortBy') || 'margin_desc');
-  const [hidePartialPrices, setHidePartialPrices] = useState<boolean>(searchParams.get('hidePartial') === 'true');
+  // Modes: 'show_all' | 'hide_partial' | 'estimate_craft'
+  const [partialPriceMode, setPartialPriceMode] = useState<string>(searchParams.get('partialMode') || 'show_all');
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -58,7 +59,13 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
     error: queryError 
   } = useRecipes(filters);
 
-  const filteredRecipes = recipes.filter(r => !hidePartialPrices || r.ingredients_with_price === r.ingredients_count);
+  const filteredRecipes = recipes.filter(r => {
+    if (partialPriceMode === 'hide_partial') {
+      return r.ingredients_with_price === r.ingredients_count;
+    }
+    // 'show_all' and 'estimate_craft' show all recipes
+    return true;
+  });
 
   const error = queryError instanceof Error ? queryError.message : queryError ? 'Une erreur est survenue' : null;
 
@@ -71,10 +78,35 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
     if (minRoi) params.minRoi = minRoi;
     if (search) params.search = search;
     if (sortBy) params.sortBy = sortBy;
-    if (hidePartialPrices) params.hidePartial = 'true';
+    if (partialPriceMode !== 'show_all') params.partialMode = partialPriceMode;
     setSearchParams(params, { replace: true });
-  }, [selectedJob, minLevel, maxLevel, minRoi, search, sortBy, hidePartialPrices, setSearchParams]);
+  }, [selectedJob, minLevel, maxLevel, minRoi, search, sortBy, partialPriceMode, setSearchParams]);
 
+  // Helper to get display values for a recipe (uses backend-calculated estimations)
+  const getDisplayValues = useCallback((recipe: RecipeStats) => {
+    // In estimate_craft mode, use backend-provided estimated values if available
+    if (partialPriceMode === 'estimate_craft' && recipe.ingredients_with_price < recipe.ingredients_count) {
+      // Check if backend has provided estimation data
+      if (recipe.has_estimation && recipe.estimated_craft_cost !== undefined) {
+        return {
+          craftCost: recipe.estimated_craft_cost,
+          margin: recipe.estimated_margin ?? recipe.margin,
+          roi: recipe.estimated_roi ?? recipe.roi,
+          isEstimated: true,
+          isIncomplete: recipe.estimation_incomplete ?? false, // Certains prix n'ont pas pu être estimés même en cascade
+          isLoading: false
+        };
+      }
+    }
+    return {
+      craftCost: recipe.craft_cost,
+      margin: recipe.margin,
+      roi: recipe.roi,
+      isEstimated: false,
+      isIncomplete: false,
+      isLoading: false
+    };
+  }, [partialPriceMode]);
 
   // --- Helpers ---
   const formatKamas = (k: number) => {
@@ -236,20 +268,21 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
           </div>
         </div>
 
-        {/* Partial Prices Toggle */}
-        <div className="flex items-center h-10 pb-1">
-          <label className="flex items-center gap-2 cursor-pointer group">
-            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${hidePartialPrices ? 'bg-blue-500 border-blue-500' : 'bg-[#25262b] border-white/10 group-hover:border-white/30'}`}>
-              {hidePartialPrices && <X size={14} className="text-white" />}
-            </div>
-            <input 
-              type="checkbox" 
-              className="hidden" 
-              checked={hidePartialPrices} 
-              onChange={(e) => setHidePartialPrices(e.target.checked)} 
-            />
-            <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">Masquer prix partiels</span>
-          </label>
+        {/* Partial Prices Mode */}
+        <div className="w-48">
+          <label className="block text-xs font-medium text-gray-400 mb-1">Prix partiels</label>
+          <div className="relative">
+            <select
+              value={partialPriceMode}
+              onChange={(e) => setPartialPriceMode(e.target.value)}
+              className="w-full bg-[#25262b] border border-white/10 rounded-lg pl-3 pr-10 py-2 text-sm text-white appearance-none focus:outline-none focus:border-blue-500 transition-all"
+            >
+              <option value="show_all">Afficher tous</option>
+              <option value="hide_partial">Masquer incomplets</option>
+              <option value="estimate_craft">Estimer via craft</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+          </div>
         </div>
       </div>
 
@@ -316,57 +349,87 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
 
                   <div className="grid grid-cols-2 gap-y-4 gap-x-4 text-sm">
                     {/* Row 1: Cost & Sell Price */}
-                    <div>
-                      <div className="text-xs text-gray-500 mb-1">Coût Craft</div>
-                      <div className="font-mono text-gray-300 flex items-center gap-1">
-                        {formatKamas(recipe.craft_cost)} 
-                        <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
-                      </div>
-                      {(isStale(recipe.ingredients_last_update) || recipe.ingredients_with_price < recipe.ingredients_count) && (
-                        <div className="flex flex-col gap-0.5 mt-1">
-                          {isStale(recipe.ingredients_last_update) && recipe.craft_cost > 0 && (
-                            <div className="text-[10px] text-yellow-500/80 flex items-center gap-1">
-                              <Clock size={10} />
-                              <span>Obsolète</span>
+                    {(() => {
+                      const displayValues = getDisplayValues(recipe);
+                      return (
+                        <>
+                          <div>
+                            <div className="text-xs text-gray-500 mb-1">
+                              Coût Craft
+                              {displayValues.isEstimated && (
+                                <span className={displayValues.isIncomplete ? 'text-orange-400 ml-1' : 'text-blue-400 ml-1'}>
+                                  {displayValues.isIncomplete ? '(partiel)' : '(estimé)'}
+                                </span>
+                              )}
                             </div>
-                          )}
-                          {recipe.ingredients_with_price < recipe.ingredients_count && (
-                            <div className="text-[10px] text-yellow-500/80 flex items-center gap-1">
-                              <AlertTriangle size={10} />
-                              <span>Partiel ({recipe.ingredients_with_price}/{recipe.ingredients_count})</span>
+                            <div className={`font-mono flex items-center gap-1 ${displayValues.isEstimated ? (displayValues.isIncomplete ? 'text-orange-300' : 'text-blue-300') : 'text-gray-300'}`}>
+                              {formatKamas(displayValues.craftCost)} 
+                              <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
                             </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs text-gray-500 mb-1">Prix Vente</div>
-                      <div className="font-mono text-gray-300 flex items-center justify-end gap-1">
-                        {formatKamas(recipe.sell_price)}
-                        <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
-                      </div>
-                      {isStale(recipe.result_item_last_update) && recipe.sell_price > 0 && (
-                        <div className="text-[10px] text-yellow-500/80 flex items-center justify-end gap-1 mt-1">
-                          <Clock size={10} />
-                          <span>Obsolète</span>
-                        </div>
-                      )}
-                    </div>
+                            {(isStale(recipe.ingredients_last_update) || recipe.ingredients_with_price < recipe.ingredients_count) && (
+                              <div className="flex flex-col gap-0.5 mt-1">
+                                {isStale(recipe.ingredients_last_update) && recipe.craft_cost > 0 && (
+                                  <div className="text-[10px] text-yellow-500/80 flex items-center gap-1">
+                                    <Clock size={10} />
+                                    <span>Obsolète</span>
+                                  </div>
+                                )}
+                                {recipe.ingredients_with_price < recipe.ingredients_count && !displayValues.isEstimated && (
+                                  <div className={`text-[10px] flex items-center gap-1 ${partialPriceMode === 'estimate_craft' ? 'text-orange-400' : 'text-yellow-500/80'}`}>
+                                    {partialPriceMode === 'estimate_craft' ? (
+                                      <>
+                                        <AlertTriangle size={10} />
+                                        <span>Non estimable</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <AlertTriangle size={10} />
+                                        <span>Partiel ({recipe.ingredients_with_price}/{recipe.ingredients_count})</span>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-gray-500 mb-1">Prix Vente</div>
+                            <div className="font-mono text-gray-300 flex items-center justify-end gap-1">
+                              {formatKamas(recipe.sell_price)}
+                              <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
+                            </div>
+                            {isStale(recipe.result_item_last_update) && recipe.sell_price > 0 && (
+                              <div className="text-[10px] text-yellow-500/80 flex items-center justify-end gap-1 mt-1">
+                                <Clock size={10} />
+                                <span>Obsolète</span>
+                              </div>
+                            )}
+                          </div>
 
-                    {/* Row 2: ROI & Margin */}
-                    <div>
-                      <div className="text-xs text-gray-500 mb-1">ROI</div>
-                      <div className={`font-mono font-bold ${getRoiColor(recipe.roi)}`}>
-                        {recipe.roi.toFixed(1)}%
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs text-gray-500 mb-1">Marge</div>
-                      <div className={`font-mono font-medium flex items-center justify-end gap-1 ${recipe.margin > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {recipe.margin > 0 ? '+' : ''}{formatKamas(recipe.margin)}
-                        <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
-                      </div>
-                    </div>
+                          {/* Row 2: ROI & Margin */}
+                          <div>
+                            <div className="text-xs text-gray-500 mb-1">ROI</div>
+                            <div className={`font-mono font-bold ${getRoiColor(displayValues.roi)}`}>
+                              {displayValues.roi.toFixed(1)}%
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-gray-500 mb-1">
+                              Marge
+                              {displayValues.isEstimated && (
+                                <span className={displayValues.isIncomplete ? 'text-orange-400 ml-1' : 'text-blue-400 ml-1'}>
+                                  {displayValues.isIncomplete ? '(partielle)' : '(estimée)'}
+                                </span>
+                              )}
+                            </div>
+                            <div className={`font-mono font-medium flex items-center justify-end gap-1 ${displayValues.margin > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {displayValues.margin > 0 ? '+' : ''}{formatKamas(displayValues.margin)}
+                              <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               ))}
@@ -440,49 +503,69 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
                         <span>{recipe.job_name}</span>
                       </div>
                     </td>
-                    <td className="p-4 text-right font-mono text-gray-300">
-                      <div className="flex flex-col items-end gap-1">
-                        <div className="flex items-center justify-end gap-1">
-                          {formatKamas(recipe.craft_cost)} 
-                          <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
-                        </div>
-                        {isStale(recipe.ingredients_last_update) && recipe.craft_cost > 0 && (
-                          <div className="text-xs text-yellow-500/80 flex items-center justify-end gap-1" title={`Prix ingrédients potentiellement obsolètes (Plus vieux : ${formatDate(recipe.ingredients_last_update)})`}>
-                            <Clock size={10} />
-                            <span>Obsolète</span>
-                          </div>
-                        )}
-                        {recipe.ingredients_with_price < recipe.ingredients_count && (
-                          <div className="text-xs text-red-400/80 flex items-center justify-end gap-1">
-                            <AlertTriangle size={10} />
-                            <span>Prix partiels</span>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-4 text-right font-mono text-gray-300">
-                      <div className="flex flex-col items-end gap-1">
-                        <div className="flex items-center justify-end gap-1">
-                          {formatKamas(recipe.sell_price)}
-                          <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
-                        </div>
-                        {isStale(recipe.result_item_last_update) && recipe.sell_price > 0 && (
-                          <div className="text-xs text-yellow-500/80 flex items-center justify-end gap-1" title={`Prix potentiellement obsolète (Dernière maj : ${formatDate(recipe.result_item_last_update)})`}>
-                            <Clock size={10} />
-                            <span>Obsolète</span>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className={`p-4 text-right font-mono font-medium ${recipe.margin > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      <div className="flex items-center justify-end gap-1">
-                        {recipe.margin > 0 ? '+' : ''}{formatKamas(recipe.margin)}
-                        <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
-                      </div>
-                    </td>
-                    <td className={`p-4 text-right font-mono font-bold ${getRoiColor(recipe.roi)}`}>
-                      {recipe.roi.toFixed(1)}%
-                    </td>
+                    {(() => {
+                      const displayValues = getDisplayValues(recipe);
+                      return (
+                        <>
+                          <td className="p-4 text-right font-mono text-gray-300">
+                            <div className="flex flex-col items-end gap-1">
+                              <div className={`flex items-center justify-end gap-1 ${displayValues.isEstimated ? 'text-blue-300' : ''}`}>
+                                {formatKamas(displayValues.craftCost)}
+                                <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
+                              </div>
+                              {displayValues.isEstimated && (
+                                <div className={`text-xs flex items-center justify-end gap-1 ${displayValues.isIncomplete ? 'text-orange-400' : 'text-blue-400'}`}>
+                                  <Wrench size={10} />
+                                  <span>{displayValues.isIncomplete ? 'Estimation partielle' : 'Estimé'}</span>
+                                </div>
+                              )}
+                              {!displayValues.isEstimated && isStale(recipe.ingredients_last_update) && recipe.craft_cost > 0 && (
+                                <div className="text-xs text-yellow-500/80 flex items-center justify-end gap-1" title={`Prix ingrédients potentiellement obsolètes (Plus vieux : ${formatDate(recipe.ingredients_last_update)})`}>
+                                  <Clock size={10} />
+                                  <span>Obsolète</span>
+                                </div>
+                              )}
+                              {!displayValues.isEstimated && recipe.ingredients_with_price < recipe.ingredients_count && (
+                                <div className={`text-xs flex items-center justify-end gap-1 ${partialPriceMode === 'estimate_craft' ? 'text-orange-400' : 'text-red-400/80'}`} title={partialPriceMode === 'estimate_craft' ? 'Aucun ingrédient n\'a pu être estimé via sub-craft' : 'Certains ingrédients n\'ont pas de prix connu'}>
+                                  <AlertTriangle size={10} />
+                                  <span>{partialPriceMode === 'estimate_craft' ? 'Non estimable' : 'Prix partiels'}</span>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-4 text-right font-mono text-gray-300">
+                            <div className="flex flex-col items-end gap-1">
+                              <div className="flex items-center justify-end gap-1">
+                                {formatKamas(recipe.sell_price)}
+                                <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
+                              </div>
+                              {isStale(recipe.result_item_last_update) && recipe.sell_price > 0 && (
+                                <div className="text-xs text-yellow-500/80 flex items-center justify-end gap-1" title={`Prix potentiellement obsolète (Dernière maj : ${formatDate(recipe.result_item_last_update)})`}>
+                                  <Clock size={10} />
+                                  <span>Obsolète</span>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className={`p-4 text-right font-mono font-medium ${displayValues.margin > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            <div className="flex flex-col items-end gap-1">
+                              <div className="flex items-center justify-end gap-1">
+                                {displayValues.margin > 0 ? '+' : ''}{formatKamas(displayValues.margin)}
+                                <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
+                              </div>
+                              {displayValues.isEstimated && (
+                                <div className={`text-xs ${displayValues.isIncomplete ? 'text-orange-400' : 'text-blue-400'}`}>
+                                  {displayValues.isIncomplete ? '(partielle)' : '(estimée)'}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className={`p-4 text-right font-mono font-bold ${getRoiColor(displayValues.roi)}`}>
+                            {displayValues.roi.toFixed(1)}%
+                          </td>
+                        </>
+                      );
+                    })()}
                     <td className="p-4 text-center text-gray-400 text-sm">
                       {recipe.ingredients_with_price}/{recipe.ingredients_count}
                     </td>

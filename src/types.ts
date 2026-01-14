@@ -102,6 +102,12 @@ export interface RecipeStats {
   ingredients_with_price: number;
   result_item_last_update?: string;
   ingredients_last_update?: string;
+  // Estimation via sub-craft (backend calculated, recursive cascade)
+  estimated_craft_cost?: number;
+  estimated_margin?: number;
+  estimated_roi?: number;
+  has_estimation?: boolean;
+  estimation_incomplete?: boolean; // true si certains prix n'ont pas pu être estimés même en cascade
 }
 
 export interface RecipeIngredient {
