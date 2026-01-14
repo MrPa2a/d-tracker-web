@@ -783,7 +783,19 @@ export async function fetchItemUsageStats(id: number): Promise<any> {
 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function fetchLevelingPlan(payload: { job_id: number; from_level: number; to_level: number; server: string }): Promise<any> {
+export async function fetchLevelingPlan(payload: { 
+  job_id: number; 
+  from_level: number; 
+  to_level: number; 
+  server: string;
+  max_quantity_per_recipe?: number | null;
+  penalty_mode?: 'none' | 'low' | 'medium' | 'high';
+  // Custom penalty parameters (override preset if provided)
+  custom_alpha?: number;
+  custom_threshold?: number;
+  custom_min_batch?: number;
+  custom_max_resource_usage?: number;
+}): Promise<any> {
   const res = await safeFetch(`${API_BASE}/api/data?resource=toolbox&mode=leveling`, {
     method: 'POST',
     headers: buildHeaders(),
