@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useJobs, useRecipes } from '../hooks/useRecipes';
 import type { RecipeFilters, RecipeStats } from '../types';
 import { Search, Hammer, AlertTriangle, ChevronDown, Loader2, Clock, X, Plus, Wrench } from 'lucide-react';
@@ -8,9 +8,19 @@ import { AddRecipeModal } from '../components/AddRecipeModal';
 
 interface CraftingMarketPageProps {
   server: string | null;
+  minPrice: string;
+  maxPrice: string;
+  onlyFavorites: boolean;
+  favorites: Set<string>;
 }
 
-const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propServer }) => {
+const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ 
+  server: propServer,
+  minPrice: globalMinPrice,
+  maxPrice: globalMaxPrice,
+  onlyFavorites,
+  favorites
+}) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -59,13 +69,33 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({ server: propSer
     error: queryError 
   } = useRecipes(filters);
 
-  const filteredRecipes = recipes.filter(r => {
-    if (partialPriceMode === 'hide_partial') {
-      return r.ingredients_with_price === r.ingredients_count;
-    }
-    // 'show_all' and 'estimate_craft' show all recipes
-    return true;
-  });
+  const filteredRecipes = useMemo(() => {
+    return recipes.filter(r => {
+      // Mode de prix partiel
+      if (partialPriceMode === 'hide_partial') {
+        if (r.ingredients_with_price !== r.ingredients_count) return false;
+      }
+      
+      // Filtre global par prix minimum
+      if (globalMinPrice) {
+        const min = parseFloat(globalMinPrice);
+        if (!isNaN(min) && r.sell_price < min) return false;
+      }
+      
+      // Filtre global par prix maximum
+      if (globalMaxPrice) {
+        const max = parseFloat(globalMaxPrice);
+        if (!isNaN(max) && r.sell_price > max) return false;
+      }
+      
+      // Filtre global par favoris
+      if (onlyFavorites && !favorites.has(r.result_item_name)) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [recipes, partialPriceMode, globalMinPrice, globalMaxPrice, onlyFavorites, favorites]);
 
   const error = queryError instanceof Error ? queryError.message : queryError ? 'Une erreur est survenue' : null;
 

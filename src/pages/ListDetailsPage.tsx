@@ -26,6 +26,8 @@ interface ListDetailsPageProps {
   pendingFavorites?: Set<string>;
   onToggleFavorite: (key: string) => void;
   onlyFavorites: boolean;
+  minPrice: string;
+  maxPrice: string;
 }
 
 const ListDetailsTableRow: React.FC<{
@@ -332,7 +334,15 @@ const ListDetailsCard: React.FC<{
   );
 };
 
-const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites, pendingFavorites, onToggleFavorite, onlyFavorites }) => {
+const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ 
+  dateRange, 
+  favorites, 
+  pendingFavorites, 
+  onToggleFavorite, 
+  onlyFavorites,
+  minPrice,
+  maxPrice 
+}) => {
   const { listId } = useParams<{ listId: string }>();
   const navigate = useNavigate();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ListItem } | null>(null);
@@ -469,7 +479,29 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
     let topGainer = { name: '', pct: -Infinity };
     let topLoser = { name: '', pct: Infinity };
     
-    const filteredItems = list.list_items.filter(item => !onlyFavorites || favorites.has(item.item_name));
+    // Appliquer tous les filtres globaux
+    let filteredItems = list.list_items;
+    
+    // Filtre favoris
+    if (onlyFavorites) {
+      filteredItems = filteredItems.filter(item => favorites.has(item.item_name));
+    }
+    
+    // Filtre prix min
+    if (minPrice) {
+      const min = parseFloat(minPrice);
+      if (!isNaN(min)) {
+        filteredItems = filteredItems.filter(item => (item.last_price ?? 0) >= min);
+      }
+    }
+    
+    // Filtre prix max
+    if (maxPrice) {
+      const max = parseFloat(maxPrice);
+      if (!isNaN(max)) {
+        filteredItems = filteredItems.filter(item => (item.last_price ?? 0) <= max);
+      }
+    }
 
     filteredItems.forEach(item => {
       const qty = item.quantity || 1;
@@ -497,8 +529,9 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
       totalChangeValue,
       topGainer: topGainer.pct !== -Infinity ? topGainer : null,
       topLoser: topLoser.pct !== Infinity ? topLoser : null,
+      filteredItems, // Expose filtered items for rendering
     };
-  }, [list, onlyFavorites, favorites]);
+  }, [list, onlyFavorites, favorites, minPrice, maxPrice]);
 
   const handleRemoveItem = async (itemId: number) => {
     if (!listId) return;
@@ -722,9 +755,7 @@ const ListDetailsPage: React.FC<ListDetailsPageProps> = ({ dateRange, favorites,
               </tr>
             </thead>
             <tbody className="text-sm">
-              {list.list_items
-                .filter(item => !onlyFavorites || favorites.has(item.item_name))
-                .map((item) => (
+              {(kpis?.filteredItems || []).map((item) => (
                 <ListDetailsTableRow 
                   key={item.item_id} 
                   item={item} 

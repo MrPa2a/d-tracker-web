@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Menu, Search, Server, ChevronDown, Star, X, MoreVertical, RefreshCw, Filter } from 'lucide-react';
 import { useLocation, Link } from 'react-router-dom';
 import { useQueryClient, useIsFetching } from '@tanstack/react-query';
@@ -8,6 +8,7 @@ import { ItemContextMenu } from '../components/ItemContextMenu';
 import { AddToListModal } from '../components/AddToListModal';
 import { useFavorites } from '../hooks/useFavorites';
 import { MessagesButton } from '../components/messages';
+import { getFilterVisibility } from '../config/filterConfig';
 
 interface HeaderProps {
   currentProfile: Profile | null;
@@ -64,9 +65,13 @@ export const Header: React.FC<HeaderProps> = ({
   const [isServerDropdownOpen, setIsServerDropdownOpen] = useState(false);
   const serverDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Determine if filters should be disabled (e.g. on Item Details page)
-  const isItemDetailsPage = location.pathname.startsWith('/item/');
-  const areListFiltersDisabled = isItemDetailsPage; // Price and Favorites are for lists
+  // Récupère la configuration de visibilité des filtres selon la route actuelle
+  const filterVisibility = useMemo(() => getFilterVisibility(location.pathname), [location.pathname]);
+
+  // Détermine quels filtres sont désactivés
+  const isDateRangeDisabled = !filterVisibility.dateRange;
+  const isPriceDisabled = !filterVisibility.price;
+  const isFavoritesDisabled = !filterVisibility.favorites;
 
 
   // Close search results when clicking outside
@@ -289,25 +294,25 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Favorites Toggle */}
             <button
               onClick={onToggleOnlyFavorites}
-              disabled={areListFiltersDisabled}
-              className={`p-2 rounded-lg border transition-colors ${
-                onlyFavorites 
+              disabled={isFavoritesDisabled}
+              className={`h-[35px] w-[35px] flex items-center justify-center rounded-lg border transition-colors ${
+                onlyFavorites && !isFavoritesDisabled
                   ? 'bg-yellow-500/10 border-yellow-500/50 text-yellow-400' 
                   : 'bg-bg-tertiary/50 border-border-normal text-text-muted hover:text-text-primary'
-              } ${areListFiltersDisabled ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
-              title="Afficher uniquement les favoris"
+              } ${isFavoritesDisabled ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+              title={isFavoritesDisabled ? "Filtre non disponible sur cette page" : "Afficher uniquement les favoris"}
             >
-              <Star size={18} fill={onlyFavorites ? "currentColor" : "none"} />
+              <Star size={18} fill={onlyFavorites && !isFavoritesDisabled ? "currentColor" : "none"} />
             </button>
 
             {/* Price Range */}
-            <div className={`flex items-center bg-bg-tertiary/50 border border-border-normal rounded-lg px-3 py-2 gap-2 focus-within:border-accent-primary focus-within:ring-1 focus-within:ring-accent-primary/50 transition-all ${areListFiltersDisabled ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+            <div className={`h-[35px] flex items-center bg-bg-tertiary/50 border border-border-normal rounded-lg px-3 py-2 gap-2 focus-within:border-accent-primary focus-within:ring-1 focus-within:ring-accent-primary/50 transition-all ${isPriceDisabled ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
               <input
                 type="text"
                 placeholder="Min"
                 value={formatNumber(minPrice)}
                 onChange={(e) => handlePriceChange(e.target.value, onMinPriceChange)}
-                disabled={areListFiltersDisabled}
+                disabled={isPriceDisabled}
                 className="w-16 bg-transparent border-none text-xs text-text-primary outline-none placeholder:text-text-muted/50 text-center"
               />
               <div className="h-4 w-px bg-border-normal mx-1"></div>
@@ -316,10 +321,10 @@ export const Header: React.FC<HeaderProps> = ({
                 placeholder="Max"
                 value={formatNumber(maxPrice)}
                 onChange={(e) => handlePriceChange(e.target.value, onMaxPriceChange)}
-                disabled={areListFiltersDisabled}
+                disabled={isPriceDisabled}
                 className="w-16 bg-transparent border-none text-xs text-text-primary outline-none placeholder:text-text-muted/50 text-center"
               />
-              {(minPrice || maxPrice) && (
+              {(minPrice || maxPrice) && !isPriceDisabled && (
                 <button
                   onClick={() => {
                     onMinPriceChange('');
@@ -334,14 +339,14 @@ export const Header: React.FC<HeaderProps> = ({
 
             
             {/* Date Range */}
-            <div className={`flex bg-bg-tertiary/50 rounded-lg border border-border-normal p-1 ${areListFiltersDisabled ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+            <div className={`h-[35px] flex bg-bg-tertiary/50 rounded-lg border border-border-normal p-1 ${isDateRangeDisabled ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
               {(Object.keys(RANGE_LABELS) as DateRangePreset[]).map((range) => (
                 <button
                   key={range}
                   onClick={() => onDateRangeChange(range)}
-                  disabled={areListFiltersDisabled}
+                  disabled={isDateRangeDisabled}
                   className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                    dateRange === range
+                    dateRange === range && !isDateRangeDisabled
                       ? 'bg-accent-primary/20 text-accent-primary'
                       : 'text-text-muted hover:text-text-primary'
                   }`}
@@ -381,20 +386,20 @@ export const Header: React.FC<HeaderProps> = ({
 
             <button
               onClick={onToggleOnlyFavorites}
-              disabled={areListFiltersDisabled}
+              disabled={isFavoritesDisabled}
               className={`flex-1 flex items-center justify-center gap-2 p-2 rounded-lg border transition-colors ${
-                onlyFavorites 
+                onlyFavorites && !isFavoritesDisabled
                   ? 'bg-yellow-500/10 border-yellow-500/50 text-yellow-400' 
                   : 'bg-bg-tertiary/50 border-border-normal text-text-muted hover:text-text-primary'
-              } ${areListFiltersDisabled ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+              } ${isFavoritesDisabled ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
             >
-              <Star size={16} fill={onlyFavorites ? "currentColor" : "none"} />
+              <Star size={16} fill={onlyFavorites && !isFavoritesDisabled ? "currentColor" : "none"} />
               <span className="text-sm">Favoris</span>
             </button>
           </div>
 
           {/* Price Range (Mobile) */}
-          <div className={`space-y-2 ${areListFiltersDisabled ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+          <div className={`space-y-2 ${isPriceDisabled ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
             <label className="text-xs font-medium text-text-muted uppercase">Prix</label>
             <div className="flex items-center gap-2">
               <input
@@ -416,15 +421,16 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Date Range (Mobile) */}
-          <div className="space-y-2">
+          <div className={`space-y-2 ${isDateRangeDisabled ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
             <label className="text-xs font-medium text-text-muted uppercase">Période</label>
             <div className="grid grid-cols-4 gap-2">
               {(Object.keys(RANGE_LABELS) as DateRangePreset[]).map((range) => (
                 <button
                   key={range}
                   onClick={() => onDateRangeChange(range)}
+                  disabled={isDateRangeDisabled}
                   className={`px-2 py-2 text-xs font-medium rounded-lg border transition-colors ${
-                    dateRange === range
+                    dateRange === range && !isDateRangeDisabled
                       ? 'bg-accent-primary/20 border-accent-primary text-accent-primary'
                       : 'bg-bg-tertiary/50 border-border-normal text-text-muted'
                   }`}

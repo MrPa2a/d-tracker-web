@@ -271,6 +271,10 @@ const App: React.FC = () => {
               currentProfile={currentProfile}
               dateRange={dateRange}
               categories={categories}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
+              onlyFavorites={onlyFavorites}
+              favorites={favorites}
             />
           }
         />
@@ -280,6 +284,10 @@ const App: React.FC = () => {
             <BankCraftOpportunitiesPage
               server={currentServer}
               currentProfile={currentProfile}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
+              onlyFavorites={onlyFavorites}
+              favorites={favorites}
             />
           }
         />
@@ -315,6 +323,8 @@ const App: React.FC = () => {
               pendingFavorites={pendingFavorites}
               onToggleFavorite={toggleFavorite}
               onlyFavorites={onlyFavorites}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
             />
           } 
         />
@@ -365,7 +375,11 @@ const App: React.FC = () => {
           path="/crafting" 
           element={
             <CraftingMarketPage 
-              server={dashboardServer} 
+              server={dashboardServer}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
+              onlyFavorites={onlyFavorites}
+              favorites={favorites}
             />
           } 
         />
@@ -389,7 +403,15 @@ const App: React.FC = () => {
         />
         
         {/* Toolbox Routes */}
-        <Route path="/toolbox/consumables" element={<ConsumablesPage server={currentServer} />} />
+        <Route path="/toolbox/consumables" element={
+          <ConsumablesPage 
+            server={currentServer}
+            minPrice={minPrice}
+            maxPrice={maxPrice}
+            onlyFavorites={onlyFavorites}
+            favorites={favorites}
+          />
+        } />
         <Route path="/toolbox/leveling" element={<LevelingOptimizerPage />} />
         <Route path="/toolbox/almanax" element={<AlmanaxPage server={currentServer} />} />
 

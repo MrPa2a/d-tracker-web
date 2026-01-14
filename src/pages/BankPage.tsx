@@ -39,9 +39,22 @@ interface BankPageProps {
   currentProfile: Profile | null;
   dateRange: DateRangePreset;
   categories: Category[];
+  minPrice: string;
+  maxPrice: string;
+  onlyFavorites: boolean;
+  favorites: Set<string>;
 }
 
-const BankPage: React.FC<BankPageProps> = ({ server, currentProfile, dateRange, categories }) => {
+const BankPage: React.FC<BankPageProps> = ({ 
+  server, 
+  currentProfile, 
+  dateRange, 
+  categories,
+  minPrice,
+  maxPrice,
+  onlyFavorites,
+  favorites 
+}) => {
   if (!server) {
     return (
       <div className="p-4 md:p-6 max-w-[1600px] mx-auto pb-24 md:pb-6 space-y-6">
@@ -70,13 +83,41 @@ const BankPage: React.FC<BankPageProps> = ({ server, currentProfile, dateRange, 
     return best;
   }, [items]);
 
-  const progressionQuery = useBankProgression(items, server, dateRange, 30);
+  // Appliquer les filtres globaux (prix, favoris)
+  const filteredItems = React.useMemo(() => {
+    let result = items;
+
+    // Filtre favoris
+    if (onlyFavorites) {
+      result = result.filter((it) => favorites.has(it.item_name));
+    }
+
+    // Filtre prix min
+    if (minPrice) {
+      const min = parseFloat(minPrice);
+      if (!isNaN(min)) {
+        result = result.filter((it) => (it.last_price ?? 0) >= min);
+      }
+    }
+
+    // Filtre prix max
+    if (maxPrice) {
+      const max = parseFloat(maxPrice);
+      if (!isNaN(max)) {
+        result = result.filter((it) => (it.last_price ?? 0) <= max);
+      }
+    }
+
+    return result;
+  }, [items, onlyFavorites, favorites, minPrice, maxPrice]);
+
+  const progressionQuery = useBankProgression(filteredItems, server, dateRange, 30);
   const summary = useBankSummary(bank, progressionQuery.data?.pct ?? null);
 
   // Ne pas prendre en compte les items sans prix.
   const pricedItems = React.useMemo(() => {
-    return items.filter((it) => it.last_price !== null && it.last_price !== undefined && it.last_price > 0);
-  }, [items]);
+    return filteredItems.filter((it) => it.last_price !== null && it.last_price !== undefined && it.last_price > 0);
+  }, [filteredItems]);
 
   // Limite de candidats pour éviter des centaines de timeseries.
   const candidates = React.useMemo(() => {
@@ -167,6 +208,13 @@ const BankPage: React.FC<BankPageProps> = ({ server, currentProfile, dateRange, 
             Ouvrez votre banque en jeu pour capturer le contenu, puis réessayez.
           </p>
         </div>
+      ) : filteredItems.length === 0 ? (
+        <div className="bg-[#1a1b1e] border border-white/5 rounded-xl p-6">
+          <div className="text-text-primary font-semibold">Aucun résultat</div>
+          <p className="mt-2 text-text-muted">
+            Aucun item ne correspond aux filtres actuels. Essayez de modifier les critères de prix ou de favoris.
+          </p>
+        </div>
       ) : (
         <>
           <BankSummaryCards summary={summary} />
@@ -176,7 +224,7 @@ const BankPage: React.FC<BankPageProps> = ({ server, currentProfile, dateRange, 
             <LowPriorityBlock server={server} rows={lowRows} />
           </div>
 
-          <BankItemsTable items={items} server={server} dateRange={dateRange} categories={categories} />
+          <BankItemsTable items={filteredItems} server={server} dateRange={dateRange} categories={categories} />
         </>
       )}
     </div>

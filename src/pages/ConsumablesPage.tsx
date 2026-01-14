@@ -9,9 +9,19 @@ type FilterType = 'all' | 'life' | 'energy' | 'both';
 
 interface ConsumablesPageProps {
   server: string | null;
+  minPrice: string;
+  maxPrice: string;
+  onlyFavorites: boolean;
+  favorites: Set<string>;
 }
 
-export const ConsumablesPage: React.FC<ConsumablesPageProps> = ({ server }) => {
+export const ConsumablesPage: React.FC<ConsumablesPageProps> = ({ 
+  server,
+  minPrice: globalMinPrice,
+  maxPrice: globalMaxPrice,
+  onlyFavorites,
+  favorites
+}) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -103,9 +113,22 @@ export const ConsumablesPage: React.FC<ConsumablesPageProps> = ({ server }) => {
       if (filterType === 'energy' && !hasEnergy) return false;
       if (filterType === 'both' && (!hasLife || !hasEnergy)) return false;
 
+      // Filtres globaux par prix
+      if (globalMinPrice) {
+        const min = parseFloat(globalMinPrice);
+        if (!isNaN(min) && item.price < min) return false;
+      }
+      if (globalMaxPrice) {
+        const max = parseFloat(globalMaxPrice);
+        if (!isNaN(max) && item.price > max) return false;
+      }
+
+      // Filtre global par favoris
+      if (onlyFavorites && !favorites.has(item.name)) return false;
+
       return true;
     });
-  }, [scoredItems, minLevel, maxLevel, filterType, minLife, maxLife, minEnergy, maxEnergy]);
+  }, [scoredItems, minLevel, maxLevel, filterType, minLife, maxLife, minEnergy, maxEnergy, globalMinPrice, globalMaxPrice, onlyFavorites, favorites]);
 
   // 3. Calculate Top Cards (from scoredItems)
   const topCards = useMemo(() => {

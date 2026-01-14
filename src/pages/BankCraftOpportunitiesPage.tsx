@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useJobs } from '../hooks/useRecipes';
 import { useCraftOpportunities, useCraftIngredientsWithStock } from '../hooks/useCraftOpportunities';
 import type { CraftOpportunityFilters, CraftOpportunity, CraftIngredientStatus, Profile } from '../types';
@@ -10,6 +10,10 @@ import { fetchCraftIngredientsWithStock } from '../api';
 interface BankCraftOpportunitiesPageProps {
   server: string | null;
   currentProfile: Profile | null;
+  minPrice: string;
+  maxPrice: string;
+  onlyFavorites: boolean;
+  favorites: Set<string>;
 }
 
 // Extended ingredient type with cascade support
@@ -350,7 +354,11 @@ const isStale = (dateStr?: string) => {
 
 const BankCraftOpportunitiesPage: React.FC<BankCraftOpportunitiesPageProps> = ({ 
   server: propServer, 
-  currentProfile 
+  currentProfile,
+  minPrice: globalMinPrice,
+  maxPrice: globalMaxPrice,
+  onlyFavorites,
+  favorites
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -402,10 +410,32 @@ const BankCraftOpportunitiesPage: React.FC<BankCraftOpportunitiesPageProps> = ({
     error: queryError 
   } = useCraftOpportunities(filters);
 
-  // Filter partial prices if toggle is on
-  const filteredOpportunities = opportunities.filter(o => 
-    !hidePartialPrices || (o.sell_price > 0 && o.total_craft_cost > 0)
-  );
+  // Filter partial prices if toggle is on + global filters
+  const filteredOpportunities = useMemo(() => {
+    return opportunities.filter(o => {
+      // Filtre prix partiels
+      if (hidePartialPrices && (o.sell_price <= 0 || o.total_craft_cost <= 0)) {
+        return false;
+      }
+
+      // Filtres globaux par prix
+      if (globalMinPrice) {
+        const min = parseFloat(globalMinPrice);
+        if (!isNaN(min) && o.sell_price < min) return false;
+      }
+      if (globalMaxPrice) {
+        const max = parseFloat(globalMaxPrice);
+        if (!isNaN(max) && o.sell_price > max) return false;
+      }
+
+      // Filtre global par favoris
+      if (onlyFavorites && !favorites.has(o.result_item_name)) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [opportunities, hidePartialPrices, globalMinPrice, globalMaxPrice, onlyFavorites, favorites]);
 
   const error = queryError instanceof Error ? queryError.message : queryError ? 'Une erreur est survenue' : null;
 
