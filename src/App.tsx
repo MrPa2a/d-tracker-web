@@ -94,7 +94,8 @@ const App: React.FC = () => {
   // If category selected, API search is undefined (we fetch all in category), and we filter client side.
   const searchParam = !selectedCategory ? debouncedSearch : undefined;
 
-  const { data: items = [], isLoading: itemsLoading, error: itemsError } = useItems(searchParam, undefined, selectedCategory || undefined);
+  // Note: items is still used by Dashboard (for now), but MarketPage now has its own data fetching
+  const { data: items = [] } = useItems(searchParam, undefined, selectedCategory || undefined);
   const { data: categories = [] } = useCategories();
   const updateItemMutation = useUpdateItem();
 
@@ -145,37 +146,6 @@ const App: React.FC = () => {
     }
     return null;
   }, [dashboardServer, servers]);
-
-  // Filter items for Market Page
-  const filteredItems = useMemo(() => {
-    let res = items;
-    if (currentServer) {
-      res = res.filter(i => i.server === currentServer);
-    }
-    if (marketSearch.trim()) {
-      const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const q = normalize(marketSearch);
-      res = res.filter(i => normalize(i.item_name).includes(q));
-    }
-    
-    // Sort
-    res.sort((a, b) => {
-      if (sortType === 'price') {
-        const valA = a.last_price;
-        const valB = b.last_price;
-        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-        return 0;
-      } else {
-        // Use localeCompare for accent-insensitive sorting
-        return sortOrder === 'asc' 
-          ? a.item_name.localeCompare(b.item_name, 'fr', { sensitivity: 'base' })
-          : b.item_name.localeCompare(a.item_name, 'fr', { sensitivity: 'base' });
-      }
-    });
-
-    return res;
-  }, [items, currentServer, marketSearch, sortType, sortOrder]);
 
   const navigate = useNavigate();
   const handleNavigateToItem = (item: ItemSummary) => {
@@ -237,9 +207,7 @@ const App: React.FC = () => {
           path="/market" 
           element={
             <MarketPage
-              items={filteredItems}
-              loading={itemsLoading}
-              error={itemsError ? (itemsError instanceof Error ? itemsError.message : String(itemsError)) : null}
+              server={currentServer}
               favorites={favorites}
               pendingFavorites={pendingFavorites}
               onToggleFavorite={toggleFavorite}

@@ -1,19 +1,20 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import type { ItemSummary, SortType, SortOrder, Category, DateRangePreset } from '../types';
-import { useTimeseries } from '../hooks/useTimeseries';
+import { useTimeseries, useCancelTimeseriesGroup } from '../hooks/useTimeseries';
+import { useMarketItems, DEFAULT_PAGE_SIZE } from '../hooks/useMarketItems';
+import { timeseriesQueue } from '../utils/requestQueue';
 import kamaIcon from '../assets/kama.png';
 import { Star, Search, Filter, X, ChevronDown, ChevronUp, LayoutGrid, List, MoreVertical, Loader2, ShoppingBag } from 'lucide-react';
 import { SmallSparkline } from '../components/Sparkline';
 import { ContextMenu } from '../components/ContextMenu';
 import { ItemContextMenu } from '../components/ItemContextMenu';
+import { Pagination } from '../components/Pagination';
 import { useLists } from '../hooks/useLists';
 import type { Profile } from '../types';
 
 interface MarketPageProps {
-  items: ItemSummary[];
-  loading: boolean;
-  error: string | null;
+  server: string | null;
   favorites: Set<string>;
   pendingFavorites?: Set<string>;
   onToggleFavorite: (key: string) => void;
@@ -39,10 +40,12 @@ const MarketGridCard: React.FC<{
   onToggleFavorite: (key: string) => void;
   dateRange: DateRangePreset;
   onContextMenu: (e: React.MouseEvent, item: ItemSummary) => void;
-}> = ({ item, favorites, pendingFavorites, onToggleFavorite, dateRange, onContextMenu }) => {
+  groupId: string;
+}> = ({ item, favorites, pendingFavorites, onToggleFavorite, dateRange, onContextMenu, groupId }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { data: ts, isLoading: loadingTs } = useTimeseries(item.item_name, item.server, dateRange, {
     enabled: isExpanded,
+    groupId,
   });
 
   const handleExpand = (e: React.MouseEvent) => {
@@ -183,8 +186,9 @@ const MarketTableRow: React.FC<{
   navigate: (path: string) => void;
   dateRange: DateRangePreset;
   onContextMenu: (e: React.MouseEvent, item: ItemSummary) => void;
-}> = ({ item, favorites, pendingFavorites, onToggleFavorite, navigate, dateRange, onContextMenu }) => {
-  const { data: ts } = useTimeseries(item.item_name, item.server, dateRange);
+  groupId: string;
+}> = ({ item, favorites, pendingFavorites, onToggleFavorite, navigate, dateRange, onContextMenu, groupId }) => {
+  const { data: ts } = useTimeseries(item.item_name, item.server, dateRange, { groupId });
 
   const evolution = React.useMemo(() => {
     if (!ts || ts.length < 2) return null;
@@ -305,9 +309,7 @@ const MarketTableRow: React.FC<{
 };
 
 const MarketPage: React.FC<MarketPageProps> = ({
-  items,
-  loading,
-  error,
+  server,
   favorites,
   pendingFavorites,
   onToggleFavorite,
@@ -334,43 +336,71 @@ const MarketPage: React.FC<MarketPageProps> = ({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ItemSummary } | null>(null);
   const [listContextMenu, setListContextMenu] = useState<{ x: number; y: number; item: ItemSummary } | null>(null);
   const { lists, addItem } = useLists(currentProfile?.id);
+  const cancelTimeseriesGroup = useCancelTimeseriesGroup();
+  
+  // Pagination state with localStorage persistence
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(() => {
+    const saved = localStorage.getItem('marketPageSize');
+    return saved ? parseInt(saved, 10) : DEFAULT_PAGE_SIZE;
+  });
+
+  // Unique group ID for this page/filter state (for cancelling pending timeseries requests)
+  const timeseriesGroupId = useMemo(() => 
+    `market-${page}-${sortType}-${sortOrder}-${selectedCategory || 'all'}-${search}`,
+    [page, sortType, sortOrder, selectedCategory, search]
+  );
+
+  // Cancel pending timeseries requests when group changes
+  const prevGroupIdRef = useRef(timeseriesGroupId);
+  useEffect(() => {
+    if (prevGroupIdRef.current !== timeseriesGroupId) {
+      // Cancel old group requests when page/filters change
+      cancelTimeseriesGroup(prevGroupIdRef.current);
+      prevGroupIdRef.current = timeseriesGroupId;
+    }
+  }, [timeseriesGroupId, cancelTimeseriesGroup]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      timeseriesQueue.cancelAll();
+    };
+  }, []);
+
+  // Parse price filters
+  const parsedMinPrice = minPrice ? parseFloat(minPrice.replace(/\s/g, '')) : undefined;
+  const parsedMaxPrice = maxPrice ? parseFloat(maxPrice.replace(/\s/g, '')) : undefined;
+
+  // Use the new paginated market items hook
+  const { data: marketData, isLoading: loading, error: queryError, isFetching } = useMarketItems({
+    server,
+    search: search.trim() || undefined,
+    category: selectedCategory,
+    minPrice: !isNaN(parsedMinPrice!) ? parsedMinPrice : undefined,
+    maxPrice: !isNaN(parsedMaxPrice!) ? parsedMaxPrice : undefined,
+    onlyFavorites,
+    favorites,
+    sortBy: sortType === 'price' ? 'price' : 'name',
+    sortOrder,
+    page,
+    pageSize,
+  });
+
+  const displayedItems = marketData?.items ?? [];
+  const totalCount = marketData?.totalCount ?? 0;
+  const totalPages = marketData?.totalPages ?? 0;
+  const error = queryError ? (queryError instanceof Error ? queryError.message : String(queryError)) : null;
+
+  // Reset page when filters change (but not pageSize)
+  useEffect(() => {
+    setPage(1);
+  }, [server, search, selectedCategory, minPrice, maxPrice, onlyFavorites, sortType, sortOrder]);
 
   const handleContextMenu = (e: React.MouseEvent, item: ItemSummary) => {
     e.preventDefault();
     setContextMenu({ x: e.clientX, y: e.clientY, item });
   };
-
-  // Filter items based on local filters (Category, Price, Favorites)
-  // Note: items are already filtered by Server and Search and Sorted by App.tsx
-  const displayedItems = React.useMemo(() => {
-    let res = items;
-
-    // Category
-    if (selectedCategory) {
-      res = res.filter(i => i.category === selectedCategory);
-    }
-
-    // Favorites
-    if (onlyFavorites) {
-      res = res.filter(i => favorites.has(i.item_name));
-    }
-
-    // Price
-    if (minPrice) {
-      const min = parseFloat(minPrice);
-      if (!isNaN(min)) {
-        res = res.filter(i => i.last_price >= min);
-      }
-    }
-    if (maxPrice) {
-      const max = parseFloat(maxPrice);
-      if (!isNaN(max)) {
-        res = res.filter(i => i.last_price <= max);
-      }
-    }
-
-    return res;
-  }, [items, selectedCategory, onlyFavorites, favorites, minPrice, maxPrice]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -387,6 +417,18 @@ const MarketPage: React.FC<MarketPageProps> = ({
     localStorage.setItem('marketViewMode', mode);
   };
 
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    // Scroll to top of the list
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setPage(1); // Reset to first page when changing page size
+    localStorage.setItem('marketPageSize', newPageSize.toString());
+  };
+
   return (
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto pb-24 md:pb-6 space-y-6">
       <div className="mb-6 md:mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -395,7 +437,14 @@ const MarketPage: React.FC<MarketPageProps> = ({
             <ShoppingBag className="w-6 h-6 md:w-8 md:h-8 text-blue-500" />
             Marché
           </h1>
-          <p className="text-sm md:text-base text-gray-400">Explorez les items et analysez les tendances</p>
+          <p className="text-sm md:text-base text-gray-400">
+            Explorez les items et analysez les tendances
+            {totalCount > 0 && !loading && (
+              <span className="ml-2 text-gray-500">
+                ({totalCount.toLocaleString('fr-FR')} items)
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
           {/* Item Search (restored) */}
@@ -548,23 +597,42 @@ const MarketPage: React.FC<MarketPageProps> = ({
         <div className="text-center py-12 text-gray-500">Aucun item trouvé.</div>
       ) : (
         <>
-          {/* Mobile View: Always Grid */}
-          <div className="md:hidden grid grid-cols-1 gap-4">
-            {displayedItems.map((item) => (
-              <MarketGridCard
-                key={`${item.server}-${item.item_name}`}
-                item={item}
-                favorites={favorites}
-                pendingFavorites={pendingFavorites}
-                onToggleFavorite={onToggleFavorite}
-                dateRange={dateRange}
-                onContextMenu={handleContextMenu}
-              />
-            ))}
+          {/* Mobile View: Always Grid - with loading overlay */}
+          <div className="md:hidden relative">
+            {isFetching && !loading && (
+              <div className="absolute inset-0 bg-[#0d0e0f]/60 backdrop-blur-sm z-30 flex items-center justify-center rounded-xl">
+                <div className="bg-bg-secondary border border-border-normal rounded-lg px-4 py-3 flex items-center gap-3 shadow-xl">
+                  <Loader2 size={20} className="animate-spin text-blue-400" />
+                  <span className="text-sm text-gray-200">Chargement...</span>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-1 gap-4">
+              {displayedItems.map((item) => (
+                <MarketGridCard
+                  key={`${item.server}-${item.item_name}`}
+                  item={item}
+                  favorites={favorites}
+                  pendingFavorites={pendingFavorites}
+                  onToggleFavorite={onToggleFavorite}
+                  dateRange={dateRange}
+                  onContextMenu={handleContextMenu}
+                  groupId={timeseriesGroupId}
+                />
+              ))}
+            </div>
           </div>
 
-          {/* Desktop View: Grid or Table */}
-          <div className="hidden md:block">
+          {/* Desktop View: Grid or Table - with loading overlay */}
+          <div className="hidden md:block relative">
+            {isFetching && !loading && (
+              <div className="absolute inset-0 bg-[#0d0e0f]/60 backdrop-blur-sm z-30 flex items-center justify-center rounded-xl">
+                <div className="bg-bg-secondary border border-border-normal rounded-lg px-4 py-3 flex items-center gap-3 shadow-xl">
+                  <Loader2 size={20} className="animate-spin text-blue-400" />
+                  <span className="text-sm text-gray-200">Chargement...</span>
+                </div>
+              </div>
+            )}
             {viewMode === 'grid' ? (
               <div className="grid grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
                 {displayedItems.map((item) => (
@@ -576,6 +644,7 @@ const MarketPage: React.FC<MarketPageProps> = ({
                     onToggleFavorite={onToggleFavorite}
                     dateRange={dateRange}
                     onContextMenu={handleContextMenu}
+                    groupId={timeseriesGroupId}
                   />
                 ))}
               </div>
@@ -606,6 +675,7 @@ const MarketPage: React.FC<MarketPageProps> = ({
                           navigate={navigate}
                           dateRange={dateRange}
                           onContextMenu={handleContextMenu}
+                          groupId={timeseriesGroupId}
                         />
                       ))}
                     </tbody>
@@ -614,6 +684,20 @@ const MarketPage: React.FC<MarketPageProps> = ({
               </div>
             )}
           </div>
+
+          {/* Pagination - always show when there are items for page size control */}
+          {totalCount > 0 && (
+            <div className="mt-6">
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                totalCount={totalCount}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+              />
+            </div>
+          )}
         </>
       )}
       

@@ -13,6 +13,29 @@ export interface ItemSummary {
   is_craftable?: boolean;
 }
 
+// Paginated response for market items
+export interface MarketItemsResponse {
+  items: ItemSummary[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+// Filters for market items query
+export interface MarketItemsFilters {
+  server: string;
+  search?: string;
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  filterItems?: string[];  // for favorites filter
+  sortBy?: 'name' | 'price';
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  pageSize?: number;
+}
+
 export interface TimeseriesPoint {
   id: number;        // ID unique de l'observation
   date: string;      // ISO string (ex: "2025-11-16T14:30:00.000Z")

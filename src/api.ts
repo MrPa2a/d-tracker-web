@@ -1,5 +1,5 @@
 // src/api.ts
-import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult, ScannerFilters, RecipeStats, RecipeFilters, Job, RecipeDetails, RecipeUsage, ItemDetails, Message, BankResponse, CraftOpportunityFilters, CraftOpportunity, CraftIngredientStatus } from './types';
+import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult, ScannerFilters, RecipeStats, RecipeFilters, Job, RecipeDetails, RecipeUsage, ItemDetails, Message, BankResponse, CraftOpportunityFilters, CraftOpportunity, CraftIngredientStatus, MarketItemsResponse, MarketItemsFilters } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
@@ -28,13 +28,50 @@ async function safeFetch(url: string, options?: RequestInit): Promise<Response> 
   }
 }
 
+/**
+ * Fetch market items with pagination and full filters (new endpoint for MarketPage)
+ */
+export async function fetchMarketItems(filters: MarketItemsFilters): Promise<MarketItemsResponse> {
+  const params = new URLSearchParams();
+  params.append('mode', 'market');
+  params.append('server', filters.server);
+  
+  if (filters.search) params.append('search', filters.search);
+  if (filters.category) params.append('category', filters.category);
+  if (filters.minPrice !== undefined) params.append('minPrice', filters.minPrice.toString());
+  if (filters.maxPrice !== undefined) params.append('maxPrice', filters.maxPrice.toString());
+  if (filters.filterItems && filters.filterItems.length > 0) {
+    params.append('filterItems', filters.filterItems.join(','));
+  }
+  if (filters.sortBy) params.append('sortBy', filters.sortBy);
+  if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
+  if (filters.page) params.append('page', filters.page.toString());
+  if (filters.pageSize) params.append('pageSize', filters.pageSize.toString());
+
+  const queryString = params.toString();
+  const url = `${API_BASE}/api/data?resource=items${queryString ? `&${queryString}` : ''}`;
+  
+  const res = await safeFetch(url, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API /api/data?resource=items&mode=market : ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
 export async function fetchItems(search?: string, server?: string, category?: string): Promise<ItemSummary[]> {
   const params = new URLSearchParams();
   if (search) params.append('search', search);
   if (server) params.append('server', server);
   if (category) params.append('category', category);
 
-  const res = await safeFetch(`${API_BASE}/api/data?resource=items&${params.toString()}`, {
+  const queryString = params.toString();
+  const url = `${API_BASE}/api/data?resource=items${queryString ? `&${queryString}` : ''}`;
+  
+  const res = await safeFetch(url, {
     method: 'GET',
     headers: buildHeaders(),
   });
@@ -51,7 +88,8 @@ export async function fetchItemDetails(itemName: string, server: string): Promis
   params.append('item_name', itemName);
   params.append('server', server);
 
-  const res = await safeFetch(`${API_BASE}/api/data?resource=items&${params.toString()}`, {
+  const queryString = params.toString();
+  const res = await safeFetch(`${API_BASE}/api/data?resource=items&${queryString}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
