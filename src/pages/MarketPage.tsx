@@ -621,6 +621,19 @@ const MarketPage: React.FC<MarketPageProps> = ({
                 />
               ))}
             </div>
+            {/* Pagination for mobile */}
+            {totalCount > 0 && (
+              <div className="mt-4 bg-[#1a1b1e] border border-white/5 rounded-xl p-4">
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  totalCount={totalCount}
+                  pageSize={pageSize}
+                  onPageChange={handlePageChange}
+                  onPageSizeChange={handlePageSizeChange}
+                />
+              </div>
+            )}
           </div>
 
           {/* Desktop View: Grid or Table - with loading overlay */}
@@ -634,20 +647,35 @@ const MarketPage: React.FC<MarketPageProps> = ({
               </div>
             )}
             {viewMode === 'grid' ? (
-              <div className="grid grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
-                {displayedItems.map((item) => (
-                  <MarketGridCard
-                    key={`${item.server}-${item.item_name}`}
-                    item={item}
-                    favorites={favorites}
-                    pendingFavorites={pendingFavorites}
-                    onToggleFavorite={onToggleFavorite}
-                    dateRange={dateRange}
-                    onContextMenu={handleContextMenu}
-                    groupId={timeseriesGroupId}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
+                  {displayedItems.map((item) => (
+                    <MarketGridCard
+                      key={`${item.server}-${item.item_name}`}
+                      item={item}
+                      favorites={favorites}
+                      pendingFavorites={pendingFavorites}
+                      onToggleFavorite={onToggleFavorite}
+                      dateRange={dateRange}
+                      onContextMenu={handleContextMenu}
+                      groupId={timeseriesGroupId}
+                    />
+                  ))}
+                </div>
+                {/* Pagination for grid view */}
+                {totalCount > 0 && (
+                  <div className="mt-4 bg-[#1a1b1e] border border-white/5 rounded-xl p-4">
+                    <Pagination
+                      currentPage={page}
+                      totalPages={totalPages}
+                      totalCount={totalCount}
+                      pageSize={pageSize}
+                      onPageChange={handlePageChange}
+                      onPageSizeChange={handlePageSizeChange}
+                    />
+                  </div>
+                )}
+              </>
             ) : (
               <div className="bg-[#1a1b1e] border border-white/5 rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
@@ -681,23 +709,22 @@ const MarketPage: React.FC<MarketPageProps> = ({
                     </tbody>
                   </table>
                 </div>
+                {/* Pagination inside table footer */}
+                {totalCount > 0 && (
+                  <div className="p-4 border-t border-white/5">
+                    <Pagination
+                      currentPage={page}
+                      totalPages={totalPages}
+                      totalCount={totalCount}
+                      pageSize={pageSize}
+                      onPageChange={handlePageChange}
+                      onPageSizeChange={handlePageSizeChange}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
-
-          {/* Pagination - always show when there are items for page size control */}
-          {totalCount > 0 && (
-            <div className="mt-6">
-              <Pagination
-                currentPage={page}
-                totalPages={totalPages}
-                totalCount={totalCount}
-                pageSize={pageSize}
-                onPageChange={handlePageChange}
-                onPageSizeChange={handlePageSizeChange}
-              />
-            </div>
-          )}
         </>
       )}
       

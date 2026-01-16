@@ -5,6 +5,7 @@ import { Search, Hammer, AlertTriangle, ChevronDown, Loader2, Clock, X, Plus, Wr
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import kamaIcon from '../assets/kama.png';
 import { AddRecipeModal } from '../components/AddRecipeModal';
+import { Pagination } from '../components/Pagination';
 
 interface CraftingMarketPageProps {
   server: string | null;
@@ -607,22 +608,12 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({
         </div>
         
         {/* Pagination */}
-        <div className="p-4 border-t border-white/5 flex items-center justify-between bg-[#1a1b1e]">
-          <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page === 1 || loading}
-            className="px-4 py-2 text-sm font-medium text-gray-400 bg-[#25262b] rounded-lg hover:bg-[#2c2e33] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Précédent
-          </button>
-          <span className="text-sm text-gray-400">Page {page}</span>
-          <button
-            onClick={() => setPage(p => p + 1)}
-            disabled={recipes.length < limit || loading}
-            className="px-4 py-2 text-sm font-medium text-gray-400 bg-[#25262b] rounded-lg hover:bg-[#2c2e33] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Suivant
-          </button>
+        <div className="p-4 border-t border-white/5">
+          <Pagination
+            currentPage={page}
+            onPageChange={setPage}
+            hasNextPage={recipes.length >= limit && !loading}
+          />
         </div>
       </div>
 

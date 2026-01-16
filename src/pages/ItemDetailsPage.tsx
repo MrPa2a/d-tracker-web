@@ -3,12 +3,13 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { PriceChart } from '../components/PriceChart';
 import { DeleteItemModal } from '../components/DeleteItemModal';
+import { Pagination } from '../components/Pagination';
 import { useTimeseries } from '../hooks/useTimeseries';
 import { useItemRecipe, useItemUsages } from '../hooks/useRecipes';
 import { useItemByName, useItemDetails } from '../hooks/useItems';
 import { deleteItem } from '../api';
 import type { DateRangePreset, ItemSummary, Profile } from '../types';
-import { Hammer, Coins, ArrowRight, Loader2, ExternalLink, Search, ChevronLeft, ChevronRight, Activity } from 'lucide-react';
+import { Hammer, Coins, ArrowRight, Loader2, ExternalLink, Search, Activity } from 'lucide-react';
 import kamaIcon from '../assets/kama.png';
 
 const ItemIcon = ({ icon, name }: { icon?: string | null, name: string }) => {
@@ -428,29 +429,13 @@ const ItemDetailsPage: React.FC<ItemDetailsPageProps> = ({
                 </div>
               </div>
 
-                {totalPages > 1 && (
-                  <div className="p-4 border-t border-border-subtle flex items-center justify-between">
-                    <div className="text-sm text-text-muted">
-                      Page {usagesPage} sur {totalPages}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setUsagesPage(p => Math.max(1, p - 1))}
-                        disabled={usagesPage === 1}
-                        className="p-2 rounded-lg hover:bg-bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <ChevronLeft size={20} />
-                      </button>
-                      <button
-                        onClick={() => setUsagesPage(p => Math.min(totalPages, p + 1))}
-                        disabled={usagesPage === totalPages}
-                        className="p-2 rounded-lg hover:bg-bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <ChevronRight size={20} />
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <div className="p-4 border-t border-border-subtle">
+                  <Pagination
+                    currentPage={usagesPage}
+                    totalPages={totalPages}
+                    onPageChange={setUsagesPage}
+                  />
+                </div>
               </>
             ) : (
               <div className="p-8 text-center text-text-muted">
