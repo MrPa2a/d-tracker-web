@@ -1,5 +1,6 @@
 // src/api.ts
 import type { ItemSummary, TimeseriesPoint, DateRangePreset, Mover, ItemStats, MarketIndex, VolatilityRanking, InvestmentOpportunity, SellOpportunity, Profile, Category, List, ScannerResult, TrendFilters, TrendResult, ScannerFilters, RecipeStats, RecipeFilters, Job, RecipeDetails, RecipeUsage, ItemDetails, Message, BankResponse, CraftOpportunityFilters, CraftOpportunity, CraftIngredientStatus, MarketItemsResponse, MarketItemsFilters } from './types';
+import { timeseriesQueue } from './utils/requestQueue';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
@@ -325,27 +326,35 @@ export async function fetchTimeseries(
   const from = computeFromDate(range);
   const to = toDateOnlyIso(new Date());
 
-  const params = new URLSearchParams({
-    item: itemName,
-    server,
-    from,
-    to,
-  });
+  const requestId = `timeseries-${itemName}-${server}-${range}`;
+  
+  // Use the queue to limit concurrent requests
+  return timeseriesQueue.enqueue(
+    requestId,
+    async () => {
+      const params = new URLSearchParams({
+        item: itemName,
+        server,
+        from,
+        to,
+      });
 
-  const res = await safeFetch(
-    `${API_BASE}/api/market_v2?resource=timeseries&${params.toString()}`,
-    {
-      method: 'GET',
-      headers: buildHeaders(),
+      const res = await safeFetch(
+        `${API_BASE}/api/market_v2?resource=timeseries&${params.toString()}`,
+        {
+          method: 'GET',
+          headers: buildHeaders(),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error(
+          `Erreur API /api/timeseries : ${res.status} ${res.statusText}`
+        );
+      }
+      return res.json();
     }
   );
-
-  if (!res.ok) {
-    throw new Error(
-      `Erreur API /api/timeseries : ${res.status} ${res.statusText}`
-    );
-  }
-  return res.json();
 }
 
 /**

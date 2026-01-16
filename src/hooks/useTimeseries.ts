@@ -1,5 +1,4 @@
 import { useQuery, type UseQueryOptions, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
 import { fetchTimeseries } from '../api';
 import type { DateRangePreset, TimeseriesPoint } from '../types';
 import { timeseriesQueue } from '../utils/requestQueue';
@@ -8,67 +7,23 @@ import { timeseriesQueue } from '../utils/requestQueue';
 const TIMESERIES_STALE_TIME = 1000 * 60 * 15; // 15 minutes
 const TIMESERIES_GC_TIME = 1000 * 60 * 60; // 1 hour - keep in cache longer
 
-// Maximum cache entries to keep (approximate LRU behavior via gcTime)
-// React Query doesn't have a built-in LRU but we can limit memory via gcTime
-
 /**
  * Hook for fetching timeseries data with:
- * - Request queue limiting (max 3 concurrent requests)
+ * - Request queue limiting (max 3 concurrent requests) - handled in fetchTimeseries
  * - Extended cache (15min stale, 1hr gc)
- * - Automatic cancellation when component unmounts
  */
 export function useTimeseries(
   itemName: string,
   server: string,
   range: DateRangePreset,
-  options?: Omit<UseQueryOptions<TimeseriesPoint[]>, 'queryKey' | 'queryFn'> & {
-    groupId?: string;
-  }
+  options?: Omit<UseQueryOptions<TimeseriesPoint[]>, 'queryKey' | 'queryFn'>
 ) {
-  const { groupId, ...queryOptions } = options || {};
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
-
   return useQuery({
     queryKey: ['timeseries', itemName, server, range],
-    queryFn: async ({ signal }) => {
-      // Create a new abort controller for this request
-      abortControllerRef.current = new AbortController();
-      
-      // Use the queue to limit concurrent requests
-      const requestId = `timeseries-${itemName}-${server}-${range}`;
-      
-      return timeseriesQueue.enqueue(
-        requestId,
-        async (queueSignal) => {
-          // Combine both signals (React Query's and our queue's)
-          const combinedController = new AbortController();
-          
-          const abortHandler = () => combinedController.abort();
-          signal.addEventListener('abort', abortHandler);
-          queueSignal.addEventListener('abort', abortHandler);
-          
-          try {
-            return await fetchTimeseries(itemName, server, range);
-          } finally {
-            signal.removeEventListener('abort', abortHandler);
-            queueSignal.removeEventListener('abort', abortHandler);
-          }
-        },
-        groupId
-      );
-    },
+    queryFn: () => fetchTimeseries(itemName, server, range),
     staleTime: TIMESERIES_STALE_TIME,
     gcTime: TIMESERIES_GC_TIME,
-    ...queryOptions,
+    ...options,
   });
 }
 
@@ -80,6 +35,13 @@ export function useCancelTimeseriesGroup() {
   return (groupId: string) => {
     timeseriesQueue.cancelGroup(groupId);
   };
+}
+
+/**
+ * Cancel all pending timeseries requests
+ */
+export function cancelAllTimeseries() {
+  timeseriesQueue.cancelAll();
 }
 
 /**
