@@ -73,8 +73,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </span>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 py-6 px-3 space-y-1">
+        {/* Navigation - scrollable */}
+        <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
@@ -217,8 +217,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </nav>
 
-        {/* Bottom Section */}
-        <div className="p-4 border-t border-border-normal space-y-4">
+        {/* Bottom Section - fixed at bottom, shrinks if needed */}
+        <div className="shrink-0 p-4 border-t border-border-normal space-y-4">
           {/* Mobile Server Selector */}
           <div className="md:hidden">
             <button
