@@ -1,9 +1,8 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import type { ItemSummary, SortType, SortOrder, Category, DateRangePreset } from '../types';
-import { useTimeseries, useCancelTimeseriesGroup } from '../hooks/useTimeseries';
+import { useTimeseries } from '../hooks/useTimeseries';
 import { useMarketItems, DEFAULT_PAGE_SIZE } from '../hooks/useMarketItems';
-import { timeseriesQueue } from '../utils/requestQueue';
 import kamaIcon from '../assets/kama.png';
 import { Star, Search, Filter, X, ChevronDown, ChevronUp, LayoutGrid, List, MoreVertical, Loader2, ShoppingBag } from 'lucide-react';
 import { SmallSparkline } from '../components/Sparkline';
@@ -40,12 +39,10 @@ const MarketGridCard: React.FC<{
   onToggleFavorite: (key: string) => void;
   dateRange: DateRangePreset;
   onContextMenu: (e: React.MouseEvent, item: ItemSummary) => void;
-  groupId: string;
-}> = ({ item, favorites, pendingFavorites, onToggleFavorite, dateRange, onContextMenu, groupId }) => {
+}> = ({ item, favorites, pendingFavorites, onToggleFavorite, dateRange, onContextMenu }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { data: ts, isLoading: loadingTs } = useTimeseries(item.item_name, item.server, dateRange, {
     enabled: isExpanded,
-    groupId,
   });
 
   const handleExpand = (e: React.MouseEvent) => {
@@ -186,9 +183,8 @@ const MarketTableRow: React.FC<{
   navigate: (path: string) => void;
   dateRange: DateRangePreset;
   onContextMenu: (e: React.MouseEvent, item: ItemSummary) => void;
-  groupId: string;
-}> = ({ item, favorites, pendingFavorites, onToggleFavorite, navigate, dateRange, onContextMenu, groupId }) => {
-  const { data: ts } = useTimeseries(item.item_name, item.server, dateRange, { groupId });
+}> = ({ item, favorites, pendingFavorites, onToggleFavorite, navigate, dateRange, onContextMenu }) => {
+  const { data: ts } = useTimeseries(item.item_name, item.server, dateRange);
 
   const evolution = React.useMemo(() => {
     if (!ts || ts.length < 2) return null;
@@ -336,7 +332,6 @@ const MarketPage: React.FC<MarketPageProps> = ({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ItemSummary } | null>(null);
   const [listContextMenu, setListContextMenu] = useState<{ x: number; y: number; item: ItemSummary } | null>(null);
   const { lists, addItem } = useLists(currentProfile?.id);
-  const cancelTimeseriesGroup = useCancelTimeseriesGroup();
   
   // Pagination state with localStorage persistence
   const [page, setPage] = useState(1);
@@ -344,29 +339,6 @@ const MarketPage: React.FC<MarketPageProps> = ({
     const saved = localStorage.getItem('marketPageSize');
     return saved ? parseInt(saved, 10) : DEFAULT_PAGE_SIZE;
   });
-
-  // Unique group ID for this page/filter state (for cancelling pending timeseries requests)
-  const timeseriesGroupId = useMemo(() => 
-    `market-${page}-${sortType}-${sortOrder}-${selectedCategory || 'all'}-${search}`,
-    [page, sortType, sortOrder, selectedCategory, search]
-  );
-
-  // Cancel pending timeseries requests when group changes
-  const prevGroupIdRef = useRef(timeseriesGroupId);
-  useEffect(() => {
-    if (prevGroupIdRef.current !== timeseriesGroupId) {
-      // Cancel old group requests when page/filters change
-      cancelTimeseriesGroup(prevGroupIdRef.current);
-      prevGroupIdRef.current = timeseriesGroupId;
-    }
-  }, [timeseriesGroupId, cancelTimeseriesGroup]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      timeseriesQueue.cancelAll();
-    };
-  }, []);
 
   // Parse price filters
   const parsedMinPrice = minPrice ? parseFloat(minPrice.replace(/\s/g, '')) : undefined;
@@ -617,7 +589,6 @@ const MarketPage: React.FC<MarketPageProps> = ({
                   onToggleFavorite={onToggleFavorite}
                   dateRange={dateRange}
                   onContextMenu={handleContextMenu}
-                  groupId={timeseriesGroupId}
                 />
               ))}
             </div>
@@ -658,7 +629,6 @@ const MarketPage: React.FC<MarketPageProps> = ({
                       onToggleFavorite={onToggleFavorite}
                       dateRange={dateRange}
                       onContextMenu={handleContextMenu}
-                      groupId={timeseriesGroupId}
                     />
                   ))}
                 </div>
@@ -703,7 +673,6 @@ const MarketPage: React.FC<MarketPageProps> = ({
                           navigate={navigate}
                           dateRange={dateRange}
                           onContextMenu={handleContextMenu}
-                          groupId={timeseriesGroupId}
                         />
                       ))}
                     </tbody>
