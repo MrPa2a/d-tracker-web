@@ -22,6 +22,11 @@ import { LevelingOptimizerPage } from './pages/LevelingOptimizerPage';
 import { AlmanaxPage } from './pages/AlmanaxPage';
 import BankPage from './pages/BankPage';
 import BankCraftOpportunitiesPage from './pages/BankCraftOpportunitiesPage';
+import { ArcadeHubPage } from './pages/ArcadeHubPage';
+import { ArcadeLayout } from './layouts/ArcadeLayout';
+import { GuessItemPage } from './pages/arcade/GuessItemPage';
+import { RightPricePage } from './pages/arcade/RightPricePage';
+import { SpeedMarketPage } from './pages/arcade/SpeedMarketPage';
 
 const DEFAULT_RANGE: DateRangePreset = '30d';
 
@@ -382,7 +387,13 @@ const App: React.FC = () => {
         } />
         <Route path="/toolbox/leveling" element={<LevelingOptimizerPage />} />
         <Route path="/toolbox/almanax" element={<AlmanaxPage server={currentServer} />} />
-
+        
+        <Route path="/arcade" element={<ArcadeLayout />}>
+          <Route index element={<ArcadeHubPage server={currentServer} />} />
+          <Route path="guess-item" element={<GuessItemPage server={currentServer} currentProfile={currentProfile} />} />
+          <Route path="right-price" element={<RightPricePage server={currentServer} currentProfile={currentProfile} />} />
+          <Route path="speed-market" element={<SpeedMarketPage server={currentServer} currentProfile={currentProfile} />} />
+        </Route>
       </Route>
     </Routes>
   );
