@@ -28,22 +28,6 @@ export const AlmanaxPage: React.FC<AlmanaxPageProps> = ({ server }) => {
     almanaxData?.filter(d => parseISO(d.date) > tomorrow) || [], 
   [almanaxData, tomorrow]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center text-red-500 p-8">
-        <p>Erreur lors du chargement de l'Almanax.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto pb-24 md:pb-6 space-y-8">
       {/* Header */}
@@ -57,8 +41,22 @@ export const AlmanaxPage: React.FC<AlmanaxPageProps> = ({ server }) => {
         </p>
       </div>
 
-      {/* Today's Highlight */}
-      {todayOffering && (
+      {isLoading && (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
+        </div>
+      )}
+
+      {error && (
+        <div className="text-center text-red-500 p-8">
+          <p>Erreur lors du chargement de l'Almanax.</p>
+        </div>
+      )}
+
+      {!isLoading && !error && (
+        <>
+          {/* Today's Highlight */}
+          {todayOffering && (
         <div className="bg-[#1a1b1e] border border-emerald-500/20 rounded-xl p-6 relative overflow-hidden group">
           <Link 
             to={`/item/${server}/${encodeURIComponent(todayOffering.item.name)}`}
@@ -229,6 +227,8 @@ export const AlmanaxPage: React.FC<AlmanaxPageProps> = ({ server }) => {
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 };

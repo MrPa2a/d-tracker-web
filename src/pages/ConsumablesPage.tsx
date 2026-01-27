@@ -233,7 +233,6 @@ export const ConsumablesPage: React.FC<ConsumablesPageProps> = ({
     }
   };
 
-  if (isLoading) return <div className="text-white">Chargement des données...</div>;
   if (error) return <div className="text-red-500">Erreur: {(error as Error).message}</div>;
 
   return (
@@ -251,8 +250,16 @@ export const ConsumablesPage: React.FC<ConsumablesPageProps> = ({
         </div>
       </div>
 
-      {/* Data Age Warning */}
-      {isDataOld && oldestDateFormatted && (
+      {isLoading && (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-white">Chargement des données...</div>
+        </div>
+      )}
+
+      {!isLoading && (
+        <>
+          {/* Data Age Warning */}
+          {isDataOld && oldestDateFormatted && (
         <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
           <div>
@@ -654,6 +661,8 @@ export const ConsumablesPage: React.FC<ConsumablesPageProps> = ({
           </tbody>
         </table>
       </div>
+        </>
+      )}
     </div>
   );
 };
