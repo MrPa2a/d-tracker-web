@@ -38,13 +38,19 @@ export interface ConsumableItem {
     energy: number;
   };
   price: number;
+  captured_at?: string;
+}
+
+export interface ConsumablesResponse {
+  items: ConsumableItem[];
+  oldestObservation: string | null;
 }
 
 export function useConsumables(server: string | undefined) {
-  return useQuery<ConsumableItem[]>({
+  return useQuery<ConsumablesResponse>({
     queryKey: ['consumables', server],
     queryFn: async () => {
-      if (!server) return [];
+      if (!server) return { items: [], oldestObservation: null };
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/data?resource=toolbox&mode=consumables&server=${server}`);
       if (!res.ok) throw new Error('Failed to fetch consumables');
       return res.json();

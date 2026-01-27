@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Zap, ArrowUpDown, ChevronDown, Crown, Heart } from 'lucide-react';
+import { Zap, ArrowUpDown, ChevronDown, Crown, Heart, AlertTriangle } from 'lucide-react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useConsumables } from '../hooks/useToolbox';
 
@@ -54,11 +54,31 @@ export const ConsumablesPage: React.FC<ConsumablesPageProps> = ({
   }, [sortField, sortDirection, optimizePods, minLevel, maxLevel, minLife, maxLife, minEnergy, maxEnergy, filterType, setSearchParams]);
 
   // Fetch Data using Hook
-  const { data: items, isLoading, error } = useConsumables(server || undefined);
+  const { data, isLoading, error } = useConsumables(server || undefined);
+  const items = data?.items || [];
+  const oldestObservation = data?.oldestObservation;
+
+  // Check if data is older than 7 days
+  const isDataOld = useMemo(() => {
+    if (!oldestObservation) return false;
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    return new Date(oldestObservation) < sevenDaysAgo;
+  }, [oldestObservation]);
+
+  // Format oldest observation date
+  const oldestDateFormatted = useMemo(() => {
+    if (!oldestObservation) return null;
+    return new Date(oldestObservation).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  }, [oldestObservation]);
 
   // 1. Calculate Scores for ALL items (No Filtering)
   const scoredItems = useMemo(() => {
-    if (!items) return [];
+    if (!items || items.length === 0) return [];
 
     return items.map(item => {
       const life = item.stats.life || 0;
@@ -230,6 +250,19 @@ export const ConsumablesPage: React.FC<ConsumablesPageProps> = ({
           </p>
         </div>
       </div>
+
+      {/* Data Age Warning */}
+      {isDataOld && oldestDateFormatted && (
+        <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-amber-400 font-medium">Données anciennes</p>
+            <p className="text-amber-400/80 text-sm">
+              Certains prix datent du {oldestDateFormatted}. Les prix réels peuvent avoir changé depuis.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Top Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
