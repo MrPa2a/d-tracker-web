@@ -46,6 +46,9 @@ export const FILTER_CONFIG: Record<string, FilterVisibility> = {
   // Toolbox - Almanax: seul le serveur
   '/toolbox/almanax': { server: true, dateRange: false, price: false, favorites: false },
   
+  // Toolbox - Harvest Routes: aucun filtre global
+  '/toolbox/harvest': { server: false, dateRange: false, price: false, favorites: false },
+  
   // Item details - Server + DateRange, pas de prix/favoris
   '/item/:server/:itemName': { server: true, dateRange: true, price: false, favorites: false },
   

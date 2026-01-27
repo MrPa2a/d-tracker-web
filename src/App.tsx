@@ -27,6 +27,7 @@ import { ArcadeLayout } from './layouts/ArcadeLayout';
 import { GuessItemPage } from './pages/arcade/GuessItemPage';
 import { RightPricePage } from './pages/arcade/RightPricePage';
 import { SpeedMarketPage } from './pages/arcade/SpeedMarketPage';
+import { HarvestRoutesPage } from './pages/HarvestRoutesPage';
 
 const DEFAULT_RANGE: DateRangePreset = '30d';
 
@@ -387,6 +388,7 @@ const App: React.FC = () => {
         } />
         <Route path="/toolbox/leveling" element={<LevelingOptimizerPage />} />
         <Route path="/toolbox/almanax" element={<AlmanaxPage server={currentServer} />} />
+        <Route path="/toolbox/harvest" element={<HarvestRoutesPage />} />
         
         <Route path="/arcade" element={<ArcadeLayout />}>
           <Route index element={<ArcadeHubPage server={currentServer} />} />

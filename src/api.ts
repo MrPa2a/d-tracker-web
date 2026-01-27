@@ -1033,3 +1033,99 @@ export async function fetchCraftIngredientsWithStock(
   }
   return res.json();
 }
+
+// --- Harvest Routes Optimizer API ---
+
+export interface HarvestJob {
+  id: number;
+  name_fr: string;
+  name_en: string | null;
+  icon_id: number | null;
+}
+
+export interface HarvestResource {
+  id: number;
+  job_id: number;
+  name_fr: string;
+  name_en: string | null;
+  level_min: number;
+  icon_url: string | null;
+  resource_distribution: { subarea_id: number; count: number }[];
+}
+
+export interface HarvestRouteStep {
+  order: number;
+  map_id: number;
+  pos_x: number;
+  pos_y: number;
+  subarea_id: number;
+  subarea_name: string;
+  resources: { id: number; name: string; count: number }[];
+  distance_from_prev: number;
+}
+
+export interface OptimizeResult {
+  route: HarvestRouteStep[];
+  total_distance: number;
+  total_maps: number;
+  available_maps: number;
+}
+
+export interface HarvestRoute {
+  id: string;
+  name: string;
+  description: string | null;
+  target_job_ids: number[];
+  target_resource_ids: number[];
+  route_data: HarvestRouteStep[];
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+  user_id?: string;
+}
+
+export async function fetchHarvestJobs(): Promise<HarvestJob[]> {
+  const res = await safeFetch(`${API_BASE}/api/data?resource=harvest&mode=jobs`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+  if (!res.ok) throw new Error(`Erreur API harvest/jobs : ${res.status}`);
+  return res.json();
+}
+
+export async function fetchHarvestResources(params: {
+  jobIds?: number[];
+  levelMin?: number;
+  levelMax?: number;
+}): Promise<HarvestResource[]> {
+  const urlParams = new URLSearchParams();
+  urlParams.set('resource', 'harvest');
+  urlParams.set('mode', 'resources');
+  if (params.jobIds?.length) urlParams.set('jobIds', params.jobIds.join(','));
+  if (params.levelMin !== undefined) urlParams.set('levelMin', String(params.levelMin));
+  if (params.levelMax !== undefined) urlParams.set('levelMax', String(params.levelMax));
+
+  const res = await safeFetch(`${API_BASE}/api/data?${urlParams.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+  if (!res.ok) throw new Error(`Erreur API harvest/resources : ${res.status}`);
+  return res.json();
+}
+
+export async function optimizeHarvestRoute(params: {
+  resourceIds: number[];
+  startX?: number;
+  startY?: number;
+  maxMoves?: number;  // Budget de déplacements (maps traversées)
+  maxMaps?: number;   // Deprecated, utiliser maxMoves
+  excludeSubareaIds?: number[];
+}): Promise<OptimizeResult> {
+  const res = await safeFetch(`${API_BASE}/api/data?resource=harvest&mode=optimize`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new Error(`Erreur API harvest/optimize : ${res.status}`);
+  return res.json();
+}
