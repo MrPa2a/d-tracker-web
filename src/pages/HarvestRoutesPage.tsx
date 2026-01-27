@@ -11,6 +11,8 @@ import {
   Check,
   AlertCircle,
   Package,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { useHarvestJobs, useHarvestResources, useOptimizeRoute } from '../hooks/useHarvest';
 import { RouteMap } from '../components/harvest';
@@ -77,6 +79,9 @@ export const HarvestRoutesPage: React.FC = () => {
     const y = searchParams.get('startY');
     return y ? parseInt(y) : 0;
   });
+
+  // État de collapse des métiers (par défaut tous ouverts)
+  const [collapsedJobs, setCollapsedJobs] = useState<Set<number>>(new Set());
 
   // Données et mutations
   const { data: jobs = [], isLoading: isLoadingJobs } = useHarvestJobs();
@@ -421,50 +426,109 @@ export const HarvestRoutesPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {selectedJobIds.map((jobId) => {
                 const job = jobs.find((j) => j.id === jobId);
                 const jobResources = displayResourcesByJob.get(jobId);
                 const isJobLoading = !jobResources && isFetchingResources;
+                const isCollapsed = collapsedJobs.has(jobId);
+                const selectedCount = jobResources?.filter(r => selectedResourceIds.has(r.id)).length || 0;
+                const totalCount = jobResources?.length || 0;
                 
                 return (
-                  <div key={jobId}>
-                    <h3 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                      {job?.name_fr || `Métier ${jobId}`}
-                      {isJobLoading && (
-                        <Loader2 className="w-3 h-3 animate-spin text-gray-400" />
-                      )}
-                    </h3>
-                    {jobResources ? (
-                      <div className="flex flex-wrap gap-2">
-                        {jobResources.map((res) => (
-                          <button
+                  <div key={jobId} className="bg-[#1a1b1e] rounded-xl border border-white/5 overflow-hidden">
+                    {/* Header cliquable pour collapse */}
+                    <button
+                      onClick={() => {
+                        setCollapsedJobs(prev => {
+                          const newSet = new Set(prev);
+                          if (newSet.has(jobId)) {
+                            newSet.delete(jobId);
+                          } else {
+                            newSet.add(jobId);
+                          }
+                          return newSet;
+                        });
+                      }}
+                      className="w-full px-4 py-3 flex items-center justify-between bg-[#25262b] hover:bg-[#2c2d32] transition-colors border-b border-white/5"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>
+                        <span className="text-sm font-semibold text-white">
+                          {job?.name_fr || `Métier ${jobId}`}
+                        </span>
+                        {isJobLoading && (
+                          <Loader2 className="w-3 h-3 animate-spin text-gray-400" />
+                        )}
+                        {!isJobLoading && (
+                          <span className="text-xs text-gray-400 bg-white/5 px-2 py-0.5 rounded-full">
+                            {selectedCount}/{totalCount}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-gray-500 hidden sm:inline">
+                          {isCollapsed ? 'Afficher' : 'Masquer'}
+                        </span>
+                        {isCollapsed ? (
+                          <ChevronDown className="w-4 h-4 text-gray-400" />
+                        ) : (
+                          <ChevronUp className="w-4 h-4 text-gray-400" />
+                        )}
+                      </div>
+                    </button>
+                    
+                    {/* Contenu collapsable */}
+                    {!isCollapsed && (
+                      <div className="p-3">
+                        {jobResources ? (
+                          <div className="flex flex-wrap gap-2">
+                            {jobResources.map((res) => (
+                              <button
+                                key={res.id}
+                                onClick={() => toggleResource(res.id)}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                                  selectedResourceIds.has(res.id)
+                                    ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-600/40 shadow-sm shadow-emerald-500/10'
+                                    : 'bg-[#25262b] text-gray-400 hover:bg-[#2c2d32] hover:text-white border border-white/5'
+                                }`}
+                                title={`Niveau ${res.level_min}`}
+                              >
+                                {res.icon_url && (
+                                  <img
+                                    src={res.icon_url}
+                                    alt=""
+                                    className="w-4 h-4 object-contain"
+                                  />
+                                )}
+                                {res.name_fr}
+                                <span className="text-[10px] text-gray-500 ml-0.5">
+                                  Nv.{res.level_min}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-gray-500">Chargement...</div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Aperçu compact quand collapsed avec ressources sélectionnées */}
+                    {isCollapsed && selectedCount > 0 && (
+                      <div className="p-3 flex flex-wrap gap-1">
+                        {jobResources?.filter(r => selectedResourceIds.has(r.id)).map((res) => (
+                          <span
                             key={res.id}
-                            onClick={() => toggleResource(res.id)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                              selectedResourceIds.has(res.id)
-                                ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-600/40'
-                                : 'bg-[#25262b] text-gray-400 hover:bg-[#2c2d32] hover:text-white border border-transparent'
-                            }`}
-                            title={`Niveau ${res.level_min}`}
+                            className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-600/20 rounded text-[10px] text-emerald-400"
                           >
                             {res.icon_url && (
-                              <img
-                                src={res.icon_url}
-                                alt=""
-                                className="w-4 h-4 object-contain"
-                              />
+                              <img src={res.icon_url} alt="" className="w-3 h-3 object-contain" />
                             )}
                             {res.name_fr}
-                            <span className="text-[10px] text-gray-500 ml-1">
-                              Nv.{res.level_min}
-                            </span>
-                          </button>
+                          </span>
                         ))}
                       </div>
-                    ) : (
-                      <div className="text-xs text-gray-500">Chargement...</div>
                     )}
                   </div>
                 );
@@ -605,69 +669,66 @@ export const HarvestRoutesPage: React.FC = () => {
               return (
                 <div
                   key={`${step.map_id}-${index}`}
-                  className="p-4 hover:bg-white/2 transition-colors"
+                  className="p-3 md:p-4 hover:bg-white/2 transition-colors"
                 >
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-3 md:gap-4">
                     {/* Numéro d'étape */}
-                    <div className="shrink-0 w-8 h-8 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center text-sm font-bold">
+                    <div className="shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center text-xs md:text-sm font-bold">
                       {step.order}
                     </div>
 
                   {/* Infos principales */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <span className="text-white font-medium">
+                    {/* Header: position + zone + distance (responsive) */}
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-1">
+                      <span className="text-white font-medium text-sm md:text-base">
                         [{step.pos_x}, {step.pos_y}]
                       </span>
-                      <span className="text-gray-500">•</span>
-                      <span className="text-gray-400 text-sm">{step.subarea_name}</span>
+                      <span className="text-gray-400 text-xs md:text-sm truncate">
+                        {step.subarea_name}
+                      </span>
+                      {/* Distance sur la même ligne sur mobile */}
+                      {step.distance_from_prev > 0 && (
+                        <span className="ml-auto flex items-center gap-1 text-xs text-gray-500">
+                          <span className="hidden sm:inline">+{step.distance_from_prev} cases</span>
+                          <span className="sm:hidden">+{step.distance_from_prev}</span>
+                          {arrows.slice(0, 6).map((arrow, i) => (
+                            <span
+                              key={i}
+                              className={`text-xs ${
+                                arrow === '→' ? 'text-blue-400' :
+                                arrow === '←' ? 'text-orange-400' :
+                                arrow === '↑' ? 'text-green-400' :
+                                'text-purple-400'
+                              }`}
+                            >
+                              {arrow}
+                            </span>
+                          ))}
+                          {arrows.length > 6 && (
+                            <span className="text-gray-600">+{arrows.length - 6}</span>
+                          )}
+                        </span>
+                      )}
                     </div>
 
                     {/* Ressources sur cette map */}
-                    <div className="flex flex-wrap gap-2 mt-2">
+                    <div className="flex flex-wrap gap-1.5 md:gap-2 mt-1.5">
                       {step.resources.map((res) => (
                         <span
                           key={res.id}
-                          className="px-2 py-0.5 bg-emerald-600/10 text-emerald-400 rounded text-xs flex items-center gap-1"
+                          className="px-1.5 md:px-2 py-0.5 bg-emerald-600/10 text-emerald-400 rounded text-[11px] md:text-xs flex items-center gap-1"
                         >
                           {res.icon_url && (
-                            <img src={res.icon_url} alt="" className="w-4 h-4 object-contain" />
+                            <img src={res.icon_url} alt="" className="w-3.5 h-3.5 md:w-4 md:h-4 object-contain" />
                           )}
-                          {res.name}
+                          <span className="hidden sm:inline">{res.name}</span>
+                          <span className="sm:hidden">{res.name.length > 12 ? res.name.slice(0, 10) + '…' : res.name}</span>
                           <span className="text-emerald-600">×{res.count}</span>
                         </span>
                       ))}
                     </div>
                   </div>
-
-                  {/* Distance et directions depuis la précédente */}
-                  {step.distance_from_prev > 0 && (
-                    <div className="shrink-0 text-right space-y-1">
-                      <div className="text-xs text-gray-500">
-                        +{step.distance_from_prev} cases
-                      </div>
-                      {/* Flèches de direction pour atteindre cette map */}
-                      <div 
-                        className="flex flex-wrap justify-end items-center gap-0.5 max-w-[140px]" 
-                        title="Déplacements pour atteindre cette map"
-                      >
-                        <span className="text-[10px] text-gray-600 mr-1">trajet :</span>
-                        {arrows.map((arrow, i) => (
-                          <span
-                            key={i}
-                            className={`text-sm ${
-                              arrow === '→' ? 'text-blue-400' :
-                              arrow === '←' ? 'text-orange-400' :
-                              arrow === '↑' ? 'text-green-400' :
-                              'text-purple-400'
-                            }`}
-                          >
-                            {arrow}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
               );
