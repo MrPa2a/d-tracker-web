@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, List, BarChart2, Server, ChevronDown, ChevronRight, ScanLine, TrendingUp, Target, Hammer, Wrench, Zap, ChevronsUp, Calendar, Coins, Gamepad, Map } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, List, BarChart2, Server, ChevronDown, ChevronRight, ScanLine, TrendingUp, Target, Hammer, Wrench, Zap, ChevronsUp, Calendar, Coins, Map } from 'lucide-react';
 import { ProfileSelector } from '../components/ProfileSelector';
 import type { Profile } from '../types';
 
