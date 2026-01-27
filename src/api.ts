@@ -1060,7 +1060,7 @@ export interface HarvestRouteStep {
   pos_y: number;
   subarea_id: number;
   subarea_name: string;
-  resources: { id: number; name: string; count: number }[];
+  resources: { id: number; name: string; icon_url: string | null; count: number }[];
   distance_from_prev: number;
 }
 
