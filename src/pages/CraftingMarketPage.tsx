@@ -453,6 +453,28 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({
                             <div className={`font-mono font-bold ${getRoiColor(displayValues.roi)}`}>
                               {displayValues.roi.toFixed(1)}%
                             </div>
+                            {/* Labels de fiabilité ROI */}
+                            {!displayValues.isEstimated && (
+                              <div className="flex flex-col gap-0.5 mt-1">
+                                {(isStale(recipe.ingredients_last_update) || isStale(recipe.result_item_last_update)) && (recipe.craft_cost > 0 || recipe.sell_price > 0) && (
+                                  <div className="text-[10px] text-yellow-500/80 flex items-center gap-1">
+                                    <Clock size={10} />
+                                    <span>Obsolète</span>
+                                  </div>
+                                )}
+                                {recipe.ingredients_with_price < recipe.ingredients_count && (
+                                  <div className="text-[10px] text-orange-400 flex items-center gap-1">
+                                    <AlertTriangle size={10} />
+                                    <span>Partiel</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {displayValues.isEstimated && (
+                              <div className={`text-[10px] mt-1 ${displayValues.isIncomplete ? 'text-orange-400' : 'text-blue-400'}`}>
+                                {displayValues.isIncomplete ? '(partiel)' : '(estimé)'}
+                              </div>
+                            )}
                           </div>
                           <div className="text-right">
                             <div className="text-xs text-gray-500 mb-1">
@@ -467,6 +489,23 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({
                               {displayValues.margin > 0 ? '+' : ''}{formatKamas(displayValues.margin)}
                               <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
                             </div>
+                            {/* Labels de fiabilité Marge */}
+                            {!displayValues.isEstimated && (
+                              <div className="flex flex-col items-end gap-0.5 mt-1">
+                                {(isStale(recipe.ingredients_last_update) || isStale(recipe.result_item_last_update)) && (recipe.craft_cost > 0 || recipe.sell_price > 0) && (
+                                  <div className="text-[10px] text-yellow-500/80 flex items-center gap-1">
+                                    <Clock size={10} />
+                                    <span>Obsolète</span>
+                                  </div>
+                                )}
+                                {recipe.ingredients_with_price < recipe.ingredients_count && (
+                                  <div className="text-[10px] text-orange-400 flex items-center gap-1">
+                                    <AlertTriangle size={10} />
+                                    <span>Partielle</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </>
                       );
@@ -599,10 +638,41 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({
                                   {displayValues.isIncomplete ? '(partielle)' : '(estimée)'}
                                 </div>
                               )}
+                              {!displayValues.isEstimated && (isStale(recipe.ingredients_last_update) || isStale(recipe.result_item_last_update)) && (recipe.craft_cost > 0 || recipe.sell_price > 0) && (
+                                <div className="text-xs text-yellow-500/80 flex items-center justify-end gap-1" title="Marge basée sur des prix potentiellement obsolètes">
+                                  <Clock size={10} />
+                                  <span>Obsolète</span>
+                                </div>
+                              )}
+                              {!displayValues.isEstimated && recipe.ingredients_with_price < recipe.ingredients_count && (
+                                <div className="text-xs text-orange-400 flex items-center justify-end gap-1" title="Marge basée sur des prix partiels">
+                                  <AlertTriangle size={10} />
+                                  <span>Partielle</span>
+                                </div>
+                              )}
                             </div>
                           </td>
                           <td className={`p-4 text-right font-mono font-bold ${getRoiColor(displayValues.roi)}`}>
-                            {displayValues.roi.toFixed(1)}%
+                            <div className="flex flex-col items-end gap-1">
+                              <div>{displayValues.roi.toFixed(1)}%</div>
+                              {displayValues.isEstimated && (
+                                <div className={`text-xs font-normal ${displayValues.isIncomplete ? 'text-orange-400' : 'text-blue-400'}`}>
+                                  {displayValues.isIncomplete ? '(partiel)' : '(estimé)'}
+                                </div>
+                              )}
+                              {!displayValues.isEstimated && (isStale(recipe.ingredients_last_update) || isStale(recipe.result_item_last_update)) && (recipe.craft_cost > 0 || recipe.sell_price > 0) && (
+                                <div className="text-xs font-normal text-yellow-500/80 flex items-center justify-end gap-1" title="ROI basé sur des prix potentiellement obsolètes">
+                                  <Clock size={10} />
+                                  <span>Obsolète</span>
+                                </div>
+                              )}
+                              {!displayValues.isEstimated && recipe.ingredients_with_price < recipe.ingredients_count && (
+                                <div className="text-xs font-normal text-orange-400 flex items-center justify-end gap-1" title="ROI basé sur des prix partiels">
+                                  <AlertTriangle size={10} />
+                                  <span>Partiel</span>
+                                </div>
+                              )}
+                            </div>
                           </td>
                         </>
                       );

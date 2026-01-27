@@ -758,6 +758,13 @@ const BankCraftOpportunitiesPage: React.FC<BankCraftOpportunitiesPageProps> = ({
                         <div className={`font-mono font-bold ${getRoiColor(opportunity.roi)}`}>
                           {opportunity.roi.toFixed(1)}%
                         </div>
+                        {/* Labels de fiabilité ROI */}
+                        {isStale(opportunity.result_item_last_update) && opportunity.sell_price > 0 && (
+                          <div className="text-[10px] text-yellow-500/80 flex items-center gap-1 mt-1">
+                            <Clock size={10} />
+                            <span>Obsolète</span>
+                          </div>
+                        )}
                       </div>
                       <div className="text-right">
                         <div className="text-xs text-gray-500 mb-1">Marge</div>
@@ -765,6 +772,13 @@ const BankCraftOpportunitiesPage: React.FC<BankCraftOpportunitiesPageProps> = ({
                           {opportunity.margin > 0 ? '+' : ''}{formatKamas(opportunity.margin)}
                           <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
                         </div>
+                        {/* Labels de fiabilité Marge */}
+                        {isStale(opportunity.result_item_last_update) && opportunity.sell_price > 0 && (
+                          <div className="text-[10px] text-yellow-500/80 flex items-center justify-end gap-1 mt-1">
+                            <Clock size={10} />
+                            <span>Obsolète</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -885,13 +899,29 @@ const BankCraftOpportunitiesPage: React.FC<BankCraftOpportunitiesPageProps> = ({
                         </div>
                       </td>
                       <td className={`p-4 text-right font-mono font-medium ${opportunity.margin > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        <div className="flex items-center justify-end gap-1">
-                          {opportunity.margin > 0 ? '+' : ''}{formatKamas(opportunity.margin)}
-                          <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="flex items-center justify-end gap-1">
+                            {opportunity.margin > 0 ? '+' : ''}{formatKamas(opportunity.margin)}
+                            <img src={kamaIcon} alt="k" className="w-3 h-3 opacity-70" />
+                          </div>
+                          {isStale(opportunity.result_item_last_update) && opportunity.sell_price > 0 && (
+                            <div className="text-xs text-yellow-500/80 flex items-center justify-end gap-1" title="Marge basée sur un prix de vente potentiellement obsolète">
+                              <Clock size={10} />
+                              <span>Obsolète</span>
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className={`p-4 text-right font-mono font-bold ${getRoiColor(opportunity.roi)}`}>
-                        {opportunity.roi.toFixed(1)}%
+                        <div className="flex flex-col items-end gap-1">
+                          <div>{opportunity.roi.toFixed(1)}%</div>
+                          {isStale(opportunity.result_item_last_update) && opportunity.sell_price > 0 && (
+                            <div className="text-xs font-normal text-yellow-500/80 flex items-center justify-end gap-1" title="ROI basé sur un prix de vente potentiellement obsolète">
+                              <Clock size={10} />
+                              <span>Obsolète</span>
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="p-4 text-center">
                         <ChevronRight 
