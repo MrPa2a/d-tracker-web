@@ -166,7 +166,7 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({
     const date = new Date(dateStr);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-    return diff > 24 * 60 * 60 * 1000; // 24 hours
+    return diff > 7 * 24 * 60 * 60 * 1000; // 7 days
   };
 
   const formatDate = (dateStr?: string) => {
