@@ -3,9 +3,11 @@ import {
   fetchHarvestJobs,
   fetchHarvestResources,
   optimizeHarvestRoute,
+  fetchMapsGrid,
   type HarvestJob,
   type HarvestResource,
   type OptimizeResult,
+  type MapsGridResult,
 } from '../api';
 
 // Query keys
@@ -14,6 +16,8 @@ const harvestKeys = {
   jobs: () => [...harvestKeys.all, 'jobs'] as const,
   resources: (jobIds: number[], levelMin?: number, levelMax?: number) =>
     [...harvestKeys.all, 'resources', { jobIds, levelMin, levelMax }] as const,
+  mapsGrid: (bounds: { minX: number; maxX: number; minY: number; maxY: number } | null) =>
+    [...harvestKeys.all, 'maps-grid', bounds] as const,
 };
 
 /**
@@ -60,5 +64,22 @@ export function useOptimizeRoute() {
     }
   >({
     mutationFn: optimizeHarvestRoute,
+  });
+}
+
+/**
+ * Hook pour récupérer la grille de maps pour la visualisation du parcours
+ */
+export function useRouteMapGrid(bounds: {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+} | null) {
+  return useQuery<MapsGridResult, Error>({
+    queryKey: harvestKeys.mapsGrid(bounds),
+    queryFn: () => fetchMapsGrid(bounds!),
+    enabled: !!bounds,
+    staleTime: 1000 * 60 * 60 * 24, // 24h - données très statiques
   });
 }

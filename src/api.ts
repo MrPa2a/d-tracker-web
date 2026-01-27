@@ -1129,3 +1129,44 @@ export async function optimizeHarvestRoute(params: {
   if (!res.ok) throw new Error(`Erreur API harvest/optimize : ${res.status}`);
   return res.json();
 }
+
+// --------------------------------------------------------------------------
+// Maps Grid (for route visualization)
+// --------------------------------------------------------------------------
+
+export interface GridMapPosition {
+  map_id: number;
+  pos_x: number;
+  pos_y: number;
+  subarea_id: number;
+}
+
+export interface MapsGridResult {
+  bounds: { minX: number; maxX: number; minY: number; maxY: number };
+  total: number;
+  maps: GridMapPosition[];
+}
+
+export async function fetchMapsGrid(params: {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+  worldMap?: number;
+}): Promise<MapsGridResult> {
+  const urlParams = new URLSearchParams();
+  urlParams.set('resource', 'harvest');
+  urlParams.set('mode', 'maps_grid');
+  urlParams.set('minX', String(params.minX));
+  urlParams.set('maxX', String(params.maxX));
+  urlParams.set('minY', String(params.minY));
+  urlParams.set('maxY', String(params.maxY));
+  if (params.worldMap !== undefined) urlParams.set('worldMap', String(params.worldMap));
+
+  const res = await safeFetch(`${API_BASE}/api/data?${urlParams.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+  if (!res.ok) throw new Error(`Erreur API harvest/maps_grid : ${res.status}`);
+  return res.json();
+}

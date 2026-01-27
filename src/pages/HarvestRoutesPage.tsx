@@ -13,6 +13,7 @@ import {
   Package,
 } from 'lucide-react';
 import { useHarvestJobs, useHarvestResources, useOptimizeRoute } from '../hooks/useHarvest';
+import { RouteMap } from '../components/harvest';
 import type { HarvestRouteStep, HarvestResource } from '../api';
 
 /**
@@ -509,7 +510,7 @@ export const HarvestRoutesPage: React.FC = () => {
       )}
 
       {optimizeMutation.data && (
-        <div className="bg-[#1a1b1e] border border-white/5 rounded-xl overflow-hidden">
+        <div className="bg-[#1a1b1e] border border-white/5 rounded-xl">
           {/* En-tête des résultats */}
           <div className="p-4 border-b border-white/5">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
@@ -580,6 +581,14 @@ export const HarvestRoutesPage: React.FC = () => {
                 })}
               </div>
             )}
+          </div>
+
+          {/* Carte du parcours */}
+          <div className="p-4 border-b border-white/5 overflow-visible">
+            <RouteMap
+              steps={optimizeMutation.data.route}
+              startPosition={{ x: startX, y: startY }}
+            />
           </div>
 
           {/* Liste des étapes */}
