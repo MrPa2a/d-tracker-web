@@ -232,7 +232,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* Mini Games section */}
-          <NavLink
+          {/* <NavLink
             key={"/arcade"}
             to={"/arcade"}
             onClick={() => window.innerWidth < 768 && onClose()}
@@ -245,7 +245,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <Gamepad size={20} />
             <span className="font-medium">Arcade Hub</span>
-          </NavLink>
+          </NavLink> */}
         </nav>
 
         {/* Bottom Section - fixed at bottom, shrinks if needed */}
