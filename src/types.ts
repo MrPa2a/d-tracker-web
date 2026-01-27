@@ -157,7 +157,7 @@ export interface RecipeFilters {
   search?: string;
   limit?: number;
   offset?: number;
-  sort_by?: 'margin_desc' | 'roi_desc' | 'level_desc' | 'cost_asc';
+  sort_by?: 'margin_desc' | 'roi_desc' | 'level_desc' | 'cost_asc' | 'estimated_margin_desc' | 'estimated_roi_desc';
 }
 
 export interface Job {

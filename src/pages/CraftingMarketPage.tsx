@@ -34,7 +34,7 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [sortBy, setSortBy] = useState<string>(searchParams.get('sortBy') || 'margin_desc');
   // Modes: 'show_all' | 'hide_partial' | 'estimate_craft'
-  const [partialPriceMode, setPartialPriceMode] = useState<string>(searchParams.get('partialMode') || 'show_all');
+  const [partialPriceMode, setPartialPriceMode] = useState<string>(searchParams.get('partialMode') || 'estimate_craft');
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -51,6 +51,16 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({
   // Data Fetching
   const { data: jobs = [] } = useJobs();
 
+  // Map sort options to estimated variants when in estimate_craft mode
+  const effectiveSortBy = useMemo(() => {
+    if (partialPriceMode === 'estimate_craft') {
+      // Use estimated sort options for margin and ROI when estimating craft costs
+      if (sortBy === 'margin_desc') return 'estimated_margin_desc';
+      if (sortBy === 'roi_desc') return 'estimated_roi_desc';
+    }
+    return sortBy;
+  }, [sortBy, partialPriceMode]);
+
   const filters: RecipeFilters = {
     server: propServer || '',
     min_level: parseInt(minLevel) || 0,
@@ -60,7 +70,7 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({
     search: debouncedSearch || undefined,
     limit: limit,
     offset: (page - 1) * limit,
-    sort_by: sortBy as RecipeFilters['sort_by']
+    sort_by: effectiveSortBy as RecipeFilters['sort_by']
   };
 
   const { 
@@ -308,9 +318,9 @@ const CraftingMarketPage: React.FC<CraftingMarketPageProps> = ({
               onChange={(e) => setPartialPriceMode(e.target.value)}
               className="w-full bg-[#25262b] border border-white/10 rounded-lg pl-3 pr-10 py-2 text-sm text-white appearance-none focus:outline-none focus:border-blue-500 transition-all"
             >
-              <option value="show_all">Afficher tous</option>
-              <option value="hide_partial">Masquer incomplets</option>
               <option value="estimate_craft">Estimer via craft</option>
+              <option value="hide_partial">Masquer incomplets</option>
+              <option value="show_all">Afficher tous</option>
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
           </div>
